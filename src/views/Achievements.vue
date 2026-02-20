@@ -1,12 +1,11 @@
 <template>
-  <n-layout>
-    <n-layout-header bordered>
-      <n-page-header>
-        <template #title>成就系统</template>
-      </n-page-header>
-    </n-layout-header>
-    <n-layout-content>
       <n-card :bordered="false">
+        <game-guide>
+          <p>🏅 完成特定条件解锁成就，获得<strong>焰灵+永久属性加成</strong></p>
+          <p>📂 共7大类：装备、探索、战斗、修为、突破、收集、资源、焰炼</p>
+          <p>💪 成就奖励包括：伤害加成、防御加成、幸运值、焰灵速率等</p>
+          <p>🎯 每类10个成就，由易到难逐步解锁</p>
+        </game-guide>
         <n-tabs type="line">
           <n-tab-pane
             v-for="category in achievementCategories"
@@ -47,8 +46,6 @@
           </n-tab-pane>
         </n-tabs>
       </n-card>
-    </n-layout-content>
-  </n-layout>
 </template>
 
 <script setup>
@@ -57,6 +54,7 @@
   import { ref, onMounted } from 'vue'
   import { useMessage } from 'naive-ui'
   import { checkAchievements } from '../plugins/achievements'
+  import GameGuide from '../components/GameGuide.vue'
 
   const playerStore = usePlayerStore()
   const message = useMessage()
@@ -66,9 +64,25 @@
     const newlyCompletedAchievements = checkAchievements(playerStore)
     // 显示新完成的成就
     newlyCompletedAchievements.forEach(achievement => {
-      message.success(`恭喜解锁新成就：${achievement.name}！\n\n${achievement.description}`, { duration: 3000 })
+      message.success(`恭喜解锁新焰功：${achievement.name}！\n\n${achievement.description}`, { duration: 3000 })
     })
   })
+
+  // 获取成就类别名称
+  const getCategoryName = (category) => {
+    const categoryNames = {
+      equipment: '装备焰功',
+      dungeon_explore: '焚天塔探索',
+      dungeon_combat: '焚天塔战斗',
+      cultivation: '冥想焰功',
+      breakthrough: '突破焰功',
+      exploration: '探索焰功',
+      collection: '收集焰功',
+      resources: '资源焰功',
+      alchemy: '焰炼焰功'
+    }
+    return categoryNames[category] || '其他焰功'
+  }
 
   // 获取所有成就类别
   const achievementCategories = Object.entries(achievements).map(([key, value]) => ({
@@ -76,22 +90,6 @@
     name: getCategoryName(key),
     achievements: value
   }))
-
-  // 获取成就类别名称
-  const getCategoryName = category => {
-    const categoryNames = {
-      equipment: '装备成就',
-      dungeon_explore: '秘境探索',
-      dungeon_combat: '秘境战斗',
-      cultivation: '修炼成就',
-      breakthrough: '突破成就',
-      exploration: '探索成就',
-      collection: '收集成就',
-      resources: '资源成就',
-      alchemy: '炼丹成就'
-    }
-    return categoryNames[category] || '其他成就'
-  }
 
   // 检查成就是否完成
   const isAchievementCompleted = achievementId => {
@@ -102,13 +100,13 @@
   const showAchievementDetails = achievement => {
     let rewardText = '奖励：'
     if (achievement.reward) {
-      if (achievement.reward.spirit) rewardText += `\n${achievement.reward.spirit} 灵力`
+      if (achievement.reward.spirit) rewardText += `\n${achievement.reward.spirit} 焰灵`
       if (achievement.reward.spiritRate)
-        rewardText += `\n${(achievement.reward.spiritRate * 100 - 100).toFixed(0)}% 灵力获取提升`
+        rewardText += `\n${(achievement.reward.spiritRate * 100 - 100).toFixed(0)}% 焰灵获取提升`
       if (achievement.reward.herbRate)
-        rewardText += `\n${(achievement.reward.herbRate * 100 - 100).toFixed(0)}% 灵草获取提升`
+        rewardText += `\n${(achievement.reward.herbRate * 100 - 100).toFixed(0)}% 焰草获取提升`
       if (achievement.reward.alchemyRate)
-        rewardText += `\n${(achievement.reward.alchemyRate * 100 - 100).toFixed(0)}% 炼丹成功率提升`
+        rewardText += `\n${(achievement.reward.alchemyRate * 100 - 100).toFixed(0)}% 焰炼成功率提升`
       if (achievement.reward.luck) rewardText += `\n${(achievement.reward.luck * 100 - 100).toFixed(0)}% 幸运提升`
     }
     message.info(`${achievement.name}\n\n${achievement.description}\n\n${rewardText}`, { duration: 5000 })
@@ -129,5 +127,14 @@
 <style scoped>
   .completed {
     background-color: rgba(24, 160, 88, 0.1);
+  }
+  @media (max-width: 500px) {
+    :deep(.n-grid) {
+      display: grid !important;
+      grid-template-columns: 1fr !important;
+    }
+    :deep(.n-grid .n-gi) {
+      grid-column: auto !important;
+    }
   }
 </style>

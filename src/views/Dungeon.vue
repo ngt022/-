@@ -358,37 +358,33 @@
 
   // 创建玩家战斗实体
   const createPlayerEntity = () => {
-    // 基础属性
+    const s = playerStore.getTotalStats()
     const baseStats = {
-      health: playerStore.baseAttributes.health,
-      damage: playerStore.baseAttributes.attack,
-      defense: playerStore.baseAttributes.defense,
-      speed: playerStore.baseAttributes.speed,
-      // 战斗属性
-      critRate: playerStore.combatAttributes.critRate,
-      comboRate: playerStore.combatAttributes.comboRate,
-      counterRate: playerStore.combatAttributes.counterRate,
-      stunRate: playerStore.combatAttributes.stunRate,
-      dodgeRate: playerStore.combatAttributes.dodgeRate,
-      vampireRate: playerStore.combatAttributes.vampireRate,
-      // 战斗抗性
-      critResist: playerStore.combatResistance.critResist,
-      comboResist: playerStore.combatResistance.comboResist,
-      counterResist: playerStore.combatResistance.counterResist,
-      stunResist: playerStore.combatResistance.stunResist,
-      dodgeResist: playerStore.combatResistance.dodgeResist,
-      vampireResist: playerStore.combatResistance.vampireResist,
-      // 特殊属性
-      healBoost: playerStore.specialAttributes.healBoost,
-      critDamageBoost: playerStore.specialAttributes.critDamageBoost,
-      critDamageReduce: playerStore.specialAttributes.critDamageReduce,
-      finalDamageBoost: playerStore.specialAttributes.finalDamageBoost,
-      finalDamageReduce: playerStore.specialAttributes.finalDamageReduce,
-      combatBoost: playerStore.specialAttributes.combatBoost,
-      resistanceBoost: playerStore.specialAttributes.resistanceBoost,
-      // 其他属性
+      health: s.health,
+      damage: s.attack,
+      defense: s.defense,
+      speed: s.speed,
+      critRate: s.critRate,
+      comboRate: s.comboRate,
+      counterRate: s.counterRate,
+      stunRate: s.stunRate,
+      dodgeRate: s.dodgeRate,
+      vampireRate: s.vampireRate,
+      critResist: s.critResist,
+      comboResist: s.comboResist,
+      counterResist: s.counterResist,
+      stunResist: s.stunResist,
+      dodgeResist: s.dodgeResist,
+      vampireResist: s.vampireResist,
+      healBoost: s.healBoost,
+      critDamageBoost: s.critDamageBoost,
+      critDamageReduce: s.critDamageReduce,
+      finalDamageBoost: s.finalDamageBoost,
+      finalDamageReduce: s.finalDamageReduce,
+      combatBoost: s.combatBoost,
+      resistanceBoost: s.resistanceBoost,
       spiritDamage: playerStore.spirit * 0.1,
-      maxHealth: playerStore.baseAttributes.health
+      maxHealth: s.health
     }
     const entity = new CombatEntity(playerStore.name, playerStore.level, baseStats, playerStore.realm)
     // 应用所有激活的增益效果

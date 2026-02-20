@@ -1,4 +1,4 @@
-// 丹药品阶
+// 焰丹品阶
 export const pillGrades = {
   grade1: { name: '一品', difficulty: 1, successRate: 0.9 },
   grade2: { name: '二品', difficulty: 1.2, successRate: 0.8 },
@@ -11,10 +11,10 @@ export const pillGrades = {
   grade9: { name: '九品', difficulty: 6, successRate: 0.1 }
 }
 
-// 丹药类型
+// 焰丹类型
 export const pillTypes = {
-  spirit: { name: '灵力类', effectMultiplier: 1 },
-  cultivation: { name: '修炼类', effectMultiplier: 1.2 },
+  spirit: { name: '焰灵类', effectMultiplier: 1 },
+  cultivation: { name: '焰修类', effectMultiplier: 1.2 },
   attribute: { name: '属性类', effectMultiplier: 1.5 },
   special: { name: '特殊类', effectMultiplier: 2 }
 }
@@ -30,7 +30,7 @@ export const pillRecipes = [
   {
     id: 'spirit_gathering',
     name: '聚灵丹',
-    description: '提升灵力恢复速度的丹药',
+    description: '提升焰灵恢复速度的焰丹。效果：焰灵恢复+20%，持续60分钟',
     grade: 'grade1',
     type: 'spirit',
     materials: [
@@ -47,7 +47,7 @@ export const pillRecipes = [
   {
     id: 'cultivation_boost',
     name: '聚气丹',
-    description: '提升修炼速度的丹药',
+    description: '提升焰修速度的焰丹。效果：焰修速度+30%，持续30分钟',
     grade: 'grade2',
     type: 'cultivation',
     materials: [
@@ -64,7 +64,7 @@ export const pillRecipes = [
   {
     id: 'thunder_power',
     name: '雷灵丹',
-    description: '提升战斗属性的丹药',
+    description: '提升战斗属性的焰丹。效果：战斗属性+40%，持续15分钟',
     grade: 'grade3',
     type: 'attribute',
     materials: [
@@ -81,7 +81,7 @@ export const pillRecipes = [
   {
     id: 'immortal_essence',
     name: '仙灵丹',
-    description: '全属性提升的神奇丹药',
+    description: '全属性提升的神奇焰丹。效果：全属性+50%，持续10分钟',
     grade: 'grade4',
     type: 'special',
     materials: [
@@ -98,7 +98,7 @@ export const pillRecipes = [
   {
     id: 'five_elements_pill',
     name: '五行丹',
-    description: '融合五行之力的神奇丹药，全面提升修炼者素质',
+    description: '融合五行之力的神奇焰丹，全面提升焰修者素质。效果：全属性+80%，持续20分钟',
     grade: 'grade5',
     type: 'attribute',
     materials: [
@@ -115,7 +115,7 @@ export const pillRecipes = [
   {
     id: 'celestial_essence_pill',
     name: '天元丹',
-    description: '凝聚天地精华的极品丹药，大幅提升修炼速度',
+    description: '凝聚天地精华的极品焰丹，大幅提升焰修速度。效果：焰修速度+100%，持续30分钟',
     grade: 'grade6',
     type: 'cultivation',
     materials: [
@@ -132,7 +132,7 @@ export const pillRecipes = [
   {
     id: 'sun_moon_pill',
     name: '日月丹',
-    description: '融合日月精华的丹药，能大幅提升灵力上限',
+    description: '融合日月精华的焰丹，能大幅提升焰灵上限。效果：焰灵上限+150%，持续40分钟',
     grade: 'grade7',
     type: 'spirit',
     materials: [
@@ -149,7 +149,7 @@ export const pillRecipes = [
   {
     id: 'phoenix_rebirth_pill',
     name: '涅槃丹',
-    description: '蕴含不死凤凰之力的神丹，能在战斗中自动恢复生命',
+    description: '蕴含不死凤凰之力的神丹，能在战斗中自动恢复生命。效果：战斗中自动恢复10%生命，持续60分钟',
     grade: 'grade8',
     type: 'special',
     materials: [
@@ -166,7 +166,7 @@ export const pillRecipes = [
   {
     id: 'spirit_recovery',
     name: '回灵丹',
-    description: '快速恢复灵力的丹药',
+    description: '快速恢复焰灵的焰丹。效果：焰灵恢复速度+40%，持续20分钟',
     grade: 'grade2',
     type: 'spirit',
     materials: [
@@ -183,7 +183,7 @@ export const pillRecipes = [
   {
     id: 'essence_condensation',
     name: '凝元丹',
-    description: '提升修炼效率的高级丹药',
+    description: '提升焰修效率的高级焰丹。效果：焰修效率+50%，持续25分钟',
     grade: 'grade3',
     type: 'cultivation',
     materials: [
@@ -200,7 +200,7 @@ export const pillRecipes = [
   {
     id: 'mind_clarity',
     name: '清心丹',
-    description: '提升心境和悟性的丹药',
+    description: '提升心境和悟性的焰丹。效果：悟性+30%，持续40分钟',
     grade: 'grade3',
     type: 'special',
     materials: [
@@ -217,7 +217,7 @@ export const pillRecipes = [
   {
     id: 'fire_essence',
     name: '火元丹',
-    description: '提升火属性修炼速度的丹药',
+    description: '提升火属性焰修速度的焰丹。效果：火属性焰修速度+60%，持续30分钟',
     grade: 'grade4',
     type: 'attribute',
     materials: [
@@ -233,7 +233,7 @@ export const pillRecipes = [
   }
 ]
 
-// 计算丹药实际效果（基于玩家境界）
+// 计算焰丹实际效果（基于玩家境界）
 export const calculatePillEffect = (recipe, playerLevel) => {
   const grade = pillGrades[recipe.grade]
   const type = pillTypes[recipe.type]
@@ -247,7 +247,7 @@ export const calculatePillEffect = (recipe, playerLevel) => {
   }
 }
 
-// 尝试合成丹药
+// 尝试合成焰丹
 export const tryCreatePill = (recipe, herbs, player, fragments = 0, luck = 1) => {
   // 检查材料是否足够
   for (const material of recipe.materials) {
@@ -263,7 +263,7 @@ export const tryCreatePill = (recipe, herbs, player, fragments = 0, luck = 1) =>
   // 计算成功率（受幸运值影响）
   const grade = pillGrades[recipe.grade]
   if (Math.random() > grade.successRate * luck) {
-    return { success: false, message: '炼制失败' }
+    return { success: false, message: '焰炼失败' }
   }
-  return { success: true, message: '炼制成功' }
+  return { success: true, message: '焰炼成功' }
 }

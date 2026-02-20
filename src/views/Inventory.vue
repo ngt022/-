@@ -1,226 +1,177 @@
 <template>
-  <n-layout>
-    <n-layout-header bordered>
-      <n-page-header>
-        <template #title>背包</template>
-      </n-page-header>
-    </n-layout-header>
-    <n-layout-content>
-      <n-card :bordered="false">
-        <n-tabs type="line">
-          <n-tab-pane name="equipment" tab="装备">
-            <n-grid :cols="2" :x-gap="12" :y-gap="8">
-              <n-grid-item v-for="(name, type) in equipmentTypes" :key="type">
-                <n-card hoverable @click="showEquipmentList(type)">
-                  <template #header>
-                    <n-space justify="space-between">
-                      <span>{{ name }}</span>
-                      <n-button
-                        size="small"
-                        type="error"
-                        @click.stop="unequipItem(type)"
-                        v-if="playerStore.equippedArtifacts[type]"
-                      >
-                        卸下
-                      </n-button>
-                    </n-space>
-                  </template>
-                  <p v-if="playerStore.equippedArtifacts[type]">
-                    {{ playerStore.equippedArtifacts[type].name }}
-                  </p>
-                  <p v-else>未装备</p>
-                  <template #footer>
-                    <n-space justify="space-between">
-                      <span>{{ name }}</span>
-                      <n-button
-                        size="small"
-                        type="info"
-                        @click.stop="showEquipmentDetails(playerStore.equippedArtifacts[type])"
-                        v-if="playerStore.equippedArtifacts[type]"
-                      >
-                        详细
-                      </n-button>
-                    </n-space>
-                  </template>
-                </n-card>
-              </n-grid-item>
-            </n-grid>
-          </n-tab-pane>
-          <n-tab-pane name="herbs" tab="灵草">
-            <n-grid :cols="2" :x-gap="12" :y-gap="8" v-if="groupedHerbs.length">
-              <n-grid-item v-for="herb in groupedHerbs" :key="herb.id">
-                <n-card hoverable>
-                  <template #header>
-                    <n-space justify="space-between">
-                      <span>{{ herb.name }}({{ herb.count }})</span>
-                    </n-space>
-                  </template>
-                  <p>{{ herb.description }}</p>
-                </n-card>
-              </n-grid-item>
-            </n-grid>
-            <n-empty v-else />
-          </n-tab-pane>
-          <n-tab-pane name="pills" tab="丹药">
-            <n-grid :cols="2" :x-gap="12" :y-gap="8" v-if="groupedPills.length">
-              <n-grid-item v-for="pill in groupedPills" :key="pill.id">
-                <n-card hoverable>
-                  <template #header>
-                    <n-space justify="space-between">
-                      <span>{{ pill.name }}({{ pill.count }})</span>
-                      <n-button size="small" type="primary" @click="usePill(pill)">服用</n-button>
-                    </n-space>
-                  </template>
-                  <p>{{ pill.description }}</p>
-                </n-card>
-              </n-grid-item>
-            </n-grid>
-            <n-empty v-else />
-          </n-tab-pane>
-          <n-tab-pane name="formulas" tab="丹方">
-            <n-tabs type="segment">
-              <n-tab-pane name="complete" tab="完整丹方">
-                <n-grid :cols="2" :x-gap="12" :y-gap="8" v-if="groupedFormulas.complete.length">
-                  <n-grid-item v-for="formula in groupedFormulas.complete" :key="formula.id">
-                    <n-card hoverable>
-                      <template #header>
-                        <n-space justify="space-between">
-                          <span>{{ formula.name }}</span>
-                          <n-space>
-                            <n-tag type="success" size="small">完整</n-tag>
-                            <n-tag type="info" size="small">{{ pillGrades[formula.grade].name }}</n-tag>
-                            <n-tag type="warning" size="small">{{ pillTypes[formula.type].name }}</n-tag>
-                          </n-space>
-                        </n-space>
-                      </template>
-                      <p>{{ formula.description }}</p>
-                    </n-card>
-                  </n-grid-item>
-                </n-grid>
-                <n-empty v-else />
-              </n-tab-pane>
-              <n-tab-pane name="incomplete" tab="残缺丹方">
-                <n-grid :cols="2" :x-gap="12" :y-gap="8" v-if="groupedFormulas.incomplete.length">
-                  <n-grid-item v-for="formula in groupedFormulas.incomplete" :key="formula.id">
-                    <n-card hoverable>
-                      <template #header>
-                        <n-space justify="space-between">
-                          <span>{{ formula.name }}</span>
-                          <n-space>
-                            <n-tag type="warning" size="small">残缺</n-tag>
-                            <n-tag type="info" size="small">{{ pillGrades[formula.grade].name }}</n-tag>
-                            <n-tag type="warning" size="small">{{ pillTypes[formula.type].name }}</n-tag>
-                          </n-space>
-                        </n-space>
-                      </template>
-                      <p>{{ formula.description }}</p>
-                      <n-progress
-                        type="line"
-                        :percentage="Number(((formula.fragments / formula.fragmentsNeeded) * 100).toFixed(2))"
-                        :show-indicator="true"
-                        indicator-placement="inside"
-                      >
-                        收集进度: {{ formula.fragments }}/{{ formula.fragmentsNeeded }}
-                      </n-progress>
-                    </n-card>
-                  </n-grid-item>
-                </n-grid>
-                <n-empty v-else />
-              </n-tab-pane>
-            </n-tabs>
-          </n-tab-pane>
-          <n-tab-pane name="pets" tab="灵宠">
-            <n-space style="margin-bottom: 16px">
-              <n-select
-                v-model:value="selectedRarityToRelease"
-                :options="options"
-                placeholder="选择放生品阶"
-                style="width: 150px"
-              />
-              <n-button
-                @click="showBatchReleaseConfirm = true"
-                :disabled="!playerStore.items.filter(item => item.type === 'pet').length"
-              >
-                一键放生
-              </n-button>
-            </n-space>
-            <n-modal v-model:show="showBatchReleaseConfirm" preset="dialog" title="批量放生确认" style="width: 600px">
-              <p>
-                确定要放生{{
-                  selectedRarityToRelease === 'all' ? '所有' : petRarities[selectedRarityToRelease].name
-                }}品阶的未出战灵宠吗？此操作不可撤销。
-              </p>
-              <n-space justify="end" style="margin-top: 16px">
-                <n-button size="small" @click="showBatchReleaseConfirm = false">取消</n-button>
-                <n-button size="small" type="error" @click="batchReleasePets">确认放生</n-button>
-              </n-space>
-            </n-modal>
-            <n-pagination
-              v-if="filteredPets.length > 12"
-              v-model:page="currentPage"
-              :page-size="pageSize"
-              :item-count="filteredPets.length"
-              @update:page-size="onPageSizeChange"
-              :page-slot="7"
-            />
-            <n-grid v-if="displayPets.length" :cols="2" :x-gap="12" :y-gap="8" style="margin-top: 16px">
-              <n-grid-item v-for="pet in displayPets" :key="pet.id">
-                <n-card hoverable>
-                  <template #header>
-                    <n-space justify="space-between">
-                      <span>{{ pet.name }}</span>
-                      <n-button size="small" type="primary" @click="useItem(pet)">
-                        {{ playerStore.activePet?.id === pet.id ? '召回' : '出战' }}
-                      </n-button>
-                    </n-space>
-                  </template>
-                  <p>{{ pet.description }}</p>
-                  <n-space vertical>
-                    <n-tag :style="{ color: petRarities[pet.rarity].color }">
-                      {{ petRarities[pet.rarity].name }}
-                    </n-tag>
-                    <n-space justify="space-between">
-                      <n-text>等级: {{ pet.level || 1 }}</n-text>
-                      <n-text>星级: {{ pet.star || 0 }}</n-text>
-                      <n-button size="small" @click="showPetDetails(pet)">详情</n-button>
-                    </n-space>
-                  </n-space>
-                </n-card>
-              </n-grid-item>
-            </n-grid>
-            <n-empty v-else />
-          </n-tab-pane>
-        </n-tabs>
-      </n-card>
-    </n-layout-content>
-  </n-layout>
-  <!-- 灵宠详情弹窗 -->
-  <n-modal v-model:show="showPetModal" preset="dialog" title="灵宠详情" style="width: 600px">
+  <div class="storage-container">
+    <game-guide>
+      <p>🎒 共<strong>13个装备栏位</strong>：焰杖、头部、衣服、裤子、鞋子、肩甲、手套、护腕、焰心链、符文戒×2、腰带、焰器</p>
+      <p>🎨 6个品质：<strong>凡品→下品→中品→上品→极品→仙品</strong></p>
+      <p>🔥 <strong>淬火</strong>：消耗淬火石强化装备，每级+10%属性，最高100级</p>
+      <p>✨ <strong>铭符</strong>：消耗符文石重随机属性，±30%浮动，30%概率换属性</p>
+      <p>⚡ 一键穿戴/卸下快速管理装备</p>
+      <p>🐾 <strong>焰兽</strong>：出战获得全属性加成，消耗精华升级，同名同品质焰兽可升星</p>
+      <p>🌿 <strong>焰草</strong>：炼丹材料，5个品质（普通→仙品），品质越高效果倍率越大</p>
+      <p>💊 <strong>焰丹</strong>：服用获得临时buff，效果随境界提升</p>
+    </game-guide>
+    <!-- 顶部操作栏 -->
+    <div class="storage-header">
+      <span class="storage-title">🏛️ 储藏室</span>
+      <div class="storage-actions">
+        <n-button type="primary" size="small" @click="oneKeyEquip">⚡ 一键穿戴</n-button>
+        <n-button type="warning" size="small" @click="oneKeyUnequip">🔄 一键卸下</n-button>
+      </div>
+    </div>
+
+    <!-- 装备栏 -->
+    <div class="equip-bar">
+      <div class="equip-bar-label">已装备</div>
+      <div class="equip-bar-grid">
+        <div
+          v-for="(name, type) in equipmentTypes" :key="type"
+          class="equip-bar-slot"
+          :class="playerStore.equippedArtifacts[type] ? 'eq-quality-' + playerStore.equippedArtifacts[type].quality : 'eq-empty'"
+          @click="onEquipSlotClick(type)"
+        >
+          <img v-if="equipTypeImages[type] && !imgLoadFailed[type]"
+            :src="equipTypeImages[type]"
+            class="eq-slot-icon"
+            :class="{ 'eq-slot-icon-empty': !playerStore.equippedArtifacts[type] }"
+            @error="onEquipImgError(type)"
+          />
+          <span v-else class="eq-slot-emoji" :class="{ 'eq-slot-emoji-empty': !playerStore.equippedArtifacts[type] }">{{ equipTypeIcons[type] || '📦' }}</span>
+          <span class="eq-slot-name">{{ playerStore.equippedArtifacts[type] ? playerStore.equippedArtifacts[type].name : name }}</span>
+          <span v-if="playerStore.equippedArtifacts[type]?.enhanceLevel" class="eq-enhance">+{{ playerStore.equippedArtifacts[type].enhanceLevel }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 筛选 tab -->
+    <div class="filter-tabs">
+      <span
+        v-for="tab in filterTabs" :key="tab.value"
+        class="filter-tab" :class="{ active: activeFilter === tab.value }"
+        @click="activeFilter = tab.value"
+      >{{ tab.label }}</span>
+    </div>
+
+    <!-- 容量条 -->
+    <div class="capacity-bar" v-if="true">
+      <span class="capacity-text">{{ currentCategoryLabel }} {{ currentCount }}/{{ currentLimit }}</span>
+      <div class="capacity-track">
+        <div class="capacity-fill" :style="{ width: capacityPercent + '%' }" :class="{ 'capacity-full': capacityPercent >= 90 }"></div>
+      </div>
+      <n-button v-if="canExpand(activeFilter)" size="tiny" type="warning" @click="expandStorage(activeFilter)">
+        🔓 扩容 ({{ getExpandCost(activeFilter) }}焰晶)
+      </n-button>
+      <span v-else class="capacity-max">已满级</span>
+    </div>
+
+    <!-- 储藏室网格 -->
+    <div class="storage-grid" v-if="activeFilter !== 'formula' && activeFilter !== 'pet'">
+      <div
+        v-for="item in filteredStorageItems" :key="item._key"
+        class="storage-cell"
+        :class="getCellQualityClass(item)"
+        @click="onStorageItemClick(item)"
+      >
+        <div class="cell-icon-area">
+          <img v-if="item._icon && !item._imgFail" :src="item._icon" class="cell-img" @error="item._imgFail = true" />
+          <span v-else class="cell-emoji">{{ item._emoji }}</span>
+        </div>
+        <span class="cell-label">{{ item._displayName || item.name }}</span>
+        <span v-if="item._count > 1" class="cell-count">×{{ item._count }}</span>
+        <span v-if="item._category === 'pill'" class="cell-use-hint">服用</span>
+      </div>
+      <!-- 空格子填充 -->
+      <div v-for="n in emptySlots" :key="'empty-' + n" class="storage-cell storage-cell-empty">
+        <span class="empty-dot">·</span>
+      </div>
+    </div>
+
+    <!-- 焰方区域（保留原有） -->
+    <div class="formula-section" v-if="activeFilter === 'formula'">
+      <div class="equip-bar-label" style="margin-top:16px">📜 焰方</div>
+      <n-tabs type="segment" size="small">
+        <n-tab-pane name="complete" tab="完整焰方">
+          <div class="storage-grid" v-if="groupedFormulas.complete.length">
+            <div v-for="formula in groupedFormulas.complete" :key="formula.id" class="storage-cell formula-cell" @click="() => {}">
+              <div class="cell-icon-area">
+                <img v-if="getFormulaImage(formula.name)" :src="getFormulaImage(formula.name)" class="cell-img" />
+                <span v-else class="cell-emoji">📜</span>
+              </div>
+              <span class="cell-label">{{ formula.name }}</span>
+              <n-tag type="success" size="tiny" style="margin-top:2px">完整</n-tag>
+            </div>
+          </div>
+          <n-empty v-else description="暂无完整焰方" size="small" />
+        </n-tab-pane>
+        <n-tab-pane name="incomplete" tab="残缺焰方">
+          <div class="storage-grid" v-if="groupedFormulas.incomplete.length">
+            <div v-for="formula in groupedFormulas.incomplete" :key="formula.id" class="storage-cell formula-cell" @click="() => {}">
+              <div class="cell-icon-area">
+                <img v-if="getFormulaImage(formula.name)" :src="getFormulaImage(formula.name)" class="cell-img" />
+                <span v-else class="cell-emoji">📜</span>
+              </div>
+              <span class="cell-label">{{ formula.name }}</span>
+              <n-tag type="warning" size="tiny" style="margin-top:2px">{{ formula.fragments }}/{{ formula.fragmentsNeeded }}</n-tag>
+            </div>
+          </div>
+          <n-empty v-else description="暂无残缺焰方" size="small" />
+        </n-tab-pane>
+      </n-tabs>
+    </div>
+
+    <!-- 焰兽区域 -->
+    <div class="pet-section" v-if="activeFilter === 'pet'">
+      <div class="equip-bar-label" style="margin-top:16px">
+        🐾 焰兽
+        <n-space style="display:inline-flex;margin-left:12px" size="small">
+          <n-select v-model:value="selectedRarityToRelease" :options="options" placeholder="品阶" style="width:120px" size="small" />
+          <n-button size="small" @click="showBatchReleaseConfirm = true" :disabled="!playerStore.items.filter(item => item.type === 'pet').length">一键放生</n-button>
+        </n-space>
+      </div>
+      <n-modal v-model:show="showBatchReleaseConfirm" preset="dialog" title="批量放生确认" style="max-width:600px;width:90vw">
+        <p>确定要放生{{ selectedRarityToRelease === 'all' ? '所有' : petRarities[selectedRarityToRelease].name }}品阶的未出战焰兽吗？此操作不可撤销。</p>
+        <n-space justify="end" style="margin-top:16px">
+          <n-button size="small" @click="showBatchReleaseConfirm = false">取消</n-button>
+          <n-button size="small" type="error" @click="batchReleasePets">确认放生</n-button>
+        </n-space>
+      </n-modal>
+      <n-pagination v-if="filteredPets.length > 12" v-model:page="currentPage" :page-size="pageSize" :item-count="filteredPets.length" @update:page-size="onPageSizeChange" :page-slot="7" style="margin:8px 0" />
+      <div class="storage-grid" v-if="displayPets.length">
+        <div v-for="pet in displayPets" :key="pet.id"
+          class="storage-cell pet-cell"
+          :class="['pet-q-' + pet.rarity, playerStore.activePet?.id === pet.id ? 'pet-active-cell' : '']"
+          @click="showPetDetails(pet)"
+        >
+          <img v-if="getPetImage(pet.name)" :src="getPetImage(pet.name)" class="cell-img pet-img" loading="lazy" />
+          <span v-else class="cell-emoji">🐾</span>
+          <span class="cell-label">{{ pet.name }}</span>
+          <span class="pet-stars-mini">{{ '★'.repeat(Math.min(pet.star || 0, 5)) }}</span>
+          <span v-if="playerStore.activePet?.id === pet.id" class="cell-count" style="background:#FFD700;color:#000">战</span>
+        </div>
+      </div>
+      <n-empty v-else description="暂无焰兽" size="small" />
+    </div>
+  </div>
+
+  <!-- 焰兽详情弹窗 -->
+  <n-modal v-model:show="showPetModal" preset="dialog" title="焰兽详情" style="max-width:600px;width:90vw">
     <template v-if="selectedPet">
+      <div class="pet-detail-header" v-if="getPetImage(selectedPet.name)">
+        <img :src="getPetImage(selectedPet.name)" class="pet-detail-avatar" loading="lazy" />
+      </div>
       <n-descriptions bordered>
         <n-descriptions-item label="名称">{{ selectedPet.name }}</n-descriptions-item>
-        <n-descriptions-item label="品质">
-          <n-tag :style="{ color: petRarities[selectedPet.rarity].color }">
-            {{ petRarities[selectedPet.rarity].name }}
-          </n-tag>
-        </n-descriptions-item>
+        <n-descriptions-item label="品质"><n-tag :style="{ color: petRarities[selectedPet.rarity].color }">{{ petRarities[selectedPet.rarity].name }}</n-tag></n-descriptions-item>
         <n-descriptions-item label="等级">{{ selectedPet.level || 1 }}</n-descriptions-item>
         <n-descriptions-item label="星级">{{ selectedPet.star || 0 }}</n-descriptions-item>
-        <n-descriptions-item label="境界">{{ Math.floor((selectedPet.star || 0) / 5) }}阶</n-descriptions-item>
+        <n-descriptions-item label="焰阶">{{ Math.floor((selectedPet.star || 0) / 5) }}阶</n-descriptions-item>
       </n-descriptions>
       <n-divider>属性加成</n-divider>
       <n-descriptions bordered>
-        <n-descriptions-item label="攻击加成">
-          +{{ (getPetBonus(selectedPet).attack * 100).toFixed(1) }}%
-        </n-descriptions-item>
-        <n-descriptions-item label="防御加成">
-          +{{ (getPetBonus(selectedPet).defense * 100).toFixed(1) }}%
-        </n-descriptions-item>
-        <n-descriptions-item label="生命加成">
-          +{{ (getPetBonus(selectedPet).health * 100).toFixed(1) }}%
-        </n-descriptions-item>
+        <n-descriptions-item label="攻击加成">+{{ (getPetBonus(selectedPet).attack * 100).toFixed(1) }}%</n-descriptions-item>
+        <n-descriptions-item label="防御加成">+{{ (getPetBonus(selectedPet).defense * 100).toFixed(1) }}%</n-descriptions-item>
+        <n-descriptions-item label="生命加成">+{{ (getPetBonus(selectedPet).health * 100).toFixed(1) }}%</n-descriptions-item>
       </n-descriptions>
-      <n-divider>灵宠属性</n-divider>
+      <n-divider>焰兽属性</n-divider>
       <n-collapse>
         <n-collapse-item title="展开" name="1">
           <n-divider>基础属性</n-divider>
@@ -232,99 +183,56 @@
           </n-descriptions>
           <n-divider>战斗属性</n-divider>
           <n-descriptions bordered :column="3">
-            <n-descriptions-item label="暴击率">
-              {{ ((selectedPet.combatAttributes?.critRate || 0) * 100).toFixed(1) }}%
-            </n-descriptions-item>
-            <n-descriptions-item label="连击率">
-              {{ ((selectedPet.combatAttributes?.comboRate || 0) * 100).toFixed(1) }}%
-            </n-descriptions-item>
-            <n-descriptions-item label="反击率">
-              {{ ((selectedPet.combatAttributes?.counterRate || 0) * 100).toFixed(1) }}%
-            </n-descriptions-item>
-            <n-descriptions-item label="眩晕率">
-              {{ ((selectedPet.combatAttributes?.stunRate || 0) * 100).toFixed(1) }}%
-            </n-descriptions-item>
-            <n-descriptions-item label="闪避率">
-              {{ ((selectedPet.combatAttributes?.dodgeRate || 0) * 100).toFixed(1) }}%
-            </n-descriptions-item>
-            <n-descriptions-item label="吸血率">
-              {{ ((selectedPet.combatAttributes?.vampireRate || 0) * 100).toFixed(1) }}%
-            </n-descriptions-item>
+            <n-descriptions-item label="暴击率">{{ ((selectedPet.combatAttributes?.critRate || 0) * 100).toFixed(1) }}%</n-descriptions-item>
+            <n-descriptions-item label="连击率">{{ ((selectedPet.combatAttributes?.comboRate || 0) * 100).toFixed(1) }}%</n-descriptions-item>
+            <n-descriptions-item label="反击率">{{ ((selectedPet.combatAttributes?.counterRate || 0) * 100).toFixed(1) }}%</n-descriptions-item>
+            <n-descriptions-item label="眩晕率">{{ ((selectedPet.combatAttributes?.stunRate || 0) * 100).toFixed(1) }}%</n-descriptions-item>
+            <n-descriptions-item label="闪避率">{{ ((selectedPet.combatAttributes?.dodgeRate || 0) * 100).toFixed(1) }}%</n-descriptions-item>
+            <n-descriptions-item label="吸血率">{{ ((selectedPet.combatAttributes?.vampireRate || 0) * 100).toFixed(1) }}%</n-descriptions-item>
           </n-descriptions>
           <n-divider>战斗抗性</n-divider>
           <n-descriptions bordered :column="3">
-            <n-descriptions-item label="抗暴击">
-              {{ ((selectedPet.combatAttributes?.critResist || 0) * 100).toFixed(1) }}%
-            </n-descriptions-item>
-            <n-descriptions-item label="抗连击">
-              {{ ((selectedPet.combatAttributes?.comboResist || 0) * 100).toFixed(1) }}%
-            </n-descriptions-item>
-            <n-descriptions-item label="抗反击">
-              {{ ((selectedPet.combatAttributes?.counterResist || 0) * 100).toFixed(1) }}%
-            </n-descriptions-item>
-            <n-descriptions-item label="抗眩晕">
-              {{ ((selectedPet.combatAttributes?.stunResist || 0) * 100).toFixed(1) }}%
-            </n-descriptions-item>
-            <n-descriptions-item label="抗闪避">
-              {{ ((selectedPet.combatAttributes?.dodgeResist || 0) * 100).toFixed(1) }}%
-            </n-descriptions-item>
-            <n-descriptions-item label="抗吸血">
-              {{ ((selectedPet.combatAttributes?.vampireResist || 0) * 100).toFixed(1) }}%
-            </n-descriptions-item>
+            <n-descriptions-item label="抗暴击">{{ ((selectedPet.combatAttributes?.critResist || 0) * 100).toFixed(1) }}%</n-descriptions-item>
+            <n-descriptions-item label="抗连击">{{ ((selectedPet.combatAttributes?.comboResist || 0) * 100).toFixed(1) }}%</n-descriptions-item>
+            <n-descriptions-item label="抗反击">{{ ((selectedPet.combatAttributes?.counterResist || 0) * 100).toFixed(1) }}%</n-descriptions-item>
+            <n-descriptions-item label="抗眩晕">{{ ((selectedPet.combatAttributes?.stunResist || 0) * 100).toFixed(1) }}%</n-descriptions-item>
+            <n-descriptions-item label="抗闪避">{{ ((selectedPet.combatAttributes?.dodgeResist || 0) * 100).toFixed(1) }}%</n-descriptions-item>
+            <n-descriptions-item label="抗吸血">{{ ((selectedPet.combatAttributes?.vampireResist || 0) * 100).toFixed(1) }}%</n-descriptions-item>
           </n-descriptions>
           <n-divider>特殊属性</n-divider>
           <n-descriptions bordered :column="3">
-            <n-descriptions-item label="强化治疗">
-              {{ ((selectedPet.combatAttributes?.healBoost || 0) * 100).toFixed(1) }}%
-            </n-descriptions-item>
-            <n-descriptions-item label="强化爆伤">
-              {{ ((selectedPet.combatAttributes?.critDamageBoost || 0) * 100).toFixed(1) }}%
-            </n-descriptions-item>
-            <n-descriptions-item label="弱化爆伤">
-              {{ ((selectedPet.combatAttributes?.critDamageReduce || 0) * 100).toFixed(1) }}%
-            </n-descriptions-item>
-            <n-descriptions-item label="最终增伤">
-              {{ ((selectedPet.combatAttributes?.finalDamageBoost || 0) * 100).toFixed(1) }}%
-            </n-descriptions-item>
-            <n-descriptions-item label="最终减伤">
-              {{ ((selectedPet.combatAttributes?.finalDamageReduce || 0) * 100).toFixed(1) }}%
-            </n-descriptions-item>
-            <n-descriptions-item label="战斗属性提升">
-              {{ ((selectedPet.combatAttributes?.combatBoost || 0) * 100).toFixed(1) }}%
-            </n-descriptions-item>
-            <n-descriptions-item label="战斗抗性提升">
-              {{ ((selectedPet.combatAttributes?.resistanceBoost || 0) * 100).toFixed(1) }}%
-            </n-descriptions-item>
+            <n-descriptions-item label="强化治疗">{{ ((selectedPet.combatAttributes?.healBoost || 0) * 100).toFixed(1) }}%</n-descriptions-item>
+            <n-descriptions-item label="强化爆伤">{{ ((selectedPet.combatAttributes?.critDamageBoost || 0) * 100).toFixed(1) }}%</n-descriptions-item>
+            <n-descriptions-item label="弱化爆伤">{{ ((selectedPet.combatAttributes?.critDamageReduce || 0) * 100).toFixed(1) }}%</n-descriptions-item>
+            <n-descriptions-item label="最终增伤">{{ ((selectedPet.combatAttributes?.finalDamageBoost || 0) * 100).toFixed(1) }}%</n-descriptions-item>
+            <n-descriptions-item label="最终减伤">{{ ((selectedPet.combatAttributes?.finalDamageReduce || 0) * 100).toFixed(1) }}%</n-descriptions-item>
+            <n-descriptions-item label="战斗属性提升">{{ ((selectedPet.combatAttributes?.combatBoost || 0) * 100).toFixed(1) }}%</n-descriptions-item>
+            <n-descriptions-item label="战斗抗性提升">{{ ((selectedPet.combatAttributes?.resistanceBoost || 0) * 100).toFixed(1) }}%</n-descriptions-item>
           </n-descriptions>
         </n-collapse-item>
       </n-collapse>
       <n-divider>操作</n-divider>
       <n-space vertical>
         <n-space justify="space-between">
-          <span>升级（消耗{{ getUpgradeCost(selectedPet) }} / {{ playerStore.petEssence }}灵宠精华）</span>
-          <n-button size="small" type="primary" @click="upgradePet(selectedPet)" :disabled="!canUpgrade(selectedPet)">
-            升级
-          </n-button>
+          <span>{{ playerStore.activePet?.id === selectedPet.id ? '召回焰兽' : '出战焰兽' }}</span>
+          <n-button size="small" type="primary" @click="useItem(selectedPet)">{{ playerStore.activePet?.id === selectedPet.id ? '召回' : '出战' }}</n-button>
         </n-space>
         <n-space justify="space-between">
-          <span>升星（需要相同品质和名字的灵宠）</span>
-          <n-select
-            v-model:value="selectedFoodPet"
-            :options="getAvailableFoodPets(selectedPet)"
-            placeholder="选择升星材料"
-            style="width: 200px"
-          />
-          <n-button size="small" type="warning" @click="evolvePet(selectedPet)" :disabled="!selectedFoodPet">
-            升星
-          </n-button>
+          <span>升级（消耗{{ getUpgradeCost(selectedPet) }} / {{ playerStore.petEssence }}焰兽精华）</span>
+          <n-button size="small" type="primary" @click="upgradePet(selectedPet)" :disabled="!canUpgrade(selectedPet)">升级</n-button>
         </n-space>
         <n-space justify="space-between">
-          <span>放生灵宠（不会返还已消耗的道具）</span>
-          <n-button size="small" type="error" @click="confirmReleasePet(selectedPet)">放生灵宠</n-button>
-          <n-modal v-model:show="showReleaseConfirm" preset="dialog" title="灵宠放生" style="width: 600px">
+          <span>升星（需要相同品质和名字的焰兽）</span>
+          <n-select v-model:value="selectedFoodPet" :options="getAvailableFoodPets(selectedPet)" placeholder="选择升星材料" style="width:200px" />
+          <n-button size="small" type="warning" @click="evolvePet(selectedPet)" :disabled="!selectedFoodPet">升星</n-button>
+        </n-space>
+        <n-space justify="space-between">
+          <span>放生焰兽</span>
+          <n-button size="small" type="error" @click="confirmReleasePet(selectedPet)">放生焰兽</n-button>
+          <n-modal v-model:show="showReleaseConfirm" preset="dialog" title="焰兽放生" style="max-width:600px;width:90vw">
             <template v-if="petToRelease">
-              <p>确定要放生 {{ petToRelease.name }} 吗？此操作不可撤销，且不会返还已消耗的道具。</p>
-              <n-space justify="end" style="margin-top: 16px">
+              <p>确定要放生 {{ petToRelease.name }} 吗？此操作不可撤销。</p>
+              <n-space justify="end" style="margin-top:16px">
                 <n-button size="small" @click="cancelReleasePet">取消</n-button>
                 <n-button size="small" type="error" @click="releasePet">确认放生</n-button>
               </n-space>
@@ -334,89 +242,52 @@
       </n-space>
     </template>
   </n-modal>
+
   <!-- 装备列表弹窗 -->
-  <n-modal
-    v-model:show="showEquipmentModal"
-    preset="dialog"
-    :title="`${equipmentTypes[selectedEquipmentType]}列表`"
-    style="width: 800px"
-  >
+  <n-modal v-model:show="showEquipmentModal" preset="dialog" :title="`${equipmentTypes[selectedEquipmentType]}列表`" style="max-width:800px;width:90vw">
     <n-space vertical>
       <n-space justify="space-between">
-        <n-select v-model:value="selectedQuality" :options="qualityOptions" style="width: 150px" />
+        <n-select v-model:value="selectedQuality" :options="qualityOptions" style="width:150px" />
         <n-button type="warning" :disabled="equipmentList.length === 0" @click="batchSellEquipments">一键卖出</n-button>
       </n-space>
-      <n-pagination
-        v-model:page="currentEquipmentPage"
-        :page-size="equipmentPageSize"
-        :item-count="filteredEquipmentList.length"
-        v-if="equipmentList.length > 8"
-        @update:page-size="onEquipmentPageSizeChange"
-        :page-slot="7"
-      />
-      <n-grid :cols="2" :x-gap="12" :y-gap="8" v-if="equipmentList.length">
-        <n-grid-item v-for="equipment in equipmentList" :key="equipment.id" @click="showEquipmentDetails(equipment)">
-          <n-card hoverable>
-            <template #header>
-              <n-space justify="space-between">
-                <span>{{ equipment.name }}</span>
-                <n-button size="small" type="warning" @click.stop="sellEquipment(equipment)">卖出</n-button>
-              </n-space>
-            </template>
-            <n-space vertical>
-              <n-tag :style="{ color: equipment.qualityInfo.color }">
-                {{ equipment.qualityInfo.name }}
-              </n-tag>
-              <n-text>境界要求：{{ getRealmName(equipment.requiredRealm).name }}</n-text>
-            </n-space>
-          </n-card>
-        </n-grid-item>
-      </n-grid>
-      <n-empty description="没有任何装备" v-else></n-empty>
+      <n-pagination v-model:page="currentEquipmentPage" :page-size="equipmentPageSize" :item-count="filteredEquipmentList.length" v-if="equipmentList.length > 8" @update:page-size="onEquipmentPageSizeChange" :page-slot="7" />
+      <div class="storage-grid" v-if="equipmentList.length">
+        <div v-for="equipment in equipmentList" :key="equipment.id" @click="showEquipmentDetails(equipment)"
+          class="storage-cell equip-list-cell" :class="'sq-' + equipment.quality"
+        >
+          <span class="cell-emoji">{{ equipTypeIcons[equipment.type] || '📦' }}</span>
+          <span class="cell-label">{{ equipment.name }}</span>
+          <span v-if="equipment.enhanceLevel" class="eq-enhance" style="position:static">+{{ equipment.enhanceLevel }}</span>
+          <span class="cell-meta">{{ equipment.qualityInfo?.name }}</span>
+          <n-button size="tiny" type="warning" class="cell-sell-btn" @click.stop="sellEquipment(equipment)">卖</n-button>
+        </div>
+      </div>
+      <n-empty description="没有任何装备" v-else />
     </n-space>
   </n-modal>
+
   <!-- 装备详情弹窗 -->
   <n-modal v-model:show="showEquipmentDetailModal" preset="dialog" :title="selectedEquipment?.name || '装备详情'">
     <n-descriptions bordered>
       <n-descriptions-item label="品质">
-        <span :style="{ color: selectedEquipment?.qualityInfo.color }">
-          {{ selectedEquipment?.qualityInfo.name }}
-        </span>
+        <span class="detail-quality-text" :style="{ color: selectedEquipment?.qualityInfo.color, textShadow: '0 0 8px ' + selectedEquipment?.qualityInfo.color + '66' }">{{ selectedEquipment?.qualityInfo.name }}</span>
       </n-descriptions-item>
-      <n-descriptions-item label="类型">
-        {{ equipmentTypes[selectedEquipment?.type] }}
-      </n-descriptions-item>
-      <n-descriptions-item label="强化等级">+{{ selectedEquipment?.enhanceLevel || 0 }}</n-descriptions-item>
+      <n-descriptions-item label="类型"><span>{{ equipTypeIcons[selectedEquipment?.type] || '📦' }} {{ equipmentTypes[selectedEquipment?.type] }}</span></n-descriptions-item>
+      <n-descriptions-item label="强化等级"><span class="eq-enhance" style="position:static">+{{ selectedEquipment?.enhanceLevel || 0 }}</span></n-descriptions-item>
       <template v-if="selectedEquipment?.stats">
-        <n-descriptions-item v-for="(value, stat) in selectedEquipment.stats" :key="stat" :label="getStatName(stat)">
-          {{ formatStatValue(stat, value) }}
-        </n-descriptions-item>
+        <n-descriptions-item v-for="(value, stat) in selectedEquipment.stats" :key="stat" :label="getStatName(stat)">{{ formatStatValue(stat, value) }}</n-descriptions-item>
       </template>
     </n-descriptions>
-    <div
-      class="stats-comparison"
-      v-if="equipmentComparison && selectedEquipment?.id != playerStore.equippedArtifacts[selectedEquipment?.slot]?.id"
-    >
+    <div class="stats-comparison" v-if="equipmentComparison && selectedEquipment?.id != playerStore.equippedArtifacts[selectedEquipment?.type]?.id">
       <n-divider>属性对比</n-divider>
       <n-table :bordered="false" :single-line="false">
-        <thead>
-          <tr>
-            <th>属性</th>
-            <th>当前装备</th>
-            <th>选中装备</th>
-            <th>属性变化</th>
-          </tr>
-        </thead>
+        <thead><tr><th>属性</th><th>当前装备</th><th>选中装备</th><th>属性变化</th></tr></thead>
         <tbody>
           <tr v-for="(comparison, stat) in equipmentComparison" :key="stat">
             <td>{{ getStatName(stat) }}</td>
             <td>{{ formatStatValue(stat, comparison.current) }}</td>
             <td>{{ formatStatValue(stat, comparison.selected) }}</td>
-            <td>
-              <n-gradient-text :type="comparison.isPositive ? 'success' : 'error'">
-                {{ comparison.isPositive ? '+' : '' }}{{ formatStatValue(stat, comparison.diff) }}
-              </n-gradient-text>
-            </td>
+            <td><n-gradient-text :type="comparison.isPositive ? 'success' : 'error'">{{ comparison.isPositive ? '+' : '' }}{{ formatStatValue(stat, comparison.diff) }}</n-gradient-text></td>
           </tr>
         </tbody>
       </n-table>
@@ -424,78 +295,48 @@
     <template #action>
       <n-space justify="space-between">
         <n-space>
-          <n-button
-            type="primary"
-            @click="showEnhanceConfirm = true"
-            :disabled="(selectedEquipment?.enhanceLevel || 0) >= 100"
-          >
-            强化
-          </n-button>
-          <n-button type="info" :disabled="playerStore.refinementStones === 0" @click="handleReforgeEquipment">
-            洗练
-          </n-button>
+          <n-tooltip trigger="hover" :disabled="selectedEquipment?.id === playerStore.equippedArtifacts[selectedEquipment?.type]?.id">
+            <template #trigger>
+              <n-button type="primary" @click="showEnhanceConfirm = true" :disabled="(selectedEquipment?.enhanceLevel || 0) >= 100 || selectedEquipment?.id != playerStore.equippedArtifacts[selectedEquipment?.type]?.id">淬火</n-button>
+            </template>
+            请先装备后再淬火
+          </n-tooltip>
+          <n-tooltip trigger="hover" :disabled="selectedEquipment?.id === playerStore.equippedArtifacts[selectedEquipment?.type]?.id">
+            <template #trigger>
+              <n-button type="info" :disabled="playerStore.refinementStones === 0 || selectedEquipment?.id != playerStore.equippedArtifacts[selectedEquipment?.type]?.id" @click="handleReforgeEquipment">铭符</n-button>
+            </template>
+            请先装备后再铭符
+          </n-tooltip>
         </n-space>
         <n-space>
-          <n-button
-            @click="equipItem(selectedEquipment)"
-            :disabled="playerStore.level < selectedEquipment?.requiredRealm"
-            v-if="selectedEquipment?.id != playerStore.equippedArtifacts[selectedEquipment?.slot]?.id"
-          >
-            装备
-          </n-button>
-          <n-button
-            @click="unequipItem(selectedEquipment?.slot)"
-            :disabled="playerStore.level < selectedEquipment?.requiredRealm"
-            v-else
-          >
-            卸下
-          </n-button>
-          <n-button
-            type="error"
-            @click="sellEquipment(selectedEquipment)"
-            v-if="selectedEquipment?.id != playerStore.equippedArtifacts[selectedEquipment?.slot]?.id"
-          >
-            出售
-          </n-button>
+          <n-button @click="equipItem(selectedEquipment)" :disabled="playerStore.level < selectedEquipment?.requiredRealm" v-if="selectedEquipment?.id != playerStore.equippedArtifacts[selectedEquipment?.type]?.id">装备</n-button>
+          <n-button @click="unequipItem(selectedEquipment)" :disabled="playerStore.level < selectedEquipment?.requiredRealm" v-else>卸下</n-button>
+          <n-button type="error" @click="sellEquipment(selectedEquipment)" v-if="selectedEquipment?.id != playerStore.equippedArtifacts[selectedEquipment?.type]?.id">出售</n-button>
         </n-space>
       </n-space>
     </template>
   </n-modal>
+
   <!-- 强化确认弹窗 -->
-  <n-modal v-model:show="showEnhanceConfirm" preset="dialog" title="装备强化">
+  <n-modal v-model:show="showEnhanceConfirm" preset="dialog" title="装备淬火">
     <n-space vertical>
-      <p>是否消耗 {{ ((selectedEquipment?.enhanceLevel || 0) + 1) * 10 }} 强化石强化装备？</p>
-      <p>当前强化石数量：{{ playerStore.reinforceStones }}</p>
+      <p>是否消耗 {{ ((selectedEquipment?.enhanceLevel || 0) + 1) * 10 }} 淬火石淬火装备？</p>
+      <p>当前淬火石数量：{{ playerStore.reinforceStones }}</p>
     </n-space>
     <template #action>
       <n-space justify="end">
         <n-button @click="showEnhanceConfirm = false">取消</n-button>
-        <n-button
-          type="primary"
-          @click="handleEnhanceEquipment"
-          :disabled="playerStore.reinforceStones < ((selectedEquipment?.enhanceLevel || 0) + 1) * 10"
-        >
-          确认强化
-        </n-button>
+        <n-button type="primary" @click="handleEnhanceEquipment" :disabled="playerStore.reinforceStones < ((selectedEquipment?.enhanceLevel || 0) + 1) * 10">确认淬火</n-button>
       </n-space>
     </template>
   </n-modal>
-  <!-- 洗练确认弹窗 -->
-  <n-modal v-model:show="showReforgeConfirm" preset="dialog" title="洗练结果确认">
+
+  <!-- 铭符确认弹窗 -->
+  <n-modal v-model:show="showReforgeConfirm" preset="dialog" title="铭符结果确认">
     <template v-if="reforgeResult">
       <div class="reforge-compare">
-        <div class="old-stats">
-          <h3>原始属性</h3>
-          <div v-for="(value, key) in reforgeResult.oldStats" :key="key">
-            {{ getStatName(key) }}: {{ formatStatValue(key, value) }}
-          </div>
-        </div>
-        <div class="new-stats">
-          <h3>新属性</h3>
-          <div v-for="(value, key) in reforgeResult.newStats" :key="key">
-            {{ getStatName(key) }}: {{ formatStatValue(key, value) }}
-          </div>
-        </div>
+        <div class="old-stats"><h3>原始属性</h3><div v-for="(value, key) in reforgeResult.oldStats" :key="key">{{ getStatName(key) }}: {{ formatStatValue(key, value) }}</div></div>
+        <div class="new-stats"><h3>新属性</h3><div v-for="(value, key) in reforgeResult.newStats" :key="key">{{ getStatName(key) }}: {{ formatStatValue(key, value) }}</div></div>
       </div>
     </template>
     <template #action>
@@ -507,301 +348,544 @@
 
 <script setup>
   import { usePlayerStore } from '../stores/player'
-  import { ref, computed } from 'vue'
+  import { useAuthStore } from '../stores/auth'
+  import { ref, computed, onMounted } from 'vue'
   import { useMessage } from 'naive-ui'
   import { getStatName, formatStatValue } from '../plugins/stats'
   import { getRealmName } from '../plugins/realm'
   import { pillRecipes, pillGrades, pillTypes, calculatePillEffect } from '../plugins/pills'
   import { enhanceEquipment, reforgeEquipment } from '../plugins/equipment'
+  import GameGuide from '../components/GameGuide.vue'
 
-  // 分页相关
+  // 焰草ID -> 中文名映射（简单对象，像装备一样）
+  const herbIdToName = {
+    'spirit_grass': '灵精草',
+    'cloud_flower': '云雾花',
+    'thunder_root': '雷击根',
+    'dragon_breath_herb': '龙息草',
+    'immortal_jade_grass': '仙玉草',
+    'dark_yin_grass': '玄阴草',
+    'nine_leaf_lingzhi': '九叶灵芝',
+    'purple_ginseng': '紫金参',
+    'frost_lotus': '寒霜莲',
+    'fire_heart_flower': '火心花',
+    'moonlight_orchid': '月华兰',
+    'sun_essence_flower': '日精花',
+    'five_elements_grass': '五行草',
+    'phoenix_feather_herb': '凤羽草',
+    'celestial_dew_grass': '天露草'
+  }
+
+  // 焰草图片映射（简单对象，像装备一样）
+  const herbImageMap = {
+    'spirit_grass': '/assets/images/herbs/herb_spirit_grass.png',
+    'cloud_flower': '/assets/images/herbs/herb_cloud_flower.png',
+    'thunder_root': '/assets/images/herbs/herb_thunder_root.png',
+    'dragon_breath_herb': '/assets/images/herbs/herb_dragon_breath.png',
+    'immortal_jade_grass': '/assets/images/herbs/herb_immortal_jade.png',
+    'dark_yin_grass': '/assets/images/herbs/herb_dark_yin.png',
+    'nine_leaf_lingzhi': '/assets/images/herbs/herb_nine_lingzhi.png',
+    'purple_ginseng': '/assets/images/herbs/herb_purple_ginseng.png',
+    'frost_lotus': '/assets/images/herbs/herb_frost_lotus.png',
+    'fire_heart_flower': '/assets/images/herbs/herb_fire_heart.png',
+    'moonlight_orchid': '/assets/images/herbs/herb_moonlight_orchid.png',
+    'sun_essence_flower': '/assets/images/herbs/herb_sun_essence.png',
+    'five_elements_grass': '/assets/images/herbs/herb_five_elements.png',
+    'phoenix_feather_herb': '/assets/images/herbs/herb_phoenix_feather.png',
+    'celestial_dew_grass': '/assets/images/herbs/herb_celestial_dew.png'
+  }
+
+  const petImageMap = {
+    // 神品 (divine)
+    '朱雀': '/assets/images/pets/pet_firebird.png',
+    '青龙': '/assets/images/pets/pet_firedragon.png',
+    '麒麟': '/assets/images/pets/pet_firequilin.png',
+    '白虎': '/assets/images/pets/pet_firetiger.png',
+    '玄武': '/assets/images/pets/pet_fireturtle.png',
+    '应龙': '/assets/images/pets/pet_yinglong.png',
+    '饕餮': '/assets/images/pets/pet_taotie.png',
+    '穷奇': '/assets/images/pets/pet_qiongqi.png',
+    '梼杌': '/assets/images/pets/pet_taowu.png',
+    '混沌': '/assets/images/pets/pet_hundun.png',
+    // 仙品 (celestial) - 龙生九子
+    '囚牛': '/assets/images/pets/pet_qiuniu.png',
+    '睚眦': '/assets/images/pets/pet_yazi.png',
+    '嘲风': '/assets/images/pets/pet_chaofeng.png',
+    '蒲牢': '/assets/images/pets/pet_pulao.png',
+    '狻犴': '/assets/images/pets/pet_suanni.png',
+    '霸下': '/assets/images/pets/pet_baxia.png',
+    '狴犴': '/assets/images/pets/pet_bian.png',
+    '负屃': '/assets/images/pets/pet_fuxi.png',
+    '螭吻': '/assets/images/pets/pet_firelizard.png',
+    // 玄品 (mystic)
+    '火凤凰': '/assets/images/pets/pet_firephoenix.png',
+    '雷鹰': '/assets/images/pets/pet_thundereagle.png',
+    '冰狼': '/assets/images/pets/pet_icewolf.png',
+    '岩龟': '/assets/images/pets/pet_rockturtle.png',
+    // 灵品 (spiritual)
+    '玄龟': '/assets/images/pets/pet_darkturtle.png',
+    '风隼': '/assets/images/pets/pet_windfalcon.png',
+    '地甲': '/assets/images/pets/pet_eartharmor.png',
+    '云豹': '/assets/images/pets/pet_cloudleopard.png',
+    // 凡品 (mortal)
+    '灵猫': '/assets/images/pets/pet_firefox.png',
+    '幻蝶': '/assets/images/pets/pet_huandie.png',
+    '火鼠': '/assets/images/pets/pet_huoshu.png',
+    '草兔': '/assets/images/pets/pet_caotu.png',
+  }
+  const getPetImage = (name) => petImageMap[name] || null
+
+  // 焰丹图片映射
+  const pillImageMap = {
+    '聚灵丹': '/assets/images/pills/pill_juling.png',
+    '聚气丹': '/assets/images/pills/pill_juqi.png',
+    '雷灵丹': '/assets/images/pills/pill_leiling.png',
+    '仙灵丹': '/assets/images/pills/pill_xianling.png',
+    '五行丹': '/assets/images/pills/pill_wuxing.png',
+    '天元丹': '/assets/images/pills/pill_tianyuan.png',
+    '日月丹': '/assets/images/pills/pill_riyue.png',
+    '涅槃丹': '/assets/images/pills/pill_niepan.png',
+    '回灵丹': '/assets/images/pills/pill_huiling.png',
+    '凝元丹': '/assets/images/pills/pill_ningyuan.png',
+    '清心丹': '/assets/images/pills/pill_qingxin.png',
+    '火元丹': '/assets/images/pills/pill_huoyuan.png',
+  }
+  const getPillImage = (name) => pillImageMap[name] || null
+
+  // 焰方图片映射
+  const formulaImageMap = {
+    '聚灵丹方': '/assets/images/formulas/formula_juling.png',
+    '聚气丹方': '/assets/images/formulas/formula_juqi.png',
+    '雷灵丹方': '/assets/images/formulas/formula_leiling.png',
+    '仙灵丹方': '/assets/images/formulas/formula_xianling.png',
+    '五行丹方': '/assets/images/formulas/formula_wuxing.png',
+    '天元丹方': '/assets/images/formulas/formula_tianyuan.png',
+    '日月丹方': '/assets/images/formulas/formula_riyue.png',
+    '涅槃丹方': '/assets/images/formulas/formula_niepan.png',
+    '回灵丹方': '/assets/images/formulas/formula_huiling.png',
+    '凝元丹方': '/assets/images/formulas/formula_ningyuan.png',
+    '清心丹方': '/assets/images/formulas/formula_qingxin.png',
+    '火元丹方': '/assets/images/formulas/formula_huoyuan.png',
+  }
+  const getFormulaImage = (name) => formulaImageMap[name] || null
+
+  const playerStore = usePlayerStore()
+  const authStore = useAuthStore()
+  const message = useMessage()
+
+  // 进入储藏室时从服务端加载装备
+  onMounted(async () => {
+    if (authStore.isLoggedIn) {
+      await playerStore.loadEquipmentFromServer()
+      await playerStore.loadPetsFromServer()
+      await playerStore.loadHerbsFromServer()
+      await playerStore.loadPillsFromServer()
+    }
+  })
+
+  // === 储存量上限（动态扩容） ===
+  const EXPAND_CONFIG = {
+    equip:   { base: 100, perLevel: 20, maxLevel: 10, basePrice: 5000 },
+    herb:    { base: 200, perLevel: 50, maxLevel: 8,  basePrice: 3000 },
+    pill:    { base: 50,  perLevel: 10, maxLevel: 10, basePrice: 4000 },
+    pet:     { base: 30,  perLevel: 5,  maxLevel: 10, basePrice: 8000 },
+    formula: { base: 50,  perLevel: 10, maxLevel: 5,  basePrice: 6000 },
+  }
+  const storageExpand = computed(() => playerStore.storageExpand || {})
+  const getLimit = (cat) => {
+    const cfg = EXPAND_CONFIG[cat]
+    if (!cfg) return 0
+    const level = storageExpand.value[cat] || 0
+    return cfg.base + cfg.perLevel * level
+  }
+  const getExpandCost = (cat) => {
+    const cfg = EXPAND_CONFIG[cat]
+    if (!cfg) return 0
+    const level = storageExpand.value[cat] || 0
+    return cfg.basePrice * (level + 1)
+  }
+  const canExpand = (cat) => {
+    const cfg = EXPAND_CONFIG[cat]
+    if (!cfg) return false
+    const level = storageExpand.value[cat] || 0
+    return level < cfg.maxLevel
+  }
+  const getCategoryName = (cat) => ({ equip: '装备', herb: '焰草', pill: '焰丹', pet: '焰兽', formula: '焰方' }[cat] || cat)
+  const expandStorage = async (category) => {
+    const cost = getExpandCost(category)
+    if (playerStore.spiritStones < cost) {
+      message.error(`焰晶不足，需要${cost}焰晶`)
+      return
+    }
+    try {
+      const authStore = useAuthStore()
+      const res = await fetch('/api/storage/expand', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authStore.token },
+        body: JSON.stringify({ category })
+      })
+      const data = await res.json()
+      if (data.success) {
+        if (!playerStore.storageExpand) playerStore.storageExpand = {}
+        playerStore.storageExpand[category] = (playerStore.storageExpand[category] || 0) + 1
+        playerStore.spiritStones = data.remaining
+        message.success(`扩容成功！${getCategoryName(category)}容量提升至 ${data.newLimit}`)
+      } else {
+        message.error(data.error || '扩容失败')
+      }
+    } catch (e) {
+      message.error('网络错误')
+    }
+  }
+
+  // === 新增：储藏室筛选 ===
+  const activeFilter = ref('equip')
+
+  // 各分类真实数量（非堆叠后的种类数）
+  const equipCount = computed(() => {
+    const equippedIds = new Set(Object.values(playerStore.equippedArtifacts).filter(Boolean).map(e => e.id))
+    return playerStore.items.filter(i => i.type && i.type !== 'pill' && i.type !== 'pet' && i.stats && !equippedIds.has(i.id)).length
+  })
+  const herbCount = computed(() => playerStore.herbs.length)
+  const pillCount = computed(() => playerStore.items.filter(i => i.type === 'pill').length)
+  const petCount = computed(() => playerStore.items.filter(i => i.type === 'pet').length)
+  const formulaCount = computed(() => playerStore.pillRecipes.length)
+  const totalCount = computed(() => equipCount.value + herbCount.value + pillCount.value + petCount.value + formulaCount.value)
+  const totalLimit = computed(() => ['equip','herb','pill','pet','formula'].reduce((a, cat) => a + getLimit(cat), 0))
+
+  const filterTabs = computed(() => [
+    { label: `装备 ${equipCount.value}/${getLimit('equip')}`, value: 'equip' },
+    { label: `焰草 ${herbCount.value}/${getLimit('herb')}`, value: 'herb' },
+    { label: `焰丹 ${pillCount.value}/${getLimit('pill')}`, value: 'pill' },
+    { label: `焰方 ${formulaCount.value}/${getLimit('formula')}`, value: 'formula' },
+    { label: `焰兽 ${petCount.value}/${getLimit('pet')}`, value: 'pet' },
+  ])
+
+  // 容量条相关
+  const categoryCountMap = { equip: equipCount, herb: herbCount, pill: pillCount, pet: petCount, formula: formulaCount }
+  const categoryLabelMap = { equip: '装备', herb: '焰草', pill: '焰丹', pet: '焰兽', formula: '焰方' }
+  const currentCount = computed(() => categoryCountMap[activeFilter.value]?.value ?? 0)
+  const currentLimit = computed(() => getLimit(activeFilter.value))
+  const currentCategoryLabel = computed(() => categoryLabelMap[activeFilter.value] ?? '')
+  const capacityPercent = computed(() => currentLimit.value > 0 ? Math.min(100, Math.round(currentCount.value / currentLimit.value * 100)) : 0)
+
+  // === 储藏室统一物品列表 ===
+  const storageItems = computed(() => {
+    const items = []
+    // 未装备的装备（不堆叠）
+    const equippedIds = new Set(Object.values(playerStore.equippedArtifacts).filter(Boolean).map(e => e.id))
+    playerStore.items.filter(i => i.type && i.type !== 'pill' && i.type !== 'pet' && i.stats && !equippedIds.has(i.id)).forEach(eq => {
+      items.push({
+        ...eq,
+        _key: 'eq-' + eq.id,
+        _category: 'equip',
+        _emoji: equipTypeIcons[eq.type] || '📦',
+        _icon: equipTypeImages[eq.type] && !imgLoadFailed.value[eq.type] ? equipTypeImages[eq.type] : null,
+        _count: 1,
+        _quality: eq.quality || 'common',
+        _imgFail: false,
+      })
+    })
+    // 焰草（堆叠）
+    const herbGroups = {}
+    playerStore.herbs.forEach(herb => {
+      const herbId = herb.herbId || herb.herb_id || herb.id
+      const herbIcon = herbImageMap[herbId] || null
+      const chineseName = herbIdToName[herbId] || herbId
+      if (!herbGroups[chineseName]) {
+        herbGroups[chineseName] = { 
+          ...herb, 
+          _key: 'herb-' + chineseName, 
+          _category: 'herb', 
+          _emoji: '🌿', 
+          _icon: herbIcon, 
+          _count: 1, 
+          _quality: herb.quality || 'common', 
+          _imgFail: false,
+          _displayName: chineseName
+        }
+      } else {
+        herbGroups[chineseName]._count++
+      }
+    })
+    items.push(...Object.values(herbGroups))
+    // 焰丹（堆叠）
+    const pillGroups = {}
+    playerStore.items.filter(i => i.type === 'pill').forEach(pill => {
+      const pillIcon = getPillImage(pill.name)
+      if (!pillGroups[pill.name]) {
+        pillGroups[pill.name] = { ...pill, _key: 'pill-' + pill.name, _category: 'pill', _emoji: '💊', _icon: pillIcon, _count: 1, _quality: pill.quality || 'common', _imgFail: false }
+      } else {
+        pillGroups[pill.name]._count++
+      }
+    })
+    items.push(...Object.values(pillGroups))
+    
+    // 焰方
+    playerStore.pillRecipes.forEach(recipeId => {
+      const recipe = pillRecipes.find(r => r.id === recipeId)
+      if (recipe) {
+        items.push({
+          ...recipe,
+          _key: 'formula-' + recipeId,
+          _category: 'formula',
+          _emoji: '📜',
+          _icon: getFormulaImage(recipe.name),
+          _count: 1,
+          _quality: recipe.grade?.replace('grade', '') || 'common',
+          _imgFail: false,
+          _displayName: recipe.name
+        })
+      }
+    })
+    
+    // 焰兽
+    const petGroups = {}
+    playerStore.items.filter(i => i.type === 'pet').forEach(pet => {
+      const petIcon = getPetImage(pet.name)
+      if (!petGroups[pet.name]) {
+        petGroups[pet.name] = {
+          ...pet,
+          _key: 'pet-' + pet.name,
+          _category: 'pet',
+          _emoji: '🐾',
+          _icon: petIcon,
+          _count: 1,
+          _quality: pet.rarity || 'common',
+          _imgFail: false,
+          _displayName: pet.name
+        }
+      } else {
+        petGroups[pet.name]._count++
+      }
+    })
+    items.push(...Object.values(petGroups))
+    
+    return items
+  })
+
+  const filteredStorageItems = computed(() => {
+    if (activeFilter.value === 'equip') return storageItems.value.filter(i => i._category === 'equip')
+    if (activeFilter.value === 'herb') return storageItems.value.filter(i => i._category === 'herb')
+    if (activeFilter.value === 'pill') return storageItems.value.filter(i => i._category === 'pill')
+    if (activeFilter.value === 'formula') return []
+    if (activeFilter.value === 'pet') return []
+    return storageItems.value
+  })
+
+  const emptySlots = computed(() => {
+    const count = filteredStorageItems.value.length
+    const cols = 5
+    const remainder = count % cols
+    return remainder === 0 ? Math.max(0, cols - count) : (cols - remainder)
+  })
+
+  const getCellQualityClass = (item) => 'sq-' + (item._quality || 'common')
+
+  const onEquipSlotClick = (type) => {
+    if (playerStore.equippedArtifacts[type]) {
+      showEquipmentDetails(playerStore.equippedArtifacts[type])
+    } else {
+      showEquipmentList(type)
+    }
+  }
+
+  const onStorageItemClick = (item) => {
+    if (item._category === 'equip') {
+      showEquipmentDetails(item)
+    } else if (item._category === 'pill') {
+      usePill(item)
+    }
+    // herb: no action (just display)
+  }
+
+  // === 原有逻辑保留 ===
   const currentPage = ref(1)
   const pageSize = ref(12)
 
-  // 过滤后的灵宠列表
   const filteredPets = computed(() => {
     const pets = playerStore.items.filter(item => item.type === 'pet')
-    if (selectedRarityToRelease.value === 'all') {
-      return pets
-    }
+    if (selectedRarityToRelease.value === 'all') return pets
     return pets.filter(pet => pet.rarity === selectedRarityToRelease.value)
   })
 
-  // 当前页显示的灵宠
   const displayPets = computed(() => {
     const start = (currentPage.value - 1) * pageSize.value
-    const end = start + pageSize.value
-    return filteredPets.value.slice(start, end)
+    return filteredPets.value.slice(start, start + pageSize.value)
   })
 
-  // 页大小改变处理
-  const onPageSizeChange = size => {
-    pageSize.value = size
-    currentPage.value = 1
-  }
+  const onPageSizeChange = size => { pageSize.value = size; currentPage.value = 1 }
 
-  const playerStore = usePlayerStore()
-  const message = useMessage()
-
-  // 使用丹药
-  const usePill = pill => {
-    const result = playerStore.usePill(pill)
-    if (result.success) {
-      message.success(result.message)
+  const usePill = async pill => {
+    if (authStore.isLoggedIn) {
+      const result = await playerStore.usePillOnServer(pill.id)
+      if (result.success) message.success(result.message)
+      else message.error(result.message)
     } else {
-      message.error(result.message)
+      const result = playerStore.usePill(pill)
+      if (result.success) message.success(result.message)
+      else message.error(result.message)
     }
   }
 
-  // 灵宠品质配置
   const petRarities = {
-    divine: {
-      name: '神品',
-      color: '#FF0000',
-      probability: 0.02,
-      essenceBonus: 50
-    },
-    celestial: {
-      name: '仙品',
-      color: '#FFD700',
-      probability: 0.08,
-      essenceBonus: 30
-    },
-    mystic: {
-      name: '玄品',
-      color: '#9932CC',
-      probability: 0.15,
-      essenceBonus: 20
-    },
-    spiritual: {
-      name: '灵品',
-      color: '#1E90FF',
-      probability: 0.25,
-      essenceBonus: 10
-    },
-    mortal: {
-      name: '凡品',
-      color: '#32CD32',
-      probability: 0.5,
-      essenceBonus: 5
-    }
+    divine: { name: '神品', color: '#FF0000', probability: 0.02, essenceBonus: 50 },
+    celestial: { name: '仙品', color: '#FFD700', probability: 0.08, essenceBonus: 30 },
+    mystic: { name: '玄品', color: '#9932CC', probability: 0.15, essenceBonus: 20 },
+    spiritual: { name: '灵品', color: '#1E90FF', probability: 0.25, essenceBonus: 10 },
+    mortal: { name: '凡品', color: '#32CD32', probability: 0.5, essenceBonus: 5 }
   }
 
-  // 灵宠详情相关
   const showPetModal = ref(false)
   const selectedPet = ref(null)
   const selectedFoodPet = ref(null)
-
-  // 放生确认弹窗
   const showReleaseConfirm = ref(false)
   const showBatchReleaseConfirm = ref(false)
   const petToRelease = ref(null)
 
-  // 显示放生确认弹窗
-  const confirmReleasePet = pet => {
-    petToRelease.value = pet
-    showReleaseConfirm.value = true
-  }
+  const confirmReleasePet = pet => { petToRelease.value = pet; showReleaseConfirm.value = true }
+  const cancelReleasePet = () => { petToRelease.value = null; showReleaseConfirm.value = false }
 
-  // 取消放生
-  const cancelReleasePet = () => {
-    petToRelease.value = null
-    showReleaseConfirm.value = false
-  }
-
-  // 执行放生
-  const releasePet = () => {
+  const releasePet = async () => {
     if (petToRelease.value) {
-      // 如果灵宠正在出战，先取消出战
-      if (playerStore.activePet?.id === petToRelease.value.id) {
-        playerStore.activePet = null
+      if (authStore.isLoggedIn) {
+        const result = await playerStore.releasePetOnServer(petToRelease.value.id)
+        if (result.success) message.success('已放生焰兽')
+        else message.error(result.message || '放生失败')
+      } else {
+        if (playerStore.activePet?.id === petToRelease.value.id) playerStore.activePet = null
+        const index = playerStore.items.findIndex(item => item.id === petToRelease.value.id)
+        if (index > -1) { playerStore.items.splice(index, 1); playerStore.saveData(); message.success('已放生焰兽') }
       }
-      // 从背包中移除灵宠
-      const index = playerStore.items.findIndex(item => item.id === petToRelease.value.id)
-      if (index > -1) {
-        playerStore.items.splice(index, 1)
-        playerStore.saveData()
-        message.success('已放生灵宠')
-      }
-      // 关闭所有相关弹窗
-      showReleaseConfirm.value = false
-      showPetModal.value = false
-      petToRelease.value = null
+      showReleaseConfirm.value = false; showPetModal.value = false; petToRelease.value = null
     }
   }
 
-  // 选中的放生品阶
   const selectedRarityToRelease = ref('all')
 
-  // 批量放生函数
-  const batchReleasePets = () => {
-    playerStore.items = playerStore.items.filter(
-      item =>
-        item.type !== 'pet' ||
-        item.id === playerStore.activePet?.id ||
-        (selectedRarityToRelease.value !== 'all' && item.rarity !== selectedRarityToRelease.value)
-    )
-    showBatchReleaseConfirm.value = false
-    message.success(
-      `已放生${
-        selectedRarityToRelease.value === 'all' ? '所有' : petRarities[selectedRarityToRelease.value].name
-      }品阶的未出战灵宠`
-    )
+  const batchReleasePets = async () => {
+    if (authStore.isLoggedIn) {
+      const petsToRelease = playerStore.items.filter(item =>
+        item.type === 'pet' && item.id !== playerStore.activePet?.id &&
+        (selectedRarityToRelease.value === 'all' || item.rarity === selectedRarityToRelease.value)
+      )
+      let count = 0
+      for (const pet of petsToRelease) {
+        const r = await playerStore.releasePetOnServer(pet.id)
+        if (r.success) count++
+      }
+      showBatchReleaseConfirm.value = false
+      message.success(`已放生 ${count} 只焰兽`)
+    } else {
+      playerStore.items = playerStore.items.filter(item => item.type !== 'pet' || item.id === playerStore.activePet?.id || (selectedRarityToRelease.value !== 'all' && item.rarity !== selectedRarityToRelease.value))
+      showBatchReleaseConfirm.value = false
+      message.success(`已放生${selectedRarityToRelease.value === 'all' ? '所有' : petRarities[selectedRarityToRelease.value].name}品阶的未出战焰兽`)
+    }
   }
 
-  // 显示灵宠详情
-  const showPetDetails = pet => {
-    selectedPet.value = pet
-    selectedFoodPet.value = null
-    showPetModal.value = true
-  }
+  const showPetDetails = pet => { selectedPet.value = pet; selectedFoodPet.value = null; showPetModal.value = true }
 
-  // 计算灵宠属性加成
   const getPetBonus = pet => {
     if (!pet) return { attack: 0, defense: 0, health: 0 }
-    const qualityBonusMap = {
-      divine: 0.5,
-      celestial: 0.3,
-      mystic: 0.2,
-      spiritual: 0.1,
-      mortal: 0.05
-    }
-    const starBonusPerQuality = {
-      divine: 0.1,
-      celestial: 0.08,
-      mystic: 0.06,
-      spiritual: 0.04,
-      mortal: 0.02
-    }
+    const qualityBonusMap = { divine: 0.5, celestial: 0.3, mystic: 0.2, spiritual: 0.1, mortal: 0.05 }
+    const starBonusPerQuality = { divine: 0.1, celestial: 0.08, mystic: 0.06, spiritual: 0.04, mortal: 0.02 }
     const baseBonus = qualityBonusMap[pet.rarity] || 0.05
     const starBonus = (pet.star || 0) * (starBonusPerQuality[pet.rarity] || 0.02)
     const totalBonus = baseBonus + starBonus
     const phase = Math.floor((pet.star || 0) / 5)
     const phaseBonus = phase * (baseBonus * 0.5)
     const finalBonus = totalBonus + phaseBonus
-    return {
-      attack: finalBonus,
-      defense: finalBonus,
-      health: finalBonus
-    }
+    return { attack: finalBonus, defense: finalBonus, health: finalBonus }
   }
 
-  // 获取升级所需精华数量
-  const getUpgradeCost = pet => {
-    return (pet.level || 1) * 10
-  }
+  const getUpgradeCost = pet => (pet.level || 1) * 10
+  const canUpgrade = pet => playerStore.petEssence >= getUpgradeCost(pet)
 
-  // 检查是否可以升级
-  const canUpgrade = pet => {
-    const cost = getUpgradeCost(pet)
-    return playerStore.petEssence >= cost
-  }
-
-  // 获取可用作升星材料的灵宠列表
   const getAvailableFoodPets = pet => {
     if (!pet) return []
-    return playerStore.items
-      .filter(
-        item =>
-          item.type === 'pet' &&
-          item.id !== pet.id &&
-          item.star === pet.star &&
-          item.rarity === pet.rarity &&
-          item.name === pet.name
-      )
-      .map(item => ({
-        label: `${item.name} (${item.level || 1}级 ${item.star || 0}星)`,
-        value: item.id
-      }))
+    return playerStore.items.filter(item => item.type === 'pet' && item.id !== pet.id && item.star === pet.star && item.rarity === pet.rarity && item.name === pet.name)
+      .map(item => ({ label: `${item.name} (${item.level || 1}级 ${item.star || 0}星)`, value: item.id }))
   }
 
-  // 升级灵宠
-  const upgradePet = pet => {
-    const result = playerStore.upgradePet(pet, getUpgradeCost(pet))
-    if (result.success) {
-      message.success(result.message)
+  const upgradePet = async pet => {
+    if (authStore.isLoggedIn) {
+      const result = await playerStore.upgradePetOnServer(pet.id)
+      if (result.success) message.success(result.message)
+      else message.error(result.message)
     } else {
-      message.error(result.message)
+      const result = playerStore.upgradePet(pet, getUpgradeCost(pet))
+      if (result.success) message.success(result.message)
+      else message.error(result.message)
     }
   }
 
-  // 升星灵宠
-  const evolvePet = pet => {
-    if (!selectedFoodPet.value) {
-      message.error('请选择用于升星的灵宠')
-      return
-    }
-    // 通过id查找对应的灵宠对象
-    const foodPet = playerStore.items.find(item => item.id === selectedFoodPet.value)
-    if (!foodPet) {
-      message.error('升星材料灵宠不存在')
-      return
-    }
-    const result = playerStore.evolvePet(pet, foodPet)
-    if (result.success) {
-      message.success(result.message)
-      selectedFoodPet.value = null
-      showPetModal.value = false
+  const evolvePet = async pet => {
+    if (!selectedFoodPet.value) { message.error('请选择用于升星的焰兽'); return }
+    if (authStore.isLoggedIn) {
+      const result = await playerStore.evolvePetOnServer(pet.id, selectedFoodPet.value)
+      if (result.success) { message.success(result.message); selectedFoodPet.value = null; showPetModal.value = false }
+      else message.error(result.message)
     } else {
-      message.error(result.message)
+      const foodPet = playerStore.items.find(item => item.id === selectedFoodPet.value)
+      if (!foodPet) { message.error('升星材料焰兽不存在'); return }
+      const result = playerStore.evolvePet(pet, foodPet)
+      if (result.success) { message.success(result.message); selectedFoodPet.value = null; showPetModal.value = false }
+      else message.error(result.message)
     }
   }
 
-  // 装备类型配置
+  const equipTypeIcons = {
+    weapon: '⚔️', head: '⛑️', body: '🛡️', legs: '👖', feet: '👢',
+    shoulder: '🦺', hands: '🧤', wrist: '⌚', necklace: '📿',
+    ring1: '💍', ring2: '💍', belt: '🎗️', artifact: '🔮'
+  }
+
+  const equipTypeImages = {
+    weapon: '/assets/images/equip/weapon.png', head: '/assets/images/equip/head.png',
+    body: '/assets/images/equip/body.png', legs: '/assets/images/equip/legs.png',
+    feet: '/assets/images/equip/feet.png', shoulder: '/assets/images/equip/shoulder.png',
+    hands: '/assets/images/equip/hands.png', wrist: '/assets/images/equip/wrist.png',
+    necklace: '/assets/images/equip/necklace.png', ring1: '/assets/images/equip/ring.png',
+    ring2: '/assets/images/equip/ring.png', belt: '/assets/images/equip/belt.png',
+    artifact: '/assets/images/equip/artifact.png'
+  }
+
+  const imgLoadFailed = ref({})
+  const onEquipImgError = (type) => { imgLoadFailed.value[type] = true }
+
   const equipmentTypes = {
-    weapon: '武器',
-    head: '头部',
-    body: '衣服',
-    legs: '裤子',
-    feet: '鞋子',
-    shoulder: '肩甲',
-    hands: '手套',
-    wrist: '护腕',
-    necklace: '项链',
-    ring1: '戒指1',
-    ring2: '戒指2',
-    belt: '腰带',
-    artifact: '法宝'
+    weapon: '焰杖', head: '头部', body: '衣服', legs: '裤子', feet: '鞋子',
+    shoulder: '肩甲', hands: '手套', wrist: '护腕', necklace: '焰心链',
+    ring1: '符文戒1', ring2: '符文戒2', belt: '腰带', artifact: '焰器'
   }
 
-  // 当前选中的装备类型
   const selectedType = ref('')
+  const showEquipmentList = type => { selectedType.value = type; selectedEquipmentType.value = type; showEquipmentModal.value = true }
 
-  // 显示装备类型弹窗
-  const showEquipmentList = type => {
-    selectedType.value = type
-    selectedEquipmentType.value = type
-    showEquipmentModal.value = true
-  }
-
-  // 卸下装备
-  const unequipItem = slot => {
+  const unequipItem = async (equipment) => {
+    if (!equipment) { message.error('未选择装备'); return }
+    const slot = equipment.equippedSlot || equipment.slot || equipment.type
     const result = playerStore.unequipArtifact(slot)
     if (result) {
       showEquipmentDetailModal.value = false
       message.success('当前装备已卸下')
+      if (authStore.isLoggedIn) playerStore.saveData()
     } else {
       message.error('卸下装备失败')
     }
   }
 
-  // 装备列表相关
   const showEquipmentModal = ref(false)
   const selectedEquipmentType = ref('')
   const selectedQuality = ref('all')
   const currentEquipmentPage = ref(1)
   const equipmentPageSize = ref(8)
 
-  // 装备品质选项
   const qualityOptions = computed(() => {
     const equipmentsByQuality = {}
-    playerStore.items
-      .filter(item => !selectedEquipmentType.value || item.type === selectedEquipmentType.value)
-      .forEach(item => {
-        equipmentsByQuality[item.quality] = (equipmentsByQuality[item.quality] || 0) + 1
-      })
+    playerStore.items.filter(item => !selectedEquipmentType.value || item.type === selectedEquipmentType.value)
+      .forEach(item => { equipmentsByQuality[item.quality] = (equipmentsByQuality[item.quality] || 0) + 1 })
     return [
-      { label: '全部品质', value: 'all' },
       { label: '仙品', value: 'mythic', disabled: !equipmentsByQuality['mythic'] },
       { label: '极品', value: 'legendary', disabled: !equipmentsByQuality['legendary'] },
       { label: '上品', value: 'epic', disabled: !equipmentsByQuality['epic'] },
@@ -811,217 +895,190 @@
     ]
   })
 
-  // 过滤后的装备列表
   const filteredEquipmentList = computed(() => {
-    let list = playerStore.items.filter(item => {
+    return playerStore.items.filter(item => {
       if (!selectedEquipmentType.value) return false
       if (item.type !== selectedEquipmentType.value) return false
       if (selectedQuality.value !== 'all' && item.quality !== selectedQuality.value) return false
       return true
     })
-    return list
   })
 
-  // 当前页显示的装备
   const equipmentList = computed(() => {
     const start = (currentEquipmentPage.value - 1) * equipmentPageSize.value
-    const end = start + equipmentPageSize.value
-    return filteredEquipmentList.value.slice(start, end)
+    return filteredEquipmentList.value.slice(start, start + equipmentPageSize.value)
   })
 
-  // 装备页大小改变处理
-  const onEquipmentPageSizeChange = size => {
-    equipmentPageSize.value = size
-    currentEquipmentPage.value = 1
-  }
+  const onEquipmentPageSizeChange = size => { equipmentPageSize.value = size; currentEquipmentPage.value = 1 }
 
-  // 批量卖出装备
   const batchSellEquipments = async () => {
-    const result = await playerStore.batchSellEquipments(
-      selectedQuality.value === 'all' ? null : selectedQuality.value,
-      selectedEquipmentType.value
-    )
+    const result = await playerStore.batchSellEquipments(selectedQuality.value === 'all' ? null : selectedQuality.value, selectedEquipmentType.value)
     if (result.success) {
       message.success(result.message)
-    } else {
-      message.error(result.message || '批量卖出失败')
-    }
+      if (authStore.isLoggedIn) playerStore.saveData()
+    } else message.error(result.message || '批量卖出失败')
   }
 
-  // 卖出单件装备
   const sellEquipment = async equipment => {
     const result = await playerStore.sellEquipment(equipment)
     if (result.success) {
       message.success(result.message)
       showEquipmentDetailModal.value = false
-    } else {
-      message.error(result.message || '卖出失败')
-    }
+      if (authStore.isLoggedIn) playerStore.saveData()
+    } else message.error(result.message || '卖出失败')
   }
 
-  // 显示装备详情
-  const showEquipmentDetails = equipment => {
-    selectedEquipment.value = equipment
-    showEquipmentDetailModal.value = true
-  }
-
-  // 装备详情相关
+  const showEquipmentDetails = equipment => { selectedEquipment.value = equipment; showEquipmentDetailModal.value = true }
   const showEquipmentDetailModal = ref(false)
   const selectedEquipment = ref(null)
-
-  // 强化确认弹窗
   const showEnhanceConfirm = ref(false)
 
-  // 强化装备
-  const handleEnhanceEquipment = () => {
+  const handleEnhanceEquipment = async () => {
     if (!selectedEquipment.value) return
     const result = enhanceEquipment(selectedEquipment.value, playerStore.reinforceStones)
     if (result.success) {
       playerStore.reinforceStones -= result.cost
       selectedEquipment.value.stats = { ...result.newStats }
       selectedEquipment.value.enhanceLevel = result.newLevel
-      message.success('强化成功')
+      message.success('淬火成功')
       playerStore.saveData()
-    } else {
-      message.error(result.message || '强化失败')
-    }
+    } else message.error(result.message || '淬火失败')
+    showEnhanceConfirm.value = false
   }
 
-  // 洗练确认弹窗
   const showReforgeConfirm = ref(false)
   const reforgeResult = ref(null)
 
-  // 洗练装备
-  const handleReforgeEquipment = () => {
+  const handleReforgeEquipment = async () => {
     if (!selectedEquipment.value) return
     const result = reforgeEquipment(selectedEquipment.value, playerStore.refinementStones, false)
     if (result.success) {
       playerStore.refinementStones -= result.cost
       reforgeResult.value = result
       showReforgeConfirm.value = true
-    } else {
-      message.error(result.message || '洗练失败')
-    }
+    } else message.error(result.message || '铭符失败')
   }
 
-  // 确认洗练结果
-  const confirmReforgeResult = confirm => {
+  const confirmReforgeResult = async (confirm) => {
     if (!reforgeResult.value) return
     if (confirm) {
-      // 用户确认后，应用新属性
-      selectedEquipment.value.stats = reforgeResult.value.newStats
+      if (authStore.isLoggedIn) {
+        // 服务端铭符已经保存了新属性，刷新装备列表
+        await playerStore.loadEquipmentFromServer()
+        playerStore.recalcArtifactBonuses()
+        // 更新当前选中装备的显示
+        if (selectedEquipment.value) {
+          selectedEquipment.value.stats = reforgeResult.value.newStats
+        }
+      } else {
+        selectedEquipment.value.stats = reforgeResult.value.newStats
+      }
       message.success('已确认新属性')
     } else {
-      // 用户取消，保留原属性
       message.info('已保留原有属性')
     }
-    showReforgeConfirm.value = false
-    reforgeResult.value = null
-    playerStore.saveData()
+    showReforgeConfirm.value = false; reforgeResult.value = null; playerStore.saveData()
   }
 
-  // 使用装备
-  const equipItem = equipment => {
+  const equipItem = async (equipment) => {
     const result = playerStore.equipArtifact(equipment, equipment.type)
     if (result.success) {
       message.success(result.message)
       showEquipmentModal.value = false
       showEquipmentDetailModal.value = false
+      if (authStore.isLoggedIn) playerStore.saveData()
     } else {
       message.error(result.message || '装备失败')
     }
   }
 
-  // 计算灵草分组
+  const getEquipPower = (equip) => {
+    if (!equip || !equip.stats) return 0
+    return Object.values(equip.stats).reduce((sum, v) => sum + (typeof v === 'number' ? v : 0), 0)
+  }
+
+  const oneKeyEquip = async () => {
+    let count = 0
+    Object.keys(equipmentTypes).forEach(slot => {
+      const candidates = playerStore.items.filter(item => item.type === slot && (!item.requiredRealm || playerStore.level >= item.requiredRealm))
+      if (candidates.length === 0) return
+      const best = candidates.reduce((a, b) => getEquipPower(a) > getEquipPower(b) ? a : b)
+      const current = playerStore.equippedArtifacts[slot]
+      if (!current || getEquipPower(best) > getEquipPower(current)) {
+        const result = playerStore.equipArtifact(best, slot)
+        if (result.success) count++
+      }
+    })
+    if (count > 0) {
+      message.success(`一键穿戴完成，更换了 ${count} 件装备`)
+      if (authStore.isLoggedIn) playerStore.saveData()
+    } else message.info('没有更强的装备可以替换')
+  }
+
+  const oneKeyUnequip = async () => {
+    let count = 0
+    Object.keys(equipmentTypes).forEach(slot => {
+      if (playerStore.equippedArtifacts[slot]) { playerStore.unequipArtifact(slot); count++ }
+    })
+    if (count > 0) {
+      message.success(`已卸下 ${count} 件装备`)
+      if (authStore.isLoggedIn) playerStore.saveData()
+    } else message.info('没有装备需要卸下')
+  }
+
   const groupedHerbs = computed(() => {
     const groups = {}
     playerStore.herbs.forEach(herb => {
-      if (!groups[herb.name]) {
-        groups[herb.name] = {
-          ...herb,
-          count: 1
-        }
-      } else {
-        groups[herb.name].count++
-      }
+      if (!groups[herb.name]) groups[herb.name] = { ...herb, count: 1 }
+      else groups[herb.name].count++
     })
     return Object.values(groups)
   })
 
-  // 计算丹方分组
   const groupedFormulas = computed(() => {
-    // 从pillRecipes中获取完整丹方
-    const complete = playerStore.pillRecipes
-      .map(recipeId => {
-        const recipe = pillRecipes.find(r => r.id === recipeId)
-        return recipe
-          ? {
-              id: recipe.id,
-              name: recipe.name,
-              description: recipe.description,
-              grade: recipe.grade,
-              type: recipe.type,
-              isComplete: true
-            }
-          : null
-      })
-      .filter(Boolean)
-
-    // 从pillFragments中获取残缺丹方
-    const incomplete = Object.entries(playerStore.pillFragments)
-      .map(([recipeId, fragments]) => {
-        const recipe = pillRecipes.find(r => r.id === recipeId)
-        return recipe
-          ? {
-              id: recipe.id,
-              name: recipe.name,
-              description: recipe.description,
-              grade: recipe.grade,
-              type: recipe.type,
-              isComplete: false,
-              fragments,
-              fragmentsNeeded: recipe.fragmentsNeeded
-            }
-          : null
-      })
-      .filter(Boolean)
-
+    const complete = playerStore.pillRecipes.map(recipeId => {
+      const recipe = pillRecipes.find(r => r.id === recipeId)
+      return recipe ? { id: recipe.id, name: recipe.name, description: recipe.description, grade: recipe.grade, type: recipe.type, isComplete: true } : null
+    }).filter(Boolean)
+    const incomplete = Object.entries(playerStore.pillFragments).map(([recipeId, fragments]) => {
+      const recipe = pillRecipes.find(r => r.id === recipeId)
+      return recipe ? { id: recipe.id, name: recipe.name, description: recipe.description, grade: recipe.grade, type: recipe.type, isComplete: false, fragments, fragmentsNeeded: recipe.fragmentsNeeded } : null
+    }).filter(Boolean)
     return { complete, incomplete }
   })
 
-  // 计算丹药分组
   const groupedPills = computed(() => {
     const groups = {}
-    playerStore.items
-      .filter(item => item.type === 'pill')
-      .forEach(pill => {
-        if (!groups[pill.name]) {
-          groups[pill.name] = {
-            ...pill,
-            count: 1
-          }
-        } else {
-          groups[pill.name].count++
-        }
-      })
+    playerStore.items.filter(item => item.type === 'pill').forEach(pill => {
+      if (!groups[pill.name]) groups[pill.name] = { ...pill, count: 1 }
+      else groups[pill.name].count++
+    })
     return Object.values(groups)
   })
-  // 使用物品
-  const useItem = item => {
+
+  const useItem = async item => {
     if (item.type === 'pet') {
-      const result = playerStore.usePet(item)
-      if (result.success) {
-        message.success(result.message)
+      if (authStore.isLoggedIn) {
+        let result
+        if (playerStore.activePet?.id === item.id) {
+          result = await playerStore.recallPetOnServer(item.id)
+        } else {
+          result = await playerStore.deployPetOnServer(item.id)
+        }
+        if (result.success) message.success(result.message)
+        else message.error(result.message || '操作失败')
       } else {
-        message.error(result.message || '操作失败')
+        const result = playerStore.usePet(item)
+        if (result.success) message.success(result.message)
+        else message.error(result.message || '操作失败')
       }
     }
   }
 
-  // 装备属性对比计算
   const equipmentComparison = computed(() => {
-    if (!selectedEquipment.value || !selectedEquipmentType.value) return null
-    const currentEquipment = playerStore.equippedArtifacts[selectedEquipmentType.value]
+    if (!selectedEquipment.value || !selectedEquipment.value.type) return null
+    const slotKey = selectedEquipment.value.slot || selectedEquipment.value.type
+    const currentEquipment = playerStore.equippedArtifacts[slotKey]
     if (!currentEquipment) return null
     const comparison = {}
     const allStats = new Set([...Object.keys(selectedEquipment.value.stats), ...Object.keys(currentEquipment.stats)])
@@ -1029,18 +1086,12 @@
       const selectedValue = selectedEquipment.value.stats[stat] || 0
       const currentValue = currentEquipment.stats[stat] || 0
       const diff = selectedValue - currentValue
-      comparison[stat] = {
-        current: currentValue,
-        selected: selectedValue,
-        diff: diff,
-        isPositive: diff > 0
-      }
+      comparison[stat] = { current: currentValue, selected: selectedValue, diff, isPositive: diff > 0 }
     })
     return comparison
   })
 
   const options = [
-    { label: '全部品阶', value: 'all' },
     { label: '神品', value: 'divine' },
     { label: '仙品', value: 'celestial' },
     { label: '玄品', value: 'mystic' },
@@ -1050,30 +1101,154 @@
 </script>
 
 <style scoped>
-  .n-card {
-    cursor: pointer;
+  /* === 储藏室容器 === */
+  .storage-container { padding: 8px; }
+  .storage-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .storage-title { font-size: 18px; font-weight: 700; color: #d4a843; text-shadow: 0 0 10px rgba(212,168,67,0.4); }
+  .storage-actions { display: flex; gap: 8px; }
+
+  /* === 装备栏 === */
+  .equip-bar { margin-bottom: 16px; padding: 10px; border-radius: 12px; background: rgba(10,8,18,0.6); border: 1px solid rgba(212,168,67,0.15); }
+  .equip-bar-label { font-size: 13px; color: #8a7a5a; margin-bottom: 8px; font-weight: 600; }
+  .equip-bar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  @media (max-width: 500px) { .equip-bar-grid { grid-template-columns: repeat(5, 1fr); } }
+
+  .equip-bar-slot {
+    position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: 100%; aspect-ratio: 1; border-radius: 8px; cursor: pointer;
+    background: rgba(15,15,25,0.8); transition: all 0.25s ease; padding: 4px 2px; overflow: hidden;
+  }
+  .equip-bar-slot:hover { transform: translateY(-2px); }
+  .eq-empty { border: 1.5px dashed rgba(212,168,67,0.2); }
+  .eq-empty:hover { border-color: rgba(212,168,67,0.5); box-shadow: 0 0 10px rgba(212,168,67,0.15); }
+
+  .eq-slot-icon { width: 28px; height: 28px; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 0 4px rgba(212,168,67,0.5)); }
+  .eq-slot-icon-empty { opacity: 0.3; filter: grayscale(0.6); }
+  .eq-slot-emoji { font-size: 20px; }
+  .eq-slot-emoji-empty { opacity: 0.3; filter: grayscale(0.6); }
+  .eq-slot-name { font-size: 9px; color: #a09070; text-align: center; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; margin-top: 2px; }
+  .eq-enhance { position: absolute; top: 1px; right: 2px; font-size: 9px; color: #FFD700; font-weight: bold; text-shadow: 0 0 4px rgba(255,215,0,0.6); }
+
+  /* 装备栏品质 */
+  .eq-quality-common { border: 1.5px solid #555; }
+  .eq-quality-uncommon { border: 1.5px solid #4caf50; box-shadow: 0 0 6px rgba(76,175,80,0.3); }
+  .eq-quality-rare { border: 1.5px solid #2196f3; box-shadow: 0 0 6px rgba(33,150,243,0.3); }
+  .eq-quality-epic { border: 1.5px solid #9c27b0; box-shadow: 0 0 8px rgba(156,39,176,0.3); }
+  .eq-quality-legendary { border: 1.5px solid #ff9800; box-shadow: 0 0 8px rgba(255,152,0,0.4); }
+  .eq-quality-mythic { border: 1.5px solid #e91e63; box-shadow: 0 0 10px rgba(233,30,99,0.4); animation: mythic-pulse 2s ease-in-out infinite; }
+
+  @keyframes mythic-pulse {
+    0%,100% { box-shadow: 0 0 8px rgba(233,30,99,0.4); }
+    50% { box-shadow: 0 0 18px rgba(233,30,99,0.7), 0 0 30px rgba(233,30,99,0.2); }
   }
 
-  .reforge-compare {
-    display: flex;
-    justify-content: space-between;
-    gap: 20px;
-    margin: 16px 0;
+  /* === 筛选 tab === */
+  .filter-tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
+
+  /* === 容量条 === */
+  .capacity-bar { display: flex; align-items: center; gap: 8px; padding: 4px 8px; margin-bottom: 8px; }
+  .capacity-text { font-size: 12px; color: #b8860b; white-space: nowrap; }
+  .capacity-track { flex: 1; height: 4px; background: #333; border-radius: 2px; overflow: hidden; }
+  .capacity-fill { height: 100%; background: linear-gradient(90deg, #b8860b, #ffd700); border-radius: 2px; transition: width 0.3s; }
+  .capacity-fill.capacity-full { background: linear-gradient(90deg, #ff4444, #ff6666); }
+  .capacity-max { font-size: 11px; color: #666; white-space: nowrap; }
+  .filter-tab {
+    padding: 4px 14px; border-radius: 16px; font-size: 13px; cursor: pointer; color: #8a7a5a;
+    background: rgba(15,15,25,0.6); border: 1px solid rgba(212,168,67,0.1); transition: all 0.25s;
+  }
+  .filter-tab:hover { color: #d4a843; border-color: rgba(212,168,67,0.3); }
+  .filter-tab.active { color: #000; background: linear-gradient(135deg, #d4a843, #f0c060); border-color: #d4a843; font-weight: 600; }
+
+  /* === 储藏室网格 === */
+  .storage-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  @media (max-width: 500px) { .storage-grid { grid-template-columns: repeat(4, 1fr); } }
+
+  .storage-cell {
+    position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    aspect-ratio: 1; border-radius: 10px; cursor: pointer; padding: 6px 4px;
+    background: rgba(15,15,25,0.8); transition: all 0.25s ease; overflow: hidden;
+  }
+  .storage-cell:hover { transform: translateY(-3px) scale(1.03); z-index: 2; }
+
+  .storage-cell-empty {
+    background: rgba(15,15,25,0.4); border: 1.5px dashed rgba(212,168,67,0.08); cursor: default;
+  }
+  .storage-cell-empty:hover { transform: none; }
+  .empty-dot { color: rgba(212,168,67,0.1); font-size: 20px; }
+
+  /* 网格品质边框 */
+  .sq-common { border: 1.5px solid #9e9e9e44; }
+  .sq-common:hover { border-color: #9e9e9e; box-shadow: 0 0 8px rgba(158,158,158,0.3); }
+  .sq-uncommon { border: 1.5px solid #4caf5066; }
+  .sq-uncommon:hover { border-color: #4caf50; box-shadow: 0 0 10px rgba(76,175,80,0.4); }
+  .sq-rare { border: 1.5px solid #2196f366; }
+  .sq-rare:hover { border-color: #2196f3; box-shadow: 0 0 10px rgba(33,150,243,0.4); }
+  .sq-epic { border: 1.5px solid #9c27b066; }
+  .sq-epic:hover { border-color: #9c27b0; box-shadow: 0 0 12px rgba(156,39,176,0.4); }
+  .sq-legendary { border: 1.5px solid #ff980066; }
+  .sq-legendary:hover { border-color: #ff9800; box-shadow: 0 0 12px rgba(255,152,0,0.5); }
+  .sq-mythic { border: 1.5px solid #e91e6366; animation: mythic-pulse 2s ease-in-out infinite; }
+  .sq-mythic:hover { border-color: #e91e63; box-shadow: 0 0 16px rgba(233,30,99,0.6); }
+
+  /* 格子内容 */
+  .cell-icon-area { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px; }
+  .cell-img { width: 30px; height: 30px; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 0 4px rgba(212,168,67,0.4)); }
+  .cell-emoji { font-size: 22px; }
+  .cell-label { font-size: 10px; color: #d4a843; text-align: center; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; font-weight: 600; }
+  .cell-count {
+    position: absolute; bottom: 3px; right: 3px; background: linear-gradient(135deg, #d4a843, #b8860b);
+    color: #000; border-radius: 8px; padding: 0 5px; font-size: 10px; font-weight: bold; line-height: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+  .cell-use-hint { font-size: 9px; color: #d4a843; opacity: 0; transition: opacity 0.25s; }
+  .storage-cell:hover .cell-use-hint { opacity: 1; }
+  .cell-meta { font-size: 9px; color: #8a7a5a; }
+  .cell-sell-btn { position: absolute; top: 2px; right: 2px; }
+
+  /* === 焰兽格子 === */
+  .pet-img { width: 30px; height: 30px; border-radius: 6px; }
+  .pet-stars-mini { font-size: 8px; color: #FFD700; line-height: 1; }
+  .pet-q-mortal { border: 1.5px solid #32CD3266; }
+  .pet-q-mortal:hover { border-color: #32CD32; box-shadow: 0 0 8px rgba(50,205,50,0.4); }
+  .pet-q-spiritual { border: 1.5px solid #1E90FF66; }
+  .pet-q-spiritual:hover { border-color: #1E90FF; box-shadow: 0 0 8px rgba(30,144,255,0.4); }
+  .pet-q-mystic { border: 1.5px solid #9932CC66; }
+  .pet-q-mystic:hover { border-color: #9932CC; box-shadow: 0 0 10px rgba(153,50,204,0.4); }
+  .pet-q-celestial { border: 1.5px solid #FFD70066; }
+  .pet-q-celestial:hover { border-color: #FFD700; box-shadow: 0 0 10px rgba(255,215,0,0.5); }
+  .pet-q-divine { border: 1.5px solid #FF000066; animation: divine-glow 2s ease-in-out infinite; }
+  .pet-q-divine:hover { border-color: #FF0000; box-shadow: 0 0 14px rgba(255,0,0,0.5); }
+  .pet-active-cell { animation: active-pulse 1.5s ease-in-out infinite !important; }
+
+  @keyframes divine-glow {
+    0%,100% { box-shadow: 0 0 8px rgba(255,0,0,0.4); }
+    50% { box-shadow: 0 0 18px rgba(255,0,0,0.7), 0 0 28px rgba(255,0,0,0.2); }
+  }
+  @keyframes active-pulse {
+    0%,100% { box-shadow: 0 0 6px rgba(255,215,0,0.4); }
+    50% { box-shadow: 0 0 14px rgba(255,215,0,0.8), 0 0 24px rgba(255,215,0,0.3); }
   }
 
-  .old-stats,
-  .new-stats {
-    flex: 1;
-    padding: 16px;
-    border-radius: 8px;
-    background-color: rgba(0, 0, 0, 0.05);
-  }
+  /* === 焰方格子 === */
+  .formula-cell { border: 1px solid rgba(212,168,67,0.2); }
+  .formula-cell:hover { border-color: rgba(212,168,67,0.5); box-shadow: 0 0 10px rgba(212,168,67,0.2); }
+  .formula-section :deep(.n-tabs-tab) { font-size: 12px; }
 
-  .old-stats h3,
-  .new-stats h3 {
-    margin-top: 0;
-    margin-bottom: 12px;
-    font-size: 16px;
-    color: #666;
+  /* === 弹窗内样式 === */
+  .pet-detail-header { display: flex; justify-content: center; margin-bottom: 12px; }
+  .pet-detail-avatar { width: 96px; height: 96px; border-radius: 12px; border: 2px solid rgba(212,168,67,0.5); box-shadow: 0 0 16px rgba(212,168,67,0.4); object-fit: cover; }
+  .detail-quality-text { font-weight: bold; font-size: 15px; }
+  .stats-comparison :deep(.n-gradient-text) { font-weight: bold; font-size: 14px; }
+  .reforge-compare { display: flex; justify-content: space-between; gap: 20px; margin: 16px 0; }
+  .old-stats, .new-stats { flex: 1; padding: 16px; border-radius: 10px; background: rgba(20,18,30,0.8); border: 1px solid rgba(212,168,67,0.15); }
+  .old-stats h3, .new-stats h3 { margin-top: 0; margin-bottom: 12px; font-size: 16px; color: #d4a843; }
+
+  /* 装备列表弹窗中的格子 */
+  .equip-list-cell { aspect-ratio: auto; min-height: 70px; padding: 8px; }
+
+  @media (max-width: 500px) {
+    .reforge-compare { flex-direction: column; gap: 10px; }
+    .storage-grid { grid-template-columns: repeat(3, 1fr); }
+    .equip-bar-grid { grid-template-columns: repeat(4, 1fr); }
   }
 </style>

@@ -17,31 +17,8 @@ const dungeonBuffs = {
   },
   // 清除所有增益效果
   clear(player) {
-    // 重置可能被修改的属性
-    if (player.baseAttributes) {
-      player.baseAttributes.attack = player.baseAttributes.attack || 10
-      player.baseAttributes.defense = player.baseAttributes.defense || 5
-      player.baseAttributes.speed = player.baseAttributes.speed || 10
-      player.baseAttributes.health = player.baseAttributes.health || 100
-    }
-    if (player.combatAttributes) {
-      player.combatAttributes.critRate = player.combatAttributes.critRate || 0.05
-      player.combatAttributes.comboRate = player.combatAttributes.comboRate || 0
-      player.combatAttributes.counterRate = player.combatAttributes.counterRate || 0
-      player.combatAttributes.stunRate = player.combatAttributes.stunRate || 0
-      player.combatAttributes.dodgeRate = player.combatAttributes.dodgeRate || 0
-      player.combatAttributes.vampireRate = player.combatAttributes.vampireRate || 0
-    }
-    if (player.specialAttributes) {
-      player.specialAttributes.healBoost = player.specialAttributes.healBoost || 0
-      player.specialAttributes.critDamageBoost = player.specialAttributes.critDamageBoost || 0
-      player.specialAttributes.critDamageReduce = player.specialAttributes.critDamageReduce || 0
-      player.specialAttributes.finalDamageBoost = player.specialAttributes.finalDamageBoost || 0
-      player.specialAttributes.finalDamageReduce = player.specialAttributes.finalDamageReduce || 0
-      player.specialAttributes.combatBoost = player.specialAttributes.combatBoost || 0
-      player.specialAttributes.resistanceBoost = player.specialAttributes.resistanceBoost || 0
-    }
-    // 清空活跃增益列表
+    // 只清空活跃增益列表，不修改玩家属性
+    // buff 是应用在战斗实体上的临时效果，不应该重置玩家 store 的属性
     this.activeBuffs = []
   },
   // 获取当前活跃的增益效果

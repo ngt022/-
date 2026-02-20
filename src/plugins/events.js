@@ -1,5 +1,19 @@
 import { getRandomHerb, herbQualities } from './herbs'
 import { pillRecipes } from './pills'
+import { useAuthStore } from '../stores/auth'
+
+// 同步探索奖励到服务端
+async function syncExplorationReward(rewardData) {
+  try {
+    const authStore = useAuthStore()
+    if (!authStore.isLoggedIn) return
+    await fetch('/api/exploration/reward', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authStore.token },
+      body: JSON.stringify(rewardData)
+    })
+  } catch (e) { console.warn('探索奖励同步失败:', e.message) }
+}
 
 // 随机事件配置
 export const events = [
@@ -22,7 +36,7 @@ export const events = [
     effect: (playerStore, showMessage) => {
       const bonus = Math.floor(60 * (playerStore.level / 3 + 1))
       playerStore.spirit += bonus
-      showMessage('success', `[灵泉]饮用灵泉，灵力增加${bonus}点`)
+      showMessage('success', `[灵泉]饮用灵泉，焰灵增加${bonus}点`)
     }
   },
   {
@@ -35,18 +49,18 @@ export const events = [
       const spiritBonus = Math.floor(180 * (playerStore.level / 2 + 1))
       playerStore.cultivation += cultivationBonus
       playerStore.spirit += spiritBonus
-      showMessage('success', `[古修遗府]获得上古大能传承，修为增加${cultivationBonus}点，灵力增加${spiritBonus}点`)
+      showMessage('success', `[古修遗府]获得上古大能传承，修为增加${cultivationBonus}点，焰灵增加${spiritBonus}点`)
     }
   },
   {
     id: 'monster_attack',
-    name: '妖兽袭击',
-    description: '遭遇一只实力强大的妖兽。',
+    name: '黑焰兽袭击',
+    description: '遭遇一只实力强大的黑焰兽。',
     chance: 0.15,
     effect: (playerStore, showMessage) => {
       const damage = Math.floor(80 * (playerStore.level / 4 + 1))
       playerStore.spirit = Math.max(0, playerStore.spirit - damage)
-      showMessage('error', `[妖兽袭击]与妖兽激战，损失${damage}点灵力`)
+      showMessage('error', `[黑焰兽袭击]与黑焰兽激战，损失${damage}点焰灵`)
     }
   },
   {
@@ -62,13 +76,13 @@ export const events = [
   },
   {
     id: 'treasure_trove',
-    name: '秘境宝藏',
+    name: '焰域宝藏',
     description: '发现一处上古修士遗留的宝藏。',
     chance: 0.05,
     effect: (playerStore, showMessage) => {
       const stoneBonus = Math.floor(30 * (playerStore.level / 2 + 1))
       playerStore.spiritStones += stoneBonus
-      showMessage('success', `[秘境宝藏]发现宝藏，获得${stoneBonus}颗灵石`)
+      showMessage('success', `[焰域宝藏]发现宝藏，获得${stoneBonus}颗焰晶`)
     }
   },
   {
@@ -80,7 +94,7 @@ export const events = [
       const bonus = Math.floor(50 * (playerStore.level / 4 + 1))
       playerStore.cultivation += bonus
       playerStore.spiritRate *= 1.05
-      showMessage('success', `[顿悟]突然顿悟，获得${bonus}点修为，灵力获取速率提升5%`)
+      showMessage('success', `[顿悟]突然顿悟，获得${bonus}点修为，焰灵获取速率提升5%`)
     }
   },
   {
@@ -92,7 +106,7 @@ export const events = [
       const damage = Math.floor(60 * (playerStore.level / 3 + 1))
       playerStore.spirit = Math.max(0, playerStore.spirit - damage)
       playerStore.cultivation = Math.max(0, playerStore.cultivation - damage)
-      showMessage('error', `[心魔侵扰]遭受心魔侵扰，损失${damage}点灵力和修为`)
+      showMessage('error', `[心魔侵扰]遭受心魔侵扰，损失${damage}点焰灵和修为`)
     }
   }
 ]
@@ -102,15 +116,17 @@ export const handleReward = (reward, playerStore, showMessage) => {
   switch (reward.type) {
     case 'spirit_stone':
       playerStore.spiritStones += reward.amount
-      showMessage('success', `[灵石获取]获得${reward.amount}颗灵石`)
+      showMessage('success', `[焰晶获取]获得${reward.amount}颗焰晶`)
+      syncExplorationReward({ type: 'spirit_stone', amount: reward.amount })
       break
     case 'herb':
-      // 获取指定数量的随机灵草
+      // 获取指定数量的随机焰草
       for (let i = 0; i < reward.amount; i++) {
         const herb = getRandomHerb()
         if (herb) {
           playerStore.herbs.push(herb)
-          showMessage('success', `[灵草获取]获得${herbQualities[herb.quality].name}品质的${herb.name}`)
+          showMessage('success', `[焰草获取]获得${herbQualities[herb.quality].name}品质的${herb.name}`)
+          syncExplorationReward({ type: 'herb', amount: 1, herbId: herb.id, name: herb.name, quality: herb.quality, value: herb.value || 0 })
         }
       }
       break

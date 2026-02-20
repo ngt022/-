@@ -20,8 +20,6 @@ export default defineConfig({
         manualChunks: id => {
           if (id.includes('node_modules')) {
             if (id.includes('naive-ui')) return 'naive-ui'
-            if (id.includes('vue')) return 'vue-vendor'
-            if (id.includes('pinia')) return 'pinia-vendor'
             return 'vendor'
           }
         },
@@ -54,7 +52,7 @@ export default defineConfig({
     }),
     vitePluginBundleObfuscator({
       log: false,
-      enable: true,
+      enable: false,
       options: {
         log: false,
         compact: true,

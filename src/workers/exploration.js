@@ -16,7 +16,8 @@ const handleExploration = (playerData, location) => {
     type: 'exploration_result',
     eventTriggered: false,
     rewardMultiplier: 1,
-    spiritCost: location.spiritCost
+    spiritCost: location.spiritCost,
+    locationId: location.id
   }
 
   // 随机事件判定

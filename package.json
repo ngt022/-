@@ -13,9 +13,11 @@
     "@vicons/antd": "^0.13.0",
     "@vicons/ionicons5": "^0.13.0",
     "crypto-js": "^4.2.0",
+    "ethers": "^6.16.0",
     "file-saver": "^2.0.5",
-    "pinia": "^3.0.1",
     "naive-ui": "^2.41.0",
+    "pinia": "^3.0.1",
+    "terser": "^5.46.0",
     "vite-plugin-bundle-obfuscator": "^1.4.1",
     "vue": "^3.5.13",
     "vue-router": "4"

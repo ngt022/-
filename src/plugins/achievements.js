@@ -11,8 +11,11 @@ const equipmentTypes = {
   ring1: '戒指1',
   ring2: '戒指2',
   belt: '腰带',
-  artifact: '法宝'
+  artifact: '焰器'
 }
+
+// 从 items 中提取装备（排除焰丹和焰兽）
+const getEquipments = (player) => (player.items || []).filter(i => i.type !== 'pill' && i.type !== 'pet')
 
 // 成就系统配置
 export const achievements = {
@@ -24,7 +27,7 @@ export const achievements = {
       description: '获得第一件装备',
       condition: player => {
         const equippedCount = Object.values(player.equippedArtifacts).filter(e => e !== null).length
-        const inventoryCount = player.equipment?.length || 0
+        const inventoryCount = getEquipments(player).length || 0
         return equippedCount + inventoryCount >= 1
       },
       reward: { spirit: 200 }
@@ -35,7 +38,7 @@ export const achievements = {
       description: '拥有10件装备',
       condition: player => {
         const equippedCount = Object.values(player.equippedArtifacts).filter(e => e !== null).length
-        const inventoryCount = player.equipment?.length || 0
+        const inventoryCount = getEquipments(player).length || 0
         return equippedCount + inventoryCount >= 10
       },
       reward: { spirit: 1000 }
@@ -46,7 +49,7 @@ export const achievements = {
       description: '拥有一件极品品质装备',
       condition: player => {
         const equippedLegendary = Object.values(player.equippedArtifacts).some(e => e?.quality === 'legendary')
-        const inventoryLegendary = player.equipment?.some(e => e.quality === 'legendary')
+        const inventoryLegendary = getEquipments(player).some(e => e.quality === 'legendary')
         return equippedLegendary || inventoryLegendary
       },
       reward: { spirit: 3000, damage: 1.2 }
@@ -57,7 +60,7 @@ export const achievements = {
       description: '强化任意装备到+10',
       condition: player => {
         const equippedEnhanced = Object.values(player.equippedArtifacts).some(e => e?.enhanceLevel >= 10)
-        const inventoryEnhanced = player.equipment?.some(e => e.enhanceLevel >= 10)
+        const inventoryEnhanced = getEquipments(player).some(e => e.enhanceLevel >= 10)
         return equippedEnhanced || inventoryEnhanced
       },
       reward: { spirit: 5000, damage: 1.5 }
@@ -69,7 +72,7 @@ export const achievements = {
       condition: player => {
         const allEquipment = [
           ...Object.values(player.equippedArtifacts).filter(e => e !== null),
-          ...(player.equipment || [])
+          ...getEquipments(player)
         ]
         const legendaryTypes = new Set(allEquipment.filter(e => e.quality === 'legendary').map(e => e.type))
         return legendaryTypes.size >= 4
@@ -82,7 +85,7 @@ export const achievements = {
       description: '初次强化装备',
       condition: player => {
         const equippedEnhanced = Object.values(player.equippedArtifacts).some(e => e?.enhanceLevel > 0)
-        const inventoryEnhanced = player.equipment?.some(e => e.enhanceLevel > 0)
+        const inventoryEnhanced = getEquipments(player).some(e => e.enhanceLevel > 0)
         return equippedEnhanced || inventoryEnhanced
       },
       reward: { spirit: 500 }
@@ -94,7 +97,7 @@ export const achievements = {
       condition: player => {
         const allEquipment = [
           ...Object.values(player.equippedArtifacts).filter(e => e !== null),
-          ...(player.equipment || [])
+          ...getEquipments(player)
         ]
         return new Set(allEquipment.map(e => e.type)).size >= 10
       },
@@ -106,7 +109,7 @@ export const achievements = {
       description: '拥有5件仙品装备',
       condition: player => {
         const equippedMythic = Object.values(player.equippedArtifacts).filter(e => e?.quality === 'mythic').length
-        const inventoryMythic = (player.equipment || []).filter(e => e.quality === 'mythic').length
+        const inventoryMythic = getEquipments(player).filter(e => e.quality === 'mythic').length
         return equippedMythic + inventoryMythic >= 5
       },
       reward: { spirit: 10000, damage: 1.5 }
@@ -117,7 +120,7 @@ export const achievements = {
       description: '将一件装备强化到+15',
       condition: player => {
         const equippedEnhanced = Object.values(player.equippedArtifacts).some(e => e?.enhanceLevel >= 15)
-        const inventoryEnhanced = player.equipment?.some(e => e.enhanceLevel >= 15)
+        const inventoryEnhanced = getEquipments(player).some(e => e.enhanceLevel >= 15)
         return equippedEnhanced || inventoryEnhanced
       },
       reward: { spirit: 20000, damage: 2 }
@@ -129,7 +132,7 @@ export const achievements = {
       condition: player => {
         const allEquipment = [
           ...Object.values(player.equippedArtifacts).filter(e => e !== null),
-          ...(player.equipment || [])
+          ...getEquipments(player)
         ]
         const mythicTypes = new Set(allEquipment.filter(e => e.quality === 'mythic').map(e => e.type))
         return mythicTypes.size >= Object.keys(equipmentTypes).length
@@ -138,81 +141,81 @@ export const achievements = {
     }
   ],
 
-  // 秘境探索成就
+  // 焰域探索成就
   dungeon_explore: [
     {
       id: 'dungeon_1',
-      name: '初探秘境',
-      description: '首次进入秘境',
+      name: '初探焰域',
+      description: '首次进入焰域',
       condition: player => player.dungeonTotalRuns >= 1,
       reward: { spirit: 200, damage: 1 }
     },
     {
       id: 'dungeon_2',
-      name: '秘境先驱者',
-      description: '通过第5层秘境',
+      name: '焰域先驱者',
+      description: '通过第5层焰域',
       condition: player => player.dungeonHighestFloor >= 5,
       reward: { spirit: 500, damage: 1.1 }
     },
     {
       id: 'dungeon_3',
-      name: '秘境探索者',
-      description: '通过第10层秘境',
+      name: '焰域探索者',
+      description: '通过第10层焰域',
       condition: player => player.dungeonHighestFloor >= 10,
       reward: { spirit: 1000, damage: 1.2 }
     },
     {
       id: 'dungeon_4',
-      name: '秘境探险家',
-      description: '通过第20层秘境',
+      name: '焰域探险家',
+      description: '通过第20层焰域',
       condition: player => player.dungeonHighestFloor >= 20,
       reward: { spirit: 2000, damage: 1.3 }
     },
     {
       id: 'dungeon_5',
-      name: '秘境猎手',
-      description: '通过第30层秘境',
+      name: '焰域猎手',
+      description: '通过第30层焰域',
       condition: player => player.dungeonHighestFloor >= 30,
       reward: { spirit: 5000, damage: 1.4 }
     },
     {
       id: 'dungeon_6',
-      name: '秘境征服者',
-      description: '通过第50层秘境',
+      name: '焰域征服者',
+      description: '通过第50层焰域',
       condition: player => player.dungeonHighestFloor >= 50,
       reward: { spirit: 5000, damage: 1.5 }
     },
     {
       id: 'dungeon_7',
-      name: '秘境征服者',
-      description: '通过第75层秘境',
+      name: '焰域征服者',
+      description: '通过第75层焰域',
       condition: player => player.dungeonHighestFloor >= 75,
       reward: { spirit: 15000, damage: 1.6 }
     },
     {
       id: 'dungeon_8',
-      name: '秘境王者',
-      description: '通过第100层秘境',
+      name: '焰域王者',
+      description: '通过第100层焰域',
       condition: player => player.dungeonHighestFloor >= 100,
       reward: { spirit: 20000, damage: 1.7 }
     },
     {
       id: 'dungeon_9',
-      name: '秘境传奇',
-      description: '通过第150层秘境',
+      name: '焰域传奇',
+      description: '通过第150层焰域',
       condition: player => player.dungeonHighestFloor >= 150,
       reward: { spirit: 30000, damage: 1.8 }
     },
     {
       id: 'dungeon_10',
-      name: '秘境之主',
-      description: '通过第200层秘境',
+      name: '焰域之主',
+      description: '通过第200层焰域',
       condition: player => player.dungeonHighestFloor >= 200,
       reward: { spirit: 50000, damage: 2 }
     }
   ],
 
-  // 秘境战斗成就
+  // 焰域战斗成就
   dungeon_combat: [
     {
       id: 'dungeon_combat_1',
@@ -225,7 +228,7 @@ export const achievements = {
       id: 'dungeon_combat_2',
       name: '战无不胜',
       description: '击杀50个普通敌人',
-      condition: player => player.dungeonStreakKills >= 50,
+      condition: player => player.dungeonTotalKills >= 50,
       reward: { spirit: 2000, defense: 1.1 }
     },
     {
@@ -265,7 +268,7 @@ export const achievements = {
     },
     {
       id: 'dungeon_combat_8',
-      name: '秘境终结者',
+      name: '焰域终结者',
       description: '击杀100个BOSS',
       condition: player => player.dungeonBossKills >= 100,
       reward: { spirit: 20000, defense: 2.5 }
@@ -290,71 +293,71 @@ export const achievements = {
   cultivation: [
     {
       id: 'cultivation_1',
-      name: '初入修仙',
-      description: '开始踏上修仙之路',
+      name: '初入焰修',
+      description: '开始踏上焰修之路',
       condition: player => player.totalCultivationTime > 0,
       reward: { spirit: 100 }
     },
     {
       id: 'cultivation_2',
-      name: '修炼入门',
-      description: '累计修炼时间达到30分钟',
+      name: '焰修入门',
+      description: '累计焰修时间达到30分钟',
       condition: player => player.totalCultivationTime >= 1800,
       reward: { spirit: 300 }
     },
     {
       id: 'cultivation_3',
       name: '勤修苦练',
-      description: '累计修炼时间达到1小时',
+      description: '累计焰修时间达到1小时',
       condition: player => player.totalCultivationTime >= 3600,
       reward: { spirit: 500 }
     },
     {
       id: 'cultivation_4',
-      name: '修炼小有所成',
-      description: '累计修炼时间达到12小时',
+      name: '焰修小有所成',
+      description: '累计焰修时间达到12小时',
       condition: player => player.totalCultivationTime >= 43200,
       reward: { spirit: 1000 }
     },
     {
       id: 'cultivation_5',
-      name: '修炼狂人',
-      description: '累计修炼时间达到48小时',
+      name: '焰修狂人',
+      description: '累计焰修时间达到48小时',
       condition: player => player.totalCultivationTime >= 172800,
       reward: { spirit: 3000 }
     },
     {
       id: 'cultivation_6',
-      name: '修炼成痴',
-      description: '累计修炼时间达到24小时',
+      name: '焰修成痴',
+      description: '累计焰修时间达到24小时',
       condition: player => player.totalCultivationTime >= 86400,
       reward: { spirit: 2000 }
     },
     {
       id: 'cultivation_7',
       name: '道心稳固',
-      description: '累计修炼时间达到7天',
+      description: '累计焰修时间达到7天',
       condition: player => player.totalCultivationTime >= 604800,
       reward: { spirit: 5000, spiritRate: 1.1 }
     },
     {
       id: 'cultivation_8',
-      name: '修炼大成',
-      description: '累计修炼时间达到15天',
+      name: '焰修大成',
+      description: '累计焰修时间达到15天',
       condition: player => player.totalCultivationTime >= 1296000,
       reward: { spirit: 10000, spiritRate: 1.2 }
     },
     {
       id: 'cultivation_9',
-      name: '修仙百年',
-      description: '累计修炼时间达到30天',
+      name: '焰修百年',
+      description: '累计焰修时间达到30天',
       condition: player => player.totalCultivationTime >= 2592000,
       reward: { spirit: 10000, spiritRate: 1.3 }
     },
     {
       id: 'cultivation_10',
-      name: '修炼至尊',
-      description: '累计修炼时间达到100天',
+      name: '焰修至尊',
+      description: '累计焰修时间达到100天',
       condition: player => player.totalCultivationTime >= 8640000,
       reward: { spirit: 50000, spiritRate: 2 }
     }
@@ -378,7 +381,7 @@ export const achievements = {
     },
     {
       id: 'breakthrough_3',
-      name: '修炼有成',
+      name: '焰修有成',
       description: '突破次数达到10次',
       condition: player => player.breakthroughCount >= 10,
       reward: { spirit: 1000 }
@@ -400,35 +403,35 @@ export const achievements = {
     {
       id: 'breakthrough_6',
       name: '问鼎巅峰',
-      description: '达到化神境界',
+      description: '达到化焰境界',
       condition: player => player.level >= 37,
       reward: { spirit: 50000, spiritRate: 1 }
     },
     {
       id: 'breakthrough_7',
       name: '突破达人',
-      description: '达到返虚境界',
+      description: '达到焰虚境界',
       condition: player => player.level >= 46,
       reward: { spirit: 100000, spiritRate: 1.2 }
     },
     {
       id: 'breakthrough_8',
       name: '突破宗师',
-      description: '达到大乘境界',
+      description: '达到大焰境界',
       condition: player => player.level >= 64,
       reward: { spirit: 200000, spiritRate: 1.5 }
     },
     {
       id: 'breakthrough_9',
       name: '突破至尊',
-      description: '达到仙人境界',
+      description: '达到焰仙境界',
       condition: player => player.level >= 82,
       reward: { spirit: 300000, spiritRate: 1.7 }
     },
     {
       id: 'breakthrough_10',
       name: '突破之神',
-      description: '达到大罗境界',
+      description: '达到焰帝境界',
       condition: player => player.level >= 126,
       reward: { spirit: 500000, spiritRate: 2 }
     }
@@ -512,71 +515,71 @@ export const achievements = {
   collection: [
     {
       id: 'collection_1',
-      name: '初识灵草',
-      description: '收集首株灵草',
+      name: '初识焰草',
+      description: '收集首株焰草',
       condition: player => player.herbs.length >= 1,
       reward: { spirit: 100 }
     },
     {
       id: 'collection_2',
-      name: '灵草学徒',
-      description: '收集5种不同灵草',
+      name: '焰草学徒',
+      description: '收集5种不同焰草',
       condition: player => new Set(player.herbs.map(h => h.id)).size >= 5,
       reward: { spirit: 500 }
     },
     {
       id: 'collection_3',
-      name: '灵草收藏家',
-      description: '收集10种不同灵草',
+      name: '焰草收藏家',
+      description: '收集10种不同焰草',
       condition: player => new Set(player.herbs.map(h => h.id)).size >= 10,
       reward: { spirit: 1000 }
     },
     {
       id: 'collection_4',
-      name: '灵草猎人',
-      description: '收集50株灵草',
+      name: '焰草猎人',
+      description: '收集50株焰草',
       condition: player => player.herbs.length >= 50,
       reward: { spirit: 2000, herbRate: 1 }
     },
     {
       id: 'collection_5',
-      name: '灵草园主',
-      description: '拥有100株灵草',
+      name: '焰草园主',
+      description: '拥有100株焰草',
       condition: player => player.herbs.length >= 100,
       reward: { spirit: 5000, herbRate: 1.5 }
     },
     {
       id: 'collection_6',
-      name: '灵草之巅',
-      description: '收集200株灵草',
+      name: '焰草之巅',
+      description: '收集200株焰草',
       condition: player => player.herbs.length >= 200,
       reward: { spirit: 30000, herbRate: 2 }
     },
     {
       id: 'collection_7',
       name: '仙品收藏',
-      description: '收集100个稀有灵草',
+      description: '收集100个稀有焰草',
       condition: player => player.herbs.filter(h => h.quality === 'rare').length >= 100,
       reward: { spirit: 2000, herbRate: 1 }
     },
     {
       id: 'collection_8',
-      name: '灵草大师',
-      description: '收集100株极品灵草',
+      name: '焰草大师',
+      description: '收集100株极品焰草',
       condition: player => player.herbs.filter(h => h.quality === 'epic').length >= 100,
       reward: { spirit: 5000, herbRate: 1.3 }
     },
     {
       id: 'collection_9',
-      name: '仙草收集者',
-      description: '收集100株仙品灵草',
+      name: '焰草收集者',
+      description: '收集100株仙品焰草',
       condition: player => player.herbs.filter(h => h.quality === 'mythic').length >= 100,
       reward: { spirit: 10000, herbRate: 1.5 }
     },
     {
       id: 'collection_10',
-      name: '灵草大师',
-      description: '收集所有种类灵草',
+      name: '焰草大师',
+      description: '收集所有种类焰草',
       condition: player => new Set(player.herbs.map(h => h.id)).size >= 15,
       reward: { spirit: 3000, herbRate: 1.2 }
     }
@@ -586,131 +589,131 @@ export const achievements = {
   resources: [
     {
       id: 'resources_1',
-      name: '初获灵石',
-      description: '获得首枚灵石',
+      name: '初获焰晶',
+      description: '获得首枚焰晶',
       condition: player => player.spiritStones >= 1,
       reward: { spirit: 100 }
     },
     {
       id: 'resources_2',
       name: '小有积蓄',
-      description: '灵石数量达到1000',
+      description: '焰晶数量达到1000',
       condition: player => player.spiritStones >= 1000,
       reward: { spirit: 1000 }
     },
     {
       id: 'resources_3',
-      name: '灵石新人',
-      description: '灵石数量达到5000',
+      name: '焰晶新人',
+      description: '焰晶数量达到5000',
       condition: player => player.spiritStones >= 5000,
       reward: { spirit: 2000 }
     },
     {
       id: 'resources_4',
       name: '富甲一方',
-      description: '灵石数量达到10000',
+      description: '焰晶数量达到10000',
       condition: player => player.spiritStones >= 10000,
       reward: { spirit: 5000 }
     },
     {
       id: 'resources_5',
-      name: '灵石达人',
-      description: '灵石数量达到50000',
+      name: '焰晶达人',
+      description: '焰晶数量达到50000',
       condition: player => player.spiritStones >= 50000,
       reward: { spirit: 10000 }
     },
     {
       id: 'resources_6',
       name: '富可敌国',
-      description: '灵石数量达到100000',
+      description: '焰晶数量达到100000',
       condition: player => player.spiritStones >= 100000,
       reward: { spirit: 20000, spiritRate: 1.3 }
     },
     {
       id: 'resources_7',
-      name: '灵石大师',
-      description: '灵石数量达到500000',
+      name: '焰晶大师',
+      description: '焰晶数量达到500000',
       condition: player => player.spiritStones >= 500000,
       reward: { spirit: 10000, spiritRate: 1.5 }
     },
     {
       id: 'resources_8',
-      name: '坐拥灵山',
-      description: '灵石数量达到1000000',
+      name: '坐拥焰山',
+      description: '焰晶数量达到1000000',
       condition: player => player.spiritStones >= 1000000,
       reward: { spirit: 100000, spiritRate: 2 }
     },
     {
       id: 'resources_9',
-      name: '灵石传奇',
-      description: '灵石数量达到5000000',
+      name: '焰晶传奇',
+      description: '焰晶数量达到5000000',
       condition: player => player.spiritStones >= 5000000,
       reward: { spirit: 30000, spiritRate: 2.3 }
     },
     {
       id: 'resources_10',
-      name: '灵石之神',
-      description: '灵石数量达到10000000',
+      name: '焰晶之神',
+      description: '焰晶数量达到10000000',
       condition: player => player.spiritStones >= 10000000,
       reward: { spirit: 100000, spiritRate: 2.5 }
     }
   ],
 
-  // 炼丹成就
+  // 焰炼成就
   alchemy: [
     {
       id: 'alchemy_1',
       name: '初识丹道',
-      description: '首次成功炼制丹药',
+      description: '首次成功焰炼焰丹',
       condition: player => player.pillsCrafted >= 1,
       reward: { spirit: 200 }
     },
     {
       id: 'alchemy_2',
-      name: '炼丹学徒',
-      description: '成功炼制5颗丹药',
+      name: '焰炼学徒',
+      description: '成功焰炼5颗焰丹',
       condition: player => player.pillsCrafted >= 5,
       reward: { spirit: 500 }
     },
     {
       id: 'alchemy_3',
       name: '丹道小成',
-      description: '成功炼制10颗丹药',
+      description: '成功焰炼10颗焰丹',
       condition: player => player.pillsCrafted >= 10,
       reward: { spirit: 1000 }
     },
     {
       id: 'alchemy_4',
-      name: '炼丹达人',
-      description: '成功炼制50颗丹药',
+      name: '焰炼达人',
+      description: '成功焰炼50颗焰丹',
       condition: player => player.pillsCrafted >= 50,
       reward: { spirit: 2000 }
     },
     {
       id: 'alchemy_5',
       name: '丹道精通',
-      description: '成功炼制100颗丹药',
+      description: '成功焰炼100颗焰丹',
       condition: player => player.pillsCrafted >= 100,
       reward: { spirit: 5000, alchemyRate: 1.2 }
     },
     {
       id: 'alchemy_6',
-      name: '炼丹大师',
-      description: '成功炼制500颗丹药',
+      name: '焰炼大师',
+      description: '成功焰炼500颗焰丹',
       condition: player => player.pillsCrafted >= 500,
       reward: { spirit: 10000, alchemyRate: 1.3 }
     },
     {
       id: 'alchemy_7',
       name: '丹道宗师',
-      description: '炼制1000颗丹药',
+      description: '焰炼1000颗焰丹',
       condition: player => player.pillsCrafted >= 1000,
       reward: { spirit: 50000, alchemyRate: 2 }
     },
     {
       id: 'alchemy_8',
       name: '丹道之神',
-      description: '炼制10000颗丹药',
+      description: '焰炼10000颗焰丹',
       condition: player => player.pillsCrafted >= 10000,
       reward: { spirit: 50000, alchemyRate: 2.5 }
     },
@@ -724,7 +727,7 @@ export const achievements = {
     {
       id: 'alchemy_10',
       name: '仙丹炼师',
-      description: '炼制100颗仙品丹药',
+      description: '焰炼100颗仙品焰丹',
       condition: player => player.highQualityPillsCrafted >= 100,
       reward: { spirit: 30000, alchemyRate: 1.5 }
     }

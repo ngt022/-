@@ -45,7 +45,7 @@
 
   // 初始化Web Worker
   onMounted(() => {
-    logWorker.value = new Worker(new URL('../workers/log.js', import.meta.url), { type: 'module' })
+    logWorker.value = new Worker(new URL('../workers/log.js', import.meta.url))
 
     // 监听Worker消息
     logWorker.value.onmessage = e => {
