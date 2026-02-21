@@ -435,6 +435,21 @@ app.post('/api/sign/daily', auth, async (req, res) => {
 app.get('/api/leaderboard/:type', async (req, res) => {
   try {
     const { type } = req.params;
+    const typeMap = { power: 'combat_power', level: 'level', recharge: 'recharge' };
+    const cacheType = typeMap[type];
+    if (!cacheType) return res.status(400).json({ error: '无效排行类型' });
+
+    // 优先读缓存
+    const cached = await pool.query('SELECT data FROM leaderboard_cache WHERE type=$1', [cacheType]);
+    if (cached.rows.length > 0 && cached.rows[0].data?.length > 0) {
+      const data = cached.rows[0].data.map(r => ({
+        ...r,
+        wallet: r.wallet ? r.wallet.slice(0, 6) + '...' + r.wallet.slice(-4) : ''
+      }));
+      return res.json({ type, data });
+    }
+
+    // 缓存未命中，直接查询
     let query;
     switch (type) {
       case 'power':
@@ -446,11 +461,8 @@ app.get('/api/leaderboard/:type', async (req, res) => {
       case 'recharge':
         query = 'SELECT name, wallet, total_recharge, vip_level FROM players ORDER BY total_recharge DESC LIMIT 50';
         break;
-      default:
-        return res.status(400).json({ error: '无效排行类型' });
     }
     const result = await pool.query(query);
-    // 隐藏钱包中间部分
     const data = result.rows.map((r, i) => ({
       rank: i + 1,
       ...r,
@@ -1102,7 +1114,7 @@ function runPkBattle(statsA, statsB) {
 
 function broadcast(data) {
   const msg = JSON.stringify(data);
-  wss.clients.forEach(c => { if (c.readyState === 1) c.send(msg); });
+  wss.clients.forEach(c => { try { if (c.readyState === 1) c.send(msg); } catch(e) {} });
 }
 
 // 全服动态广播（供 API 调用）
@@ -3859,3 +3871,18 @@ setInterval(refreshLeaderboard, 10 * 60 * 1000);
 setTimeout(refreshLeaderboard, 5000);
 
 server.listen(PORT, () => console.log(`焰修后端启动 port ${PORT}`));
+
+// Graceful shutdown
+function gracefulShutdown(signal) {
+  console.log('[Server] Received', signal, '- shutting down gracefully...');
+  wss.clients.forEach(c => c.close(1001, 'Server shutting down'));
+  server.close(() => {
+    pool.end().then(() => {
+      console.log('[Server] Shutdown complete');
+      process.exit(0);
+    });
+  });
+  setTimeout(() => process.exit(1), 10000); // 10s 强制退出
+}
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
