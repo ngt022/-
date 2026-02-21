@@ -14,7 +14,8 @@
           <n-icon>
             <book-outline />
           </n-icon>
-        </template>
+          <GuideTooltip v-if="showGuide" :title="guideTexts.cultivation.title" :text="guideTexts.cultivation.text" @dismiss="dismissGuide" />
+</template>
         通过焰心冥想来提升焰力，积累足够的焰力后可以尝试突破焰阶。
       </n-alert>
       <n-space vertical>
@@ -54,6 +55,8 @@
 </template>
 
 <script setup>
+import { hasSeenGuide, markGuideSeen, guideTexts } from "../utils/guide.js"
+import GuideTooltip from "../components/GuideTooltip.vue"
   import { usePlayerStore } from '../stores/player'
   import { ref, computed, onMounted, onUnmounted } from 'vue'
   import { NIcon } from 'naive-ui'
@@ -62,7 +65,9 @@
   import LogPanel from '../components/LogPanel.vue'
   import GameGuide from '../components/GameGuide.vue'
 
-  const playerStore = usePlayerStore()
+  const showGuide = ref(!hasSeenGuide("cultivation"))
+const dismissGuide = () => { markGuideSeen("cultivation"); showGuide.value = false }
+const playerStore = usePlayerStore()
   const logRef = ref(null)
 
   const realmIcon = computed(() => getRealmImage(playerStore.level))

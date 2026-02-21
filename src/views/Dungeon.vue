@@ -19,7 +19,8 @@
             开始探索
           </n-button>
         </n-space>
-      </template>
+        <GuideTooltip v-if="showGuide" :title="guideTexts.dungeon.title" :text="guideTexts.dungeon.text" @dismiss="dismissGuide" />
+</template>
       <n-space vertical>
         <!-- 层数显示 -->
         <n-statistic label="当前层数" :value="dungeonState.floor" />
@@ -289,6 +290,8 @@
 </template>
 
 <script setup>
+import { hasSeenGuide, markGuideSeen, guideTexts } from "../utils/guide.js"
+import GuideTooltip from "../components/GuideTooltip.vue"
 import { ref, computed } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import { getRealmName } from '../plugins/realm'
@@ -298,6 +301,8 @@ import dungeonBuffs from '../plugins/dungeonBuffs'
 import { useMessage } from 'naive-ui'
 import LogPanel from '../components/LogPanel.vue'
 
+const showGuide = ref(!hasSeenGuide("dungeon"))
+const dismissGuide = () => { markGuideSeen("dungeon"); showGuide.value = false }
 const playerStore = usePlayerStore()
 const message = useMessage()
 const logRef = ref(null)

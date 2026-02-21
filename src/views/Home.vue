@@ -146,10 +146,13 @@
       </div>
     </div>
   </div>
+  <GuideTooltip v-if="showGuide" :title="guideTexts.home.title" :text="guideTexts.home.text" @dismiss="dismissGuide" />
 </template>
 
 <script setup>
 import img from '../utils/img.js'
+import { hasSeenGuide, markGuideSeen, guideTexts } from '../utils/guide.js'
+import GuideTooltip from '../components/GuideTooltip.vue'
 import { computed, ref, onMounted } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import { useAuthStore } from '../stores/auth'
@@ -157,6 +160,8 @@ import { useMessage } from 'naive-ui'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+const showGuide = ref(!hasSeenGuide("home"))
+const dismissGuide = () => { markGuideSeen("home"); showGuide.value = false }
 const playerStore = usePlayerStore()
 const authStore = useAuthStore()
 const message = useMessage()
