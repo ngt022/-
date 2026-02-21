@@ -3980,6 +3980,108 @@ setTimeout(refreshLeaderboard, 5000);
 
 server.listen(PORT, '127.0.0.1', () => console.log(`焰修后端启动 127.0.0.1:${PORT}`));
 
+// === 邮件系统 ===
+// 获取邮件列表
+app.get('/api/mail/list', auth, async (req, res) => {
+  try {
+    const w = req.user.wallet;
+    const mails = await pool.query(
+      'SELECT id, from_type, from_name, title, content, rewards, is_read, is_claimed, created_at FROM player_mail WHERE to_wallet=$1 AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY created_at DESC LIMIT 50',
+      [w]
+    );
+    const unread = await pool.query('SELECT COUNT(*) FROM player_mail WHERE to_wallet=$1 AND is_read=false AND (expires_at IS NULL OR expires_at > NOW())', [w]);
+    res.json({ mails: mails.rows, unread: parseInt(unread.rows[0].count) });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
+// 读取邮件
+app.post('/api/mail/read', auth, async (req, res) => {
+  try {
+    const { mailId } = req.body;
+    await pool.query('UPDATE player_mail SET is_read=true WHERE id=$1 AND to_wallet=$2', [mailId, req.user.wallet]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
+// 领取邮件附件
+app.post('/api/mail/claim', auth, async (req, res) => {
+  try {
+    const { mailId } = req.body;
+    const w = req.user.wallet;
+    const mail = await pool.query('SELECT * FROM player_mail WHERE id=$1 AND to_wallet=$2', [mailId, w]);
+    if (!mail.rows.length) return res.status(404).json({ error: '邮件不存在' });
+    if (mail.rows[0].is_claimed) return res.status(400).json({ error: '已领取' });
+    const rewards = mail.rows[0].rewards || {};
+    // 发放奖励
+    if (rewards.spiritStones) {
+      await pool.query(
+        "UPDATE players SET spirit_stones = spirit_stones + $1, game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::bigint, 0) + $1)::bigint)) WHERE wallet = $2",
+        [rewards.spiritStones, w]
+      );
+    }
+    if (rewards.petEssence) {
+      await pool.query(
+        "UPDATE players SET game_data = jsonb_set(game_data, '{petEssence}', to_jsonb((COALESCE((game_data->>'petEssence')::int, 0) + $1)::int)) WHERE wallet = $2",
+        [rewards.petEssence, w]
+      );
+    }
+    if (rewards.reinforceStones) {
+      await pool.query(
+        "UPDATE players SET game_data = jsonb_set(game_data, '{reinforceStones}', to_jsonb((COALESCE((game_data->>'reinforceStones')::int, 0) + $1)::int)) WHERE wallet = $2",
+        [rewards.reinforceStones, w]
+      );
+    }
+    await pool.query('UPDATE player_mail SET is_claimed=true, is_read=true WHERE id=$1', [mailId]);
+    res.json({ ok: true, rewards });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
+// 删除邮件
+app.post('/api/mail/delete', auth, async (req, res) => {
+  try {
+    const { mailId } = req.body;
+    await pool.query('DELETE FROM player_mail WHERE id=$1 AND to_wallet=$2', [mailId, req.user.wallet]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
+// 管理员发送全服邮件
+app.post('/api/admin/mail/send', auth, async (req, res) => {
+  try {
+    if (req.user.wallet.toLowerCase() !== (process.env.ADMIN_WALLET || '0xfad7eb0814b6838b05191a07fb987957d50c4ca9').toLowerCase()) {
+      return res.status(403).json({ error: '无权限' });
+    }
+    const { title, content, rewards, target } = req.body;
+    if (!title || !content) return res.status(400).json({ error: '标题和内容必填' });
+    if (target === 'all') {
+      const players = await pool.query('SELECT wallet FROM players');
+      for (const p of players.rows) {
+        await pool.query(
+          'INSERT INTO player_mail (to_wallet, from_type, from_name, title, content, rewards) VALUES ($1, $2, $3, $4, $5, $6)',
+          [p.wallet, 'admin', '管理员', title, content, JSON.stringify(rewards || {})]
+        );
+      }
+      res.json({ ok: true, sent: players.rows.length });
+    } else if (target) {
+      await pool.query(
+        'INSERT INTO player_mail (to_wallet, from_type, from_name, title, content, rewards) VALUES ($1, $2, $3, $4, $5, $6)',
+        [target, 'admin', '管理员', title, content, JSON.stringify(rewards || {})]
+      );
+      res.json({ ok: true, sent: 1 });
+    } else {
+      res.status(400).json({ error: '需要指定 target (all 或 wallet)' });
+    }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
+// 清理过期邮件（每小时）
+setInterval(async () => {
+  try {
+    await pool.query('DELETE FROM player_mail WHERE expires_at IS NOT NULL AND expires_at < NOW()');
+  } catch {}
+}, 3600000);
+
+
 // Graceful shutdown
 function gracefulShutdown(signal) {
   console.log('[Server] Received', signal, '- shutting down gracefully...');
