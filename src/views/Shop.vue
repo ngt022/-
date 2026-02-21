@@ -179,6 +179,7 @@
 </template>
 
 <script setup>
+import img from '@/utils/img.js'
 import { ref, onMounted, computed } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import { useAuthStore } from '../stores/auth'
@@ -213,13 +214,13 @@ const equipQualities = [
 
 // 装备部位
 const equipSlotImages = {
-  weapon: '/assets/images/equip/weapon.png', head: '/assets/images/equip/head.png',
-  body: '/assets/images/equip/body.png', legs: '/assets/images/equip/legs.png',
-  feet: '/assets/images/equip/feet.png', shoulder: '/assets/images/equip/shoulder.png',
-  hands: '/assets/images/equip/hands.png', wrist: '/assets/images/equip/wrist.png',
-  necklace: '/assets/images/equip/necklace.png', ring1: '/assets/images/equip/ring.png',
-  ring2: '/assets/images/equip/ring.png', belt: '/assets/images/equip/belt.png',
-  artifact: '/assets/images/equip/artifact.png'
+  weapon: img('/assets/images/equip/weapon.png'), head: img('/assets/images/equip/head.png'),
+  body: img('/assets/images/equip/body.png'), legs: img('/assets/images/equip/legs.png'),
+  feet: img('/assets/images/equip/feet.png'), shoulder: img('/assets/images/equip/shoulder.png'),
+  hands: img('/assets/images/equip/hands.png'), wrist: img('/assets/images/equip/wrist.png'),
+  necklace: img('/assets/images/equip/necklace.png'), ring1: img('/assets/images/equip/ring.png'),
+  ring2: img('/assets/images/equip/ring.png'), belt: img('/assets/images/equip/belt.png'),
+  artifact: img('/assets/images/equip/artifact.png')
 }
 
 const equipSlots = [
@@ -240,50 +241,50 @@ const equipSlots = [
 
 // 丹药
 const spiritPills = [
-  { id: 'spirit_small', name: '小灵力药水', img: '/assets/images/pills/pill_juling.png', desc: '+500灵力', price: 500, canMulti: true, buyType: 'pill' },
-  { id: 'spirit_medium', name: '中灵力药水', img: '/assets/images/pills/pill_juqi.png', desc: '+2,500灵力', price: 2000, canMulti: true, buyType: 'pill' },
-  { id: 'spirit_large', name: '大灵力药水', img: '/assets/images/pills/pill_xianling.png', desc: '+12,000灵力', price: 8000, canMulti: true, buyType: 'pill' },
+  { id: 'spirit_small', name: '小灵力药水', img: img('/assets/images/pills/pill_juling.png'), desc: '+500灵力', price: 500, canMulti: true, buyType: 'pill' },
+  { id: 'spirit_medium', name: '中灵力药水', img: img('/assets/images/pills/pill_juqi.png'), desc: '+2,500灵力', price: 2000, canMulti: true, buyType: 'pill' },
+  { id: 'spirit_large', name: '大灵力药水', img: img('/assets/images/pills/pill_xianling.png'), desc: '+12,000灵力', price: 8000, canMulti: true, buyType: 'pill' },
 ]
 const cultPills = [
-  { id: 'cult_small', name: '小修为丹', img: '/assets/images/pills/pill_ningyuan.png', desc: '+等级×100修为', price: 1000, canMulti: true, buyType: 'pill' },
-  { id: 'cult_medium', name: '中修为丹', img: '/assets/images/pills/pill_tianyuan.png', desc: '+等级×600修为', price: 5000, canMulti: true, buyType: 'pill' },
-  { id: 'cult_large', name: '大修为丹', img: '/assets/images/pills/pill_niepan.png', desc: '+等级×3000修为', price: 20000, canMulti: true, buyType: 'pill' },
+  { id: 'cult_small', name: '小修为丹', img: img('/assets/images/pills/pill_ningyuan.png'), desc: '+等级×100修为', price: 1000, canMulti: true, buyType: 'pill' },
+  { id: 'cult_medium', name: '中修为丹', img: img('/assets/images/pills/pill_tianyuan.png'), desc: '+等级×600修为', price: 5000, canMulti: true, buyType: 'pill' },
+  { id: 'cult_large', name: '大修为丹', img: img('/assets/images/pills/pill_niepan.png'), desc: '+等级×3000修为', price: 20000, canMulti: true, buyType: 'pill' },
 ]
 const expPills = [
-  { id: 'exp_1', name: '1级经验丹', img: '/assets/images/pills/pill_wuxing.png', desc: '直接升1级', price: 50000, canMulti: true, buyType: 'pill' },
-  { id: 'exp_5', name: '5级经验丹', img: '/assets/images/pills/pill_riyue.png', desc: '直接升5级', price: 200000, canMulti: true, buyType: 'pill' },
-  { id: 'exp_10', name: '10级经验丹', img: '/assets/images/pills/pill_niepan.png', desc: '直接升10级', price: 500000, canMulti: true, buyType: 'pill' },
+  { id: 'exp_1', name: '1级经验丹', img: img('/assets/images/pills/pill_wuxing.png'), desc: '直接升1级', price: 50000, canMulti: true, buyType: 'pill' },
+  { id: 'exp_5', name: '5级经验丹', img: img('/assets/images/pills/pill_riyue.png'), desc: '直接升5级', price: 200000, canMulti: true, buyType: 'pill' },
+  { id: 'exp_10', name: '10级经验丹', img: img('/assets/images/pills/pill_niepan.png'), desc: '直接升10级', price: 500000, canMulti: true, buyType: 'pill' },
 ]
 const attrPills = [
-  { id: 'attr_attack', name: '攻击丹', img: '/assets/images/pills/pill_leiling.png', desc: '永久+50攻击', price: 3000, canMulti: true, buyType: 'pill' },
-  { id: 'attr_health', name: '生命丹', img: '/assets/images/pills/pill_huiling.png', desc: '永久+500生命', price: 3000, canMulti: true, buyType: 'pill' },
-  { id: 'attr_defense', name: '防御丹', img: '/assets/images/pills/pill_qingxin.png', desc: '永久+30防御', price: 3000, canMulti: true, buyType: 'pill' },
-  { id: 'attr_speed', name: '速度丹', img: '/assets/images/pills/pill_huoyuan.png', desc: '永久+20速度', price: 3000, canMulti: true, buyType: 'pill' },
+  { id: 'attr_attack', name: '攻击丹', img: img('/assets/images/pills/pill_leiling.png'), desc: '永久+50攻击', price: 3000, canMulti: true, buyType: 'pill' },
+  { id: 'attr_health', name: '生命丹', img: img('/assets/images/pills/pill_huiling.png'), desc: '永久+500生命', price: 3000, canMulti: true, buyType: 'pill' },
+  { id: 'attr_defense', name: '防御丹', img: img('/assets/images/pills/pill_qingxin.png'), desc: '永久+30防御', price: 3000, canMulti: true, buyType: 'pill' },
+  { id: 'attr_speed', name: '速度丹', img: img('/assets/images/pills/pill_huoyuan.png'), desc: '永久+20速度', price: 3000, canMulti: true, buyType: 'pill' },
 ]
 const fragItems = [
-  { id: 'pill_frag_health', name: '回春焰丹碎片', img: '/assets/images/pills/pill_huiling.png', desc: '收集5个合成回春焰方', price: 1000, canMulti: true, buyType: 'material' },
-  { id: 'pill_frag_attack', name: '破军焰丹碎片', img: '/assets/images/pills/pill_leiling.png', desc: '收集5个合成破军焰方', price: 1500, canMulti: true, buyType: 'material' },
-  { id: 'pill_frag_defense', name: '金钟焰丹碎片', img: '/assets/images/pills/pill_qingxin.png', desc: '收集5个合成金钟焰方', price: 1500, canMulti: true, buyType: 'material' },
-  { id: 'pill_frag_speed', name: '疾风焰丹碎片', img: '/assets/images/pills/pill_huoyuan.png', desc: '收集5个合成疾风焰方', price: 1200, canMulti: true, buyType: 'material' },
+  { id: 'pill_frag_health', name: '回春焰丹碎片', img: img('/assets/images/pills/pill_huiling.png'), desc: '收集5个合成回春焰方', price: 1000, canMulti: true, buyType: 'material' },
+  { id: 'pill_frag_attack', name: '破军焰丹碎片', img: img('/assets/images/pills/pill_leiling.png'), desc: '收集5个合成破军焰方', price: 1500, canMulti: true, buyType: 'material' },
+  { id: 'pill_frag_defense', name: '金钟焰丹碎片', img: img('/assets/images/pills/pill_qingxin.png'), desc: '收集5个合成金钟焰方', price: 1500, canMulti: true, buyType: 'material' },
+  { id: 'pill_frag_speed', name: '疾风焰丹碎片', img: img('/assets/images/pills/pill_huoyuan.png'), desc: '收集5个合成疾风焰方', price: 1200, canMulti: true, buyType: 'material' },
 ]
 
 // 焰草商城
 const herbShopItems = [
-  { id: 'spirit_grass', name: '灵精草', baseValue: 10, desc: '最常见的焰草。可炼制：聚灵丹', grade: 1, img: '/assets/images/herbs/herb_spirit_grass.png' },
-  { id: 'cloud_flower', name: '云雾花', baseValue: 15, desc: '云雾中的焰花。可炼制：聚灵丹、聚气丹', grade: 1, img: '/assets/images/herbs/herb_cloud_flower.png' },
-  { id: 'thunder_root', name: '雷击根', baseValue: 25, desc: '雷霆淬炼的焰根。可炼制：聚气丹、雷灵丹', grade: 2, img: '/assets/images/herbs/herb_thunder_root.png' },
-  { id: 'dark_yin_grass', name: '玄阴草', baseValue: 30, desc: '阴暗处的奇草。可炼制：回灵丹', grade: 2, img: '/assets/images/herbs/herb_dark_yin.png' },
-  { id: 'fire_heart_flower', name: '火心花', baseValue: 35, desc: '火山口的奇花。可炼制：清心丹、火元丹', grade: 2, img: '/assets/images/herbs/herb_fire_heart.png' },
-  { id: 'dragon_breath_herb', name: '龙息草', baseValue: 40, desc: '龙气孕育的焰草。可炼制：雷灵丹、仙灵丹、火元丹', grade: 3, img: '/assets/images/herbs/herb_dragon_breath.png' },
-  { id: 'nine_leaf_lingzhi', name: '九叶灵芝', baseValue: 45, desc: '千年灵芝。可炼制：凝元丹', grade: 3, img: '/assets/images/herbs/herb_nine_lingzhi.png' },
-  { id: 'purple_ginseng', name: '紫金参', baseValue: 50, desc: '千年紫参。可炼制：凝元丹', grade: 3, img: '/assets/images/herbs/herb_purple_ginseng.png' },
-  { id: 'frost_lotus', name: '寒霜莲', baseValue: 55, desc: '极寒之莲。可炼制：回灵丹、清心丹', grade: 4, img: '/assets/images/herbs/herb_frost_lotus.png' },
-  { id: 'immortal_jade_grass', name: '仙玉草', baseValue: 60, desc: '仙境焰草。可炼制：仙灵丹', grade: 4, img: '/assets/images/herbs/herb_immortal_jade.png' },
-  { id: 'moonlight_orchid', name: '月华兰', baseValue: 70, desc: '月圆绽放的兰花。可炼制：天元丹、日月丹', grade: 5, img: '/assets/images/herbs/herb_moonlight_orchid.png' },
-  { id: 'sun_essence_flower', name: '日精花', baseValue: 75, desc: '太阳精华之花。可炼制：日月丹', grade: 5, img: '/assets/images/herbs/herb_sun_essence.png' },
-  { id: 'five_elements_grass', name: '五行草', baseValue: 80, desc: '五行合一的奇珍。可炼制：五行丹', grade: 6, img: '/assets/images/herbs/herb_five_elements.png' },
-  { id: 'phoenix_feather_herb', name: '凤羽草', baseValue: 85, desc: '凤凰栖息地的神草。可炼制：五行丹、涅槃丹', grade: 6, img: '/assets/images/herbs/herb_phoenix_feather.png' },
-  { id: 'celestial_dew_grass', name: '天露草', baseValue: 90, desc: '天地精华凝聚。可炼制：天元丹、涅槃丹', grade: 6, img: '/assets/images/herbs/herb_celestial_dew.png' },
+  { id: 'spirit_grass', name: '灵精草', baseValue: 10, desc: '最常见的焰草。可炼制：聚灵丹', grade: 1, img: img('/assets/images/herbs/herb_spirit_grass.png') },
+  { id: 'cloud_flower', name: '云雾花', baseValue: 15, desc: '云雾中的焰花。可炼制：聚灵丹、聚气丹', grade: 1, img: img('/assets/images/herbs/herb_cloud_flower.png') },
+  { id: 'thunder_root', name: '雷击根', baseValue: 25, desc: '雷霆淬炼的焰根。可炼制：聚气丹、雷灵丹', grade: 2, img: img('/assets/images/herbs/herb_thunder_root.png') },
+  { id: 'dark_yin_grass', name: '玄阴草', baseValue: 30, desc: '阴暗处的奇草。可炼制：回灵丹', grade: 2, img: img('/assets/images/herbs/herb_dark_yin.png') },
+  { id: 'fire_heart_flower', name: '火心花', baseValue: 35, desc: '火山口的奇花。可炼制：清心丹、火元丹', grade: 2, img: img('/assets/images/herbs/herb_fire_heart.png') },
+  { id: 'dragon_breath_herb', name: '龙息草', baseValue: 40, desc: '龙气孕育的焰草。可炼制：雷灵丹、仙灵丹、火元丹', grade: 3, img: img('/assets/images/herbs/herb_dragon_breath.png') },
+  { id: 'nine_leaf_lingzhi', name: '九叶灵芝', baseValue: 45, desc: '千年灵芝。可炼制：凝元丹', grade: 3, img: img('/assets/images/herbs/herb_nine_lingzhi.png') },
+  { id: 'purple_ginseng', name: '紫金参', baseValue: 50, desc: '千年紫参。可炼制：凝元丹', grade: 3, img: img('/assets/images/herbs/herb_purple_ginseng.png') },
+  { id: 'frost_lotus', name: '寒霜莲', baseValue: 55, desc: '极寒之莲。可炼制：回灵丹、清心丹', grade: 4, img: img('/assets/images/herbs/herb_frost_lotus.png') },
+  { id: 'immortal_jade_grass', name: '仙玉草', baseValue: 60, desc: '仙境焰草。可炼制：仙灵丹', grade: 4, img: img('/assets/images/herbs/herb_immortal_jade.png') },
+  { id: 'moonlight_orchid', name: '月华兰', baseValue: 70, desc: '月圆绽放的兰花。可炼制：天元丹、日月丹', grade: 5, img: img('/assets/images/herbs/herb_moonlight_orchid.png') },
+  { id: 'sun_essence_flower', name: '日精花', baseValue: 75, desc: '太阳精华之花。可炼制：日月丹', grade: 5, img: img('/assets/images/herbs/herb_sun_essence.png') },
+  { id: 'five_elements_grass', name: '五行草', baseValue: 80, desc: '五行合一的奇珍。可炼制：五行丹', grade: 6, img: img('/assets/images/herbs/herb_five_elements.png') },
+  { id: 'phoenix_feather_herb', name: '凤羽草', baseValue: 85, desc: '凤凰栖息地的神草。可炼制：五行丹、涅槃丹', grade: 6, img: img('/assets/images/herbs/herb_phoenix_feather.png') },
+  { id: 'celestial_dew_grass', name: '天露草', baseValue: 90, desc: '天地精华凝聚。可炼制：天元丹、涅槃丹', grade: 6, img: img('/assets/images/herbs/herb_celestial_dew.png') },
 ]
 
 const herbQualityOptions = [
@@ -298,43 +299,43 @@ const selectedHerbQuality = ref('common')
 
 // 焰方商城
 const formulaShopItems = [
-  { id: 'spirit_gathering', name: '聚灵丹方', img: '/assets/images/pills/pill_juling.png', grade: '一品', desc: '焰灵恢复+20%，持续60分钟。需要：灵精草×2、云雾花×1', price: 5000 },
-  { id: 'cultivation_boost', name: '聚气丹方', img: '/assets/images/pills/pill_juqi.png', grade: '二品', desc: '焰修速度+30%，持续30分钟。需要：云雾花×2、雷击根×1', price: 10000 },
-  { id: 'spirit_recovery', name: '回灵丹方', img: '/assets/images/pills/pill_huiling.png', grade: '二品', desc: '焰灵恢复+40%，持续20分钟。需要：玄阴草×2、寒霜莲×1', price: 10000 },
-  { id: 'thunder_power', name: '雷灵丹方', img: '/assets/images/pills/pill_leiling.png', grade: '三品', desc: '战斗属性+40%，持续15分钟。需要：雷击根×2、龙息草×1', price: 20000 },
-  { id: 'essence_condensation', name: '凝元丹方', img: '/assets/images/pills/pill_ningyuan.png', grade: '三品', desc: '焰修效率+50%，持续25分钟。需要：九叶灵芝×2、紫金参×1', price: 20000 },
-  { id: 'mind_clarity', name: '清心丹方', img: '/assets/images/pills/pill_qingxin.png', grade: '三品', desc: '悟性+30%，持续40分钟。需要：寒霜莲×2、火心花×1', price: 20000 },
-  { id: 'immortal_essence', name: '仙灵丹方', img: '/assets/images/pills/pill_xianling.png', grade: '四品', desc: '全属性+50%，持续10分钟。需要：龙息草×2、仙玉草×1', price: 40000 },
-  { id: 'fire_essence', name: '火元丹方', img: '/assets/images/pills/pill_huoyuan.png', grade: '四品', desc: '火属性焰修+60%，持续30分钟。需要：火心花×2、龙息草×1', price: 40000 },
-  { id: 'five_elements_pill', name: '五行丹方', img: '/assets/images/pills/pill_wuxing.png', grade: '五品', desc: '全属性+80%，持续20分钟。需要：五行草×2、凤羽草×1', price: 80000 },
-  { id: 'celestial_essence_pill', name: '天元丹方', img: '/assets/images/pills/pill_tianyuan.png', grade: '六品', desc: '焰修速度+100%，持续30分钟。需要：天露草×2、月华兰×1', price: 150000 },
-  { id: 'sun_moon_pill', name: '日月丹方', img: '/assets/images/pills/pill_riyue.png', grade: '七品', desc: '焰灵上限+150%，持续40分钟。需要：日精花×2、月华兰×2', price: 300000 },
-  { id: 'phoenix_rebirth_pill', name: '涅槃丹方', img: '/assets/images/pills/pill_niepan.png', grade: '八品', desc: '自动回血10%，持续60分钟。需要：凤羽草×3、天露草×1', price: 500000 },
+  { id: 'spirit_gathering', name: '聚灵丹方', img: img('/assets/images/pills/pill_juling.png'), grade: '一品', desc: '焰灵恢复+20%，持续60分钟。需要：灵精草×2、云雾花×1', price: 5000 },
+  { id: 'cultivation_boost', name: '聚气丹方', img: img('/assets/images/pills/pill_juqi.png'), grade: '二品', desc: '焰修速度+30%，持续30分钟。需要：云雾花×2、雷击根×1', price: 10000 },
+  { id: 'spirit_recovery', name: '回灵丹方', img: img('/assets/images/pills/pill_huiling.png'), grade: '二品', desc: '焰灵恢复+40%，持续20分钟。需要：玄阴草×2、寒霜莲×1', price: 10000 },
+  { id: 'thunder_power', name: '雷灵丹方', img: img('/assets/images/pills/pill_leiling.png'), grade: '三品', desc: '战斗属性+40%，持续15分钟。需要：雷击根×2、龙息草×1', price: 20000 },
+  { id: 'essence_condensation', name: '凝元丹方', img: img('/assets/images/pills/pill_ningyuan.png'), grade: '三品', desc: '焰修效率+50%，持续25分钟。需要：九叶灵芝×2、紫金参×1', price: 20000 },
+  { id: 'mind_clarity', name: '清心丹方', img: img('/assets/images/pills/pill_qingxin.png'), grade: '三品', desc: '悟性+30%，持续40分钟。需要：寒霜莲×2、火心花×1', price: 20000 },
+  { id: 'immortal_essence', name: '仙灵丹方', img: img('/assets/images/pills/pill_xianling.png'), grade: '四品', desc: '全属性+50%，持续10分钟。需要：龙息草×2、仙玉草×1', price: 40000 },
+  { id: 'fire_essence', name: '火元丹方', img: img('/assets/images/pills/pill_huoyuan.png'), grade: '四品', desc: '火属性焰修+60%，持续30分钟。需要：火心花×2、龙息草×1', price: 40000 },
+  { id: 'five_elements_pill', name: '五行丹方', img: img('/assets/images/pills/pill_wuxing.png'), grade: '五品', desc: '全属性+80%，持续20分钟。需要：五行草×2、凤羽草×1', price: 80000 },
+  { id: 'celestial_essence_pill', name: '天元丹方', img: img('/assets/images/pills/pill_tianyuan.png'), grade: '六品', desc: '焰修速度+100%，持续30分钟。需要：天露草×2、月华兰×1', price: 150000 },
+  { id: 'sun_moon_pill', name: '日月丹方', img: img('/assets/images/pills/pill_riyue.png'), grade: '七品', desc: '焰灵上限+150%，持续40分钟。需要：日精花×2、月华兰×2', price: 300000 },
+  { id: 'phoenix_rebirth_pill', name: '涅槃丹方', img: img('/assets/images/pills/pill_niepan.png'), grade: '八品', desc: '自动回血10%，持续60分钟。需要：凤羽草×3、天露草×1', price: 500000 },
 ]
 
 // 材料
 const materialItems = [
-  { id: 'reinforce_1', name: '淬火石 x1', img: '/assets/images/equip/weapon.png', desc: '装备淬火必备', price: 1000, canMulti: true, buyType: 'material' },
-  { id: 'reinforce_10', name: '淬火石 x10', img: '/assets/images/equip/weapon.png', desc: '批量购买9折', price: 9000, canMulti: true, buyType: 'material', discount: '9折' },
-  { id: 'refine_1', name: '符文石 x1', img: '/assets/images/equip/artifact.png', desc: '重置副属性', price: 1500, canMulti: true, buyType: 'material' },
-  { id: 'refine_10', name: '符文石 x10', img: '/assets/images/equip/artifact.png', desc: '批量购买9折', price: 13500, canMulti: true, buyType: 'material', discount: '9折' },
-  { id: 'pet_essence', name: '焰兽精华', img: '/assets/images/menu/menu_gacha.png', desc: '+100精华', price: 2000, canMulti: true, buyType: 'material' },
-  { id: 'pet_ticket', name: '宠物召唤券', img: '/assets/images/menu/menu_gacha.png', desc: '等同一次宠物抽卡', price: 5000, canMulti: true, buyType: 'material' },
+  { id: 'reinforce_1', name: '淬火石 x1', img: img('/assets/images/equip/weapon.png'), desc: '装备淬火必备', price: 1000, canMulti: true, buyType: 'material' },
+  { id: 'reinforce_10', name: '淬火石 x10', img: img('/assets/images/equip/weapon.png'), desc: '批量购买9折', price: 9000, canMulti: true, buyType: 'material', discount: '9折' },
+  { id: 'refine_1', name: '符文石 x1', img: img('/assets/images/equip/artifact.png'), desc: '重置副属性', price: 1500, canMulti: true, buyType: 'material' },
+  { id: 'refine_10', name: '符文石 x10', img: img('/assets/images/equip/artifact.png'), desc: '批量购买9折', price: 13500, canMulti: true, buyType: 'material', discount: '9折' },
+  { id: 'pet_essence', name: '焰兽精华', img: img('/assets/images/menu/menu_gacha.png'), desc: '+100精华', price: 2000, canMulti: true, buyType: 'material' },
+  { id: 'pet_ticket', name: '宠物召唤券', img: img('/assets/images/menu/menu_gacha.png'), desc: '等同一次宠物抽卡', price: 5000, canMulti: true, buyType: 'material' },
 ]
 
 // 礼包
 const packItems = [
-  { id: 'pack_starter', name: '🌟 新手礼包', img: '/assets/images/menu/menu_shop.png', desc: '中品武器+中品衣服+淬火石x10+中灵力药水x5', price: 10000, buyType: 'pack' },
-  { id: 'pack_advanced', name: '🌙 进阶礼包', img: '/assets/images/menu/menu_shop.png', desc: '上品武器+上品衣服+符文石x20+中修为丹x5', price: 50000, buyType: 'pack' },
-  { id: 'pack_supreme', name: '☀️ 至尊礼包', img: '/assets/images/menu/menu_shop.png', desc: '极品全套装备(13件)+淬火石x50+符文石x30', price: 200000, buyType: 'pack' },
-  { id: 'pack_mythic', name: '🔥 仙品礼包', img: '/assets/images/menu/menu_shop.png', desc: '仙品武器+仙品衣服+仙品焰器+5级经验丹x2', price: 500000, buyType: 'pack' },
+  { id: 'pack_starter', name: '🌟 新手礼包', img: img('/assets/images/menu/menu_shop.png'), desc: '中品武器+中品衣服+淬火石x10+中灵力药水x5', price: 10000, buyType: 'pack' },
+  { id: 'pack_advanced', name: '🌙 进阶礼包', img: img('/assets/images/menu/menu_shop.png'), desc: '上品武器+上品衣服+符文石x20+中修为丹x5', price: 50000, buyType: 'pack' },
+  { id: 'pack_supreme', name: '☀️ 至尊礼包', img: img('/assets/images/menu/menu_shop.png'), desc: '极品全套装备(13件)+淬火石x50+符文石x30', price: 200000, buyType: 'pack' },
+  { id: 'pack_mythic', name: '🔥 仙品礼包', img: img('/assets/images/menu/menu_shop.png'), desc: '仙品武器+仙品衣服+仙品焰器+5级经验丹x2', price: 500000, buyType: 'pack' },
 ]
 
 // 特权
 const buffItems = [
-  { id: 'double_crystal', name: '焰晶双倍卡', img: '/assets/images/icon-crystal.png', desc: '24小时焰晶获取翻倍', price: 30000, buyType: 'buff', buffKey: 'doubleCrystal' },
-  { id: 'cultivation_boost', name: '修炼加速卡', img: '/assets/images/menu/menu_alchemy.png', desc: '24小时修炼速度x3', price: 20000, buyType: 'buff', buffKey: 'cultivationBoost' },
-  { id: 'lucky_charm', name: '幸运符', img: '/assets/images/menu/menu_gacha.png', desc: '24小时抽卡概率+50%', price: 10000, buyType: 'buff', buffKey: 'luckyCharm' },
+  { id: 'double_crystal', name: '焰晶双倍卡', img: img('/assets/images/icon-crystal.png'), desc: '24小时焰晶获取翻倍', price: 30000, buyType: 'buff', buffKey: 'doubleCrystal' },
+  { id: 'cultivation_boost', name: '修炼加速卡', img: img('/assets/images/menu/menu_alchemy.png'), desc: '24小时修炼速度x3', price: 20000, buyType: 'buff', buffKey: 'cultivationBoost' },
+  { id: 'lucky_charm', name: '幸运符', img: img('/assets/images/menu/menu_gacha.png'), desc: '24小时抽卡概率+50%', price: 10000, buyType: 'buff', buffKey: 'luckyCharm' },
 ]
 
 const getBuffRemaining = (buffKey) => {

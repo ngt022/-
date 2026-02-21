@@ -96,6 +96,7 @@
 </template>
 
 <script setup>
+import img from '@/utils/img.js'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import { useAuthStore } from '../stores/auth'
@@ -122,11 +123,11 @@ const locationIcons = {
 
 // 地点背景图映射
 const locationBgImages = {
-  newbie_village: '/assets/images/area-xinhuocun.png',
-  celestial_mountain: '/assets/images/area-chixiaofeng.png',
-  phoenix_valley: '/assets/images/area-niepangu.png',
-  dragon_abyss: '/assets/images/area-yanyuan.png',
-  immortal_realm: '/assets/images/area-yantianshenyu.png'
+  newbie_village: img('/assets/images/area-xinhuocun.png'),
+  celestial_mountain: img('/assets/images/area-chixiaofeng.png'),
+  phoenix_valley: img('/assets/images/area-niepangu.png'),
+  dragon_abyss: img('/assets/images/area-yanyuan.png'),
+  immortal_realm: img('/assets/images/area-yantianshenyu.png')
 }
 
 // 所有地点（含图标）

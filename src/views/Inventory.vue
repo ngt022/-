@@ -347,6 +347,7 @@
 </template>
 
 <script setup>
+import img from '@/utils/img.js'
   import { usePlayerStore } from '../stores/player'
   import { useAuthStore } from '../stores/auth'
   import { ref, computed, onMounted } from 'vue'
@@ -378,94 +379,94 @@
 
   // 焰草图片映射（简单对象，像装备一样）
   const herbImageMap = {
-    'spirit_grass': '/assets/images/herbs/herb_spirit_grass.png',
-    'cloud_flower': '/assets/images/herbs/herb_cloud_flower.png',
-    'thunder_root': '/assets/images/herbs/herb_thunder_root.png',
-    'dragon_breath_herb': '/assets/images/herbs/herb_dragon_breath.png',
-    'immortal_jade_grass': '/assets/images/herbs/herb_immortal_jade.png',
-    'dark_yin_grass': '/assets/images/herbs/herb_dark_yin.png',
-    'nine_leaf_lingzhi': '/assets/images/herbs/herb_nine_lingzhi.png',
-    'purple_ginseng': '/assets/images/herbs/herb_purple_ginseng.png',
-    'frost_lotus': '/assets/images/herbs/herb_frost_lotus.png',
-    'fire_heart_flower': '/assets/images/herbs/herb_fire_heart.png',
-    'moonlight_orchid': '/assets/images/herbs/herb_moonlight_orchid.png',
-    'sun_essence_flower': '/assets/images/herbs/herb_sun_essence.png',
-    'five_elements_grass': '/assets/images/herbs/herb_five_elements.png',
-    'phoenix_feather_herb': '/assets/images/herbs/herb_phoenix_feather.png',
-    'celestial_dew_grass': '/assets/images/herbs/herb_celestial_dew.png'
+    'spirit_grass': img('/assets/images/herbs/herb_spirit_grass.png'),
+    'cloud_flower': img('/assets/images/herbs/herb_cloud_flower.png'),
+    'thunder_root': img('/assets/images/herbs/herb_thunder_root.png'),
+    'dragon_breath_herb': img('/assets/images/herbs/herb_dragon_breath.png'),
+    'immortal_jade_grass': img('/assets/images/herbs/herb_immortal_jade.png'),
+    'dark_yin_grass': img('/assets/images/herbs/herb_dark_yin.png'),
+    'nine_leaf_lingzhi': img('/assets/images/herbs/herb_nine_lingzhi.png'),
+    'purple_ginseng': img('/assets/images/herbs/herb_purple_ginseng.png'),
+    'frost_lotus': img('/assets/images/herbs/herb_frost_lotus.png'),
+    'fire_heart_flower': img('/assets/images/herbs/herb_fire_heart.png'),
+    'moonlight_orchid': img('/assets/images/herbs/herb_moonlight_orchid.png'),
+    'sun_essence_flower': img('/assets/images/herbs/herb_sun_essence.png'),
+    'five_elements_grass': img('/assets/images/herbs/herb_five_elements.png'),
+    'phoenix_feather_herb': img('/assets/images/herbs/herb_phoenix_feather.png'),
+    'celestial_dew_grass': img('/assets/images/herbs/herb_celestial_dew.png')
   }
 
   const petImageMap = {
     // 神品 (divine)
-    '朱雀': '/assets/images/pets/pet_firebird.png',
-    '青龙': '/assets/images/pets/pet_firedragon.png',
-    '麒麟': '/assets/images/pets/pet_firequilin.png',
-    '白虎': '/assets/images/pets/pet_firetiger.png',
-    '玄武': '/assets/images/pets/pet_fireturtle.png',
-    '应龙': '/assets/images/pets/pet_yinglong.png',
-    '饕餮': '/assets/images/pets/pet_taotie.png',
-    '穷奇': '/assets/images/pets/pet_qiongqi.png',
-    '梼杌': '/assets/images/pets/pet_taowu.png',
-    '混沌': '/assets/images/pets/pet_hundun.png',
+    '朱雀': img('/assets/images/pets/pet_firebird.png'),
+    '青龙': img('/assets/images/pets/pet_firedragon.png'),
+    '麒麟': img('/assets/images/pets/pet_firequilin.png'),
+    '白虎': img('/assets/images/pets/pet_firetiger.png'),
+    '玄武': img('/assets/images/pets/pet_fireturtle.png'),
+    '应龙': img('/assets/images/pets/pet_yinglong.png'),
+    '饕餮': img('/assets/images/pets/pet_taotie.png'),
+    '穷奇': img('/assets/images/pets/pet_qiongqi.png'),
+    '梼杌': img('/assets/images/pets/pet_taowu.png'),
+    '混沌': img('/assets/images/pets/pet_hundun.png'),
     // 仙品 (celestial) - 龙生九子
-    '囚牛': '/assets/images/pets/pet_qiuniu.png',
-    '睚眦': '/assets/images/pets/pet_yazi.png',
-    '嘲风': '/assets/images/pets/pet_chaofeng.png',
-    '蒲牢': '/assets/images/pets/pet_pulao.png',
-    '狻犴': '/assets/images/pets/pet_suanni.png',
-    '霸下': '/assets/images/pets/pet_baxia.png',
-    '狴犴': '/assets/images/pets/pet_bian.png',
-    '负屃': '/assets/images/pets/pet_fuxi.png',
-    '螭吻': '/assets/images/pets/pet_firelizard.png',
+    '囚牛': img('/assets/images/pets/pet_qiuniu.png'),
+    '睚眦': img('/assets/images/pets/pet_yazi.png'),
+    '嘲风': img('/assets/images/pets/pet_chaofeng.png'),
+    '蒲牢': img('/assets/images/pets/pet_pulao.png'),
+    '狻犴': img('/assets/images/pets/pet_suanni.png'),
+    '霸下': img('/assets/images/pets/pet_baxia.png'),
+    '狴犴': img('/assets/images/pets/pet_bian.png'),
+    '负屃': img('/assets/images/pets/pet_fuxi.png'),
+    '螭吻': img('/assets/images/pets/pet_firelizard.png'),
     // 玄品 (mystic)
-    '火凤凰': '/assets/images/pets/pet_firephoenix.png',
-    '雷鹰': '/assets/images/pets/pet_thundereagle.png',
-    '冰狼': '/assets/images/pets/pet_icewolf.png',
-    '岩龟': '/assets/images/pets/pet_rockturtle.png',
+    '火凤凰': img('/assets/images/pets/pet_firephoenix.png'),
+    '雷鹰': img('/assets/images/pets/pet_thundereagle.png'),
+    '冰狼': img('/assets/images/pets/pet_icewolf.png'),
+    '岩龟': img('/assets/images/pets/pet_rockturtle.png'),
     // 灵品 (spiritual)
-    '玄龟': '/assets/images/pets/pet_darkturtle.png',
-    '风隼': '/assets/images/pets/pet_windfalcon.png',
-    '地甲': '/assets/images/pets/pet_eartharmor.png',
-    '云豹': '/assets/images/pets/pet_cloudleopard.png',
+    '玄龟': img('/assets/images/pets/pet_darkturtle.png'),
+    '风隼': img('/assets/images/pets/pet_windfalcon.png'),
+    '地甲': img('/assets/images/pets/pet_eartharmor.png'),
+    '云豹': img('/assets/images/pets/pet_cloudleopard.png'),
     // 凡品 (mortal)
-    '灵猫': '/assets/images/pets/pet_firefox.png',
-    '幻蝶': '/assets/images/pets/pet_huandie.png',
-    '火鼠': '/assets/images/pets/pet_huoshu.png',
-    '草兔': '/assets/images/pets/pet_caotu.png',
+    '灵猫': img('/assets/images/pets/pet_firefox.png'),
+    '幻蝶': img('/assets/images/pets/pet_huandie.png'),
+    '火鼠': img('/assets/images/pets/pet_huoshu.png'),
+    '草兔': img('/assets/images/pets/pet_caotu.png'),
   }
   const getPetImage = (name) => petImageMap[name] || null
 
   // 焰丹图片映射
   const pillImageMap = {
-    '聚灵丹': '/assets/images/pills/pill_juling.png',
-    '聚气丹': '/assets/images/pills/pill_juqi.png',
-    '雷灵丹': '/assets/images/pills/pill_leiling.png',
-    '仙灵丹': '/assets/images/pills/pill_xianling.png',
-    '五行丹': '/assets/images/pills/pill_wuxing.png',
-    '天元丹': '/assets/images/pills/pill_tianyuan.png',
-    '日月丹': '/assets/images/pills/pill_riyue.png',
-    '涅槃丹': '/assets/images/pills/pill_niepan.png',
-    '回灵丹': '/assets/images/pills/pill_huiling.png',
-    '凝元丹': '/assets/images/pills/pill_ningyuan.png',
-    '清心丹': '/assets/images/pills/pill_qingxin.png',
-    '火元丹': '/assets/images/pills/pill_huoyuan.png',
+    '聚灵丹': img('/assets/images/pills/pill_juling.png'),
+    '聚气丹': img('/assets/images/pills/pill_juqi.png'),
+    '雷灵丹': img('/assets/images/pills/pill_leiling.png'),
+    '仙灵丹': img('/assets/images/pills/pill_xianling.png'),
+    '五行丹': img('/assets/images/pills/pill_wuxing.png'),
+    '天元丹': img('/assets/images/pills/pill_tianyuan.png'),
+    '日月丹': img('/assets/images/pills/pill_riyue.png'),
+    '涅槃丹': img('/assets/images/pills/pill_niepan.png'),
+    '回灵丹': img('/assets/images/pills/pill_huiling.png'),
+    '凝元丹': img('/assets/images/pills/pill_ningyuan.png'),
+    '清心丹': img('/assets/images/pills/pill_qingxin.png'),
+    '火元丹': img('/assets/images/pills/pill_huoyuan.png'),
   }
   const getPillImage = (name) => pillImageMap[name] || null
 
   // 焰方图片映射
   const formulaImageMap = {
-    '聚灵丹方': '/assets/images/formulas/formula_juling.png',
-    '聚气丹方': '/assets/images/formulas/formula_juqi.png',
-    '雷灵丹方': '/assets/images/formulas/formula_leiling.png',
-    '仙灵丹方': '/assets/images/formulas/formula_xianling.png',
-    '五行丹方': '/assets/images/formulas/formula_wuxing.png',
-    '天元丹方': '/assets/images/formulas/formula_tianyuan.png',
-    '日月丹方': '/assets/images/formulas/formula_riyue.png',
-    '涅槃丹方': '/assets/images/formulas/formula_niepan.png',
-    '回灵丹方': '/assets/images/formulas/formula_huiling.png',
-    '凝元丹方': '/assets/images/formulas/formula_ningyuan.png',
-    '清心丹方': '/assets/images/formulas/formula_qingxin.png',
-    '火元丹方': '/assets/images/formulas/formula_huoyuan.png',
+    '聚灵丹方': img('/assets/images/formulas/formula_juling.png'),
+    '聚气丹方': img('/assets/images/formulas/formula_juqi.png'),
+    '雷灵丹方': img('/assets/images/formulas/formula_leiling.png'),
+    '仙灵丹方': img('/assets/images/formulas/formula_xianling.png'),
+    '五行丹方': img('/assets/images/formulas/formula_wuxing.png'),
+    '天元丹方': img('/assets/images/formulas/formula_tianyuan.png'),
+    '日月丹方': img('/assets/images/formulas/formula_riyue.png'),
+    '涅槃丹方': img('/assets/images/formulas/formula_niepan.png'),
+    '回灵丹方': img('/assets/images/formulas/formula_huiling.png'),
+    '凝元丹方': img('/assets/images/formulas/formula_ningyuan.png'),
+    '清心丹方': img('/assets/images/formulas/formula_qingxin.png'),
+    '火元丹方': img('/assets/images/formulas/formula_huoyuan.png'),
   }
   const getFormulaImage = (name) => formulaImageMap[name] || null
 
@@ -841,13 +842,13 @@
   }
 
   const equipTypeImages = {
-    weapon: '/assets/images/equip/weapon.png', head: '/assets/images/equip/head.png',
-    body: '/assets/images/equip/body.png', legs: '/assets/images/equip/legs.png',
-    feet: '/assets/images/equip/feet.png', shoulder: '/assets/images/equip/shoulder.png',
-    hands: '/assets/images/equip/hands.png', wrist: '/assets/images/equip/wrist.png',
-    necklace: '/assets/images/equip/necklace.png', ring1: '/assets/images/equip/ring.png',
-    ring2: '/assets/images/equip/ring.png', belt: '/assets/images/equip/belt.png',
-    artifact: '/assets/images/equip/artifact.png'
+    weapon: img('/assets/images/equip/weapon.png'), head: img('/assets/images/equip/head.png'),
+    body: img('/assets/images/equip/body.png'), legs: img('/assets/images/equip/legs.png'),
+    feet: img('/assets/images/equip/feet.png'), shoulder: img('/assets/images/equip/shoulder.png'),
+    hands: img('/assets/images/equip/hands.png'), wrist: img('/assets/images/equip/wrist.png'),
+    necklace: img('/assets/images/equip/necklace.png'), ring1: img('/assets/images/equip/ring.png'),
+    ring2: img('/assets/images/equip/ring.png'), belt: img('/assets/images/equip/belt.png'),
+    artifact: img('/assets/images/equip/artifact.png')
   }
 
   const imgLoadFailed = ref({})

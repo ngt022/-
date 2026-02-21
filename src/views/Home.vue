@@ -149,6 +149,7 @@
 </template>
 
 <script setup>
+import img from '@/utils/img.js'
 import { computed, ref, onMounted } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import { useAuthStore } from '../stores/auth'
@@ -250,11 +251,11 @@ const formatTime = (seconds) => {
 // 角色图片映射
 const charImage = computed(() => {
   const lv = playerStore.level
-  if (lv >= 13) return '/assets/images/char-emperor.png'
-  if (lv >= 10) return '/assets/images/char-immortal.png'
-  if (lv >= 7) return '/assets/images/char-cultivator.png'
-  if (lv >= 4) return '/assets/images/char-warrior.png'
-  return '/assets/images/char-mortal.png'
+  if (lv >= 13) return img('/assets/images/char-emperor.png')
+  if (lv >= 10) return img('/assets/images/char-immortal.png')
+  if (lv >= 7) return img('/assets/images/char-cultivator.png')
+  if (lv >= 4) return img('/assets/images/char-warrior.png')
+  return img('/assets/images/char-mortal.png')
 })
 
 // 资源列表

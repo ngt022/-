@@ -136,6 +136,7 @@
 </template>
 
 <script setup>
+import img from '@/utils/img.js'
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import { useMessage } from 'naive-ui'
@@ -173,13 +174,13 @@ const headers = { 'Authorization': `Bearer ${token}` }
 
 // Boss 图片映射
 const bossImageMap = {
-  '焰蚀蛛母': '/assets/images/boss/boss_yanShi.png',
-  '魔焰龙': '/assets/images/boss/boss_moYanLong.png',
-  '焰魔树': '/assets/images/boss/boss_yanMoShu.png',
-  '黑焰巨人': '/assets/images/boss/boss_heiYanJuRen.png',
-  '焰石兽': '/assets/images/boss/boss_yanShiShou.png',
-  '魔焰凤凰': '/assets/images/boss/boss_moYanFengHuang.png',
-  '远古妖龙': '/assets/images/boss/boss_yuanGuYaoLong.png',
+  '焰蚀蛛母': img('/assets/images/boss/boss_yanShi.png'),
+  '魔焰龙': img('/assets/images/boss/boss_moYanLong.png'),
+  '焰魔树': img('/assets/images/boss/boss_yanMoShu.png'),
+  '黑焰巨人': img('/assets/images/boss/boss_heiYanJuRen.png'),
+  '焰石兽': img('/assets/images/boss/boss_yanShiShou.png'),
+  '魔焰凤凰': img('/assets/images/boss/boss_moYanFengHuang.png'),
+  '远古妖龙': img('/assets/images/boss/boss_yuanGuYaoLong.png'),
 }
 const getBossImage = (name) => {
   if (!name) return null
