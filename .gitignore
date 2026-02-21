@@ -44,3 +44,22 @@ src/views/views/
 src/stores/stores/
 src/components/components/
 backups/
+
+# Environment files
+.env
+.env.*
+server/.env
+server/.env.*
+
+# Backups
+backups/
+
+# Docker
+docker-compose.yml
+
+# Test build output
+docs-test/
+
+# Backup files
+*.bak
+*.bak.*

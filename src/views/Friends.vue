@@ -154,22 +154,13 @@
     </n-form>
   </n-modal>
 
-  <!-- 私聊弹窗 -->
-  <n-modal v-model:show="showChat" preset="card" :title="chatTitle" style="max-width:480px" :bordered="false" @update:show="onChatModalClose">
-    <div class="chat-modal">
-      <div class="chat-messages" ref="chatMessagesBox">
-        <div v-if="chatMessages.length === 0" class="empty-tip">开始和 {{ chatTarget?.name }} 聊天吧~</div>
-        <div v-for="(msg, idx) in chatMessages" :key="idx" class="chat-msg-row" :class="{ self: msg.isSelf }">
-          <div class="chat-bubble">
-            <div class="chat-text">{{ msg.content }}</div>
-            <div class="chat-time">{{ formatTime(msg.created_at) }}</div>
-          </div>
-        </div>
-      </div>
-      <div class="chat-input-row">
-        <n-input v-model:value="chatInput" placeholder="输入消息..." maxlength="500" @keyup.enter="sendChatMessage" />
-        <n-button type="primary" @click="sendChatMessage" :loading="chatSending">发送</n-button>
-      </div>
+  <!-- 私信弹窗（邮件形式） -->
+  <n-modal v-model:show="showChat" preset="card" :title="'✉️ 发送私信 → ' + (chatTarget?.name || '')" style="max-width:480px" :bordered="false">
+    <div class="mail-send-form">
+      <n-input v-model:value="chatInput" type="textarea" placeholder="写点什么..." maxlength="500" :rows="4" />
+      <n-button type="primary" block strong :loading="chatSending" @click="sendFriendMail" style="margin-top:12px">
+        📨 发送私信
+      </n-button>
     </div>
   </n-modal>
 </div>
@@ -356,37 +347,8 @@ async function fetchUnreadCounts() {
 
 async function openChatModal(friend) {
   chatTarget.value = friend
-  showChat.value = true
-  chatMessages.value = []
   chatInput.value = ''
-
-  // Load chat history
-  try {
-    const r = await fetch(API + "/chat/" + friend.wallet, { headers: headers() })
-    const d = await r.json()
-    if (d.ok) {
-      chatMessages.value = d.messages.map(m => ({
-        ...m,
-        isSelf: m.from_wallet === authStore.user?.wallet
-      }))
-      scrollChatToBottom()
-    }
-  } catch {}
-
-  // Clear unread count for this friend
-  if (unreadCounts.value[friend.wallet]) {
-    delete unreadCounts.value[friend.wallet]
-    unreadCounts.value = { ...unreadCounts.value }
-  }
-
-  // Mark as read via WebSocket
-  const ws = getWs()
-  if (ws && ws.readyState === 1) {
-    ws.send(JSON.stringify({ type: 'mark_read', fromWallet: friend.wallet }))
-  }
-
-  // Set up WebSocket message handler
-  setupWsHandler()
+  showChat.value = true
 }
 
 function setupWsHandler() {
@@ -439,23 +401,28 @@ function onChatModalClose() {
   chatTarget.value = null
 }
 
-async function sendChatMessage() {
+async function sendFriendMail() {
   const text = chatInput.value.trim()
   if (!text || !chatTarget.value) return
 
-  const ws = getWs()
-  if (!ws || ws.readyState !== 1) {
-    msg.error('连接断开，请刷新页面重试')
-    return
-  }
-
   chatSending.value = true
-  ws.send(JSON.stringify({
-    type: 'private_chat',
-    toWallet: chatTarget.value.wallet,
-    text
-  }))
-  chatInput.value = ''
+  try {
+    const r = await fetch('/api/mail/send-friend', {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ toWallet: chatTarget.value.wallet, content: text })
+    })
+    const d = await r.json()
+    if (d.ok) {
+      msg.success('私信已发送！对方可在邮件中查看')
+      chatInput.value = ''
+      showChat.value = false
+    } else {
+      msg.error(d.error || '发送失败')
+    }
+  } catch (e) {
+    msg.error('发送失败: ' + e.message)
+  }
   chatSending.value = false
 }
 

@@ -173,7 +173,10 @@ export const usePlayerStore = defineStore('player', {
     unlockedRealms: ['燃火一层'], // 已解锁境界
     unlockedLocations: ['新手村'], // 已解锁地点
     unlockedSkills: [], // 已解锁功法
-    completedAchievements: [] // 已完成成就
+    completedAchievements: [], // 已完成成就
+    isAutoCultivating: false, // 自动冥想状态
+    storageExpand: {}, // 背包扩容等级
+    buffs: {} // 商城buff（doubleCrystal/cultivationBoost/luckyCharm）
   }),
   getters: {
     // 获取焰兽的属性加成
@@ -252,7 +255,39 @@ export const usePlayerStore = defineStore('player', {
     },
   },
   actions: {
-    stopAutoCultivation() { /* noop */ },
+    stopAutoCultivation() {
+      this.isAutoCultivating = false
+      if (this._autoCultTimer) {
+        clearInterval(this._autoCultTimer)
+        this._autoCultTimer = null
+      }
+    },
+    startAutoCultivation() {
+      if (this.isAutoCultivating) return
+      this.isAutoCultivating = true
+      this._autoCultTimer = setInterval(() => {
+        if (!this.isAutoCultivating) {
+          clearInterval(this._autoCultTimer)
+          this._autoCultTimer = null
+          return
+        }
+        const cost = Math.floor(10 * Math.pow(1.5, this.level - 1))
+        if (this.spirit < cost) {
+          this.stopAutoCultivation()
+          return
+        }
+        const gain = Math.floor(1 * Math.pow(1.2, this.level - 1))
+        this.spirit -= cost
+        this.cultivate(gain)
+      }, 1000)
+    },
+    toggleAutoCultivation() {
+      if (this.isAutoCultivating) {
+        this.stopAutoCultivation()
+      } else {
+        this.startAutoCultivation()
+      }
+    },
     // 获取合并后的总属性（base + 装备 + buff）
     getTotalStats() {
       const ab = this.artifactBonuses || {}
@@ -403,16 +438,8 @@ export const usePlayerStore = defineStore('player', {
     },
     // 保存数据到IndexedDB
     async saveData() {
-      const encryptedData = encryptData(this.$state)
-      if (encryptedData) {
-        try {
-          await GameDB.setData('playerData', encryptedData)
-        } catch (error) {
-          console.error('数据保存失败:', error)
-        }
-      } else {
-        console.error('数据加密失败')
-      }
+      // 标记数据已变更，由30秒定时器统一存档，避免竞态
+      this._dirty = true
     },
     // 导出存档数据
     async exportData() {
@@ -447,7 +474,6 @@ export const usePlayerStore = defineStore('player', {
     // 获取灵力
     gainSpirit(amount) {
       this.spirit += amount * this.spiritRate
-      this.saveData()
     },
     // 修炼增加修为
     cultivate(amount) {
@@ -603,7 +629,7 @@ export const usePlayerStore = defineStore('player', {
         // 消耗材料
         for (const material of recipe.materials) {
           for (let i = 0; i < material.count; i++) {
-            const index = this.herbs.findIndex(h => h.id === material.herb)
+            const index = this.herbs.findIndex(h => (h.herbId || h.herb_id || h.id) === material.herb)
             if (index > -1) {
               this.herbs.splice(index, 1)
             }
@@ -620,6 +646,9 @@ export const usePlayerStore = defineStore('player', {
           effect: effect
         })
         this.pillsCrafted++
+        // 消耗焰方（一次性使用）
+        const recipeIdx = this.pillRecipes.indexOf(recipeId)
+        if (recipeIdx > -1) this.pillRecipes.splice(recipeIdx, 1)
         this.saveData()
       }
       return result
@@ -788,6 +817,13 @@ export const usePlayerStore = defineStore('player', {
     getArtifactBonus(type) {
       return this.artifactBonuses[type] || 1
     },
+    getStorageLimit(type) {
+      const config = { equip: { base: 100, perLevel: 20 }, pet: { base: 30, perLevel: 5 } }
+      const expand = this.storageExpand || {}
+      const level = expand[type] || 0
+      const c = config[type] || { base: 100, perLevel: 20 }
+      return c.base + c.perLevel * level
+    },
     // 获得丹方残页
     gainPillFragment(recipeId) {
       if (!this.pillFragments[recipeId]) {
@@ -817,7 +853,7 @@ export const usePlayerStore = defineStore('player', {
         // 消耗材料
         recipe.materials.forEach(material => {
           for (let i = 0; i < material.count; i++) {
-            const index = this.herbs.findIndex(h => h.id === material.herb)
+            const index = this.herbs.findIndex(h => (h.herbId || h.herb_id || h.id) === material.herb)
             if (index > -1) {
               this.herbs.splice(index, 1)
             }
@@ -834,6 +870,9 @@ export const usePlayerStore = defineStore('player', {
         }
         this.items.push(pill)
         this.pillsCrafted++
+        // 消耗焰方（一次性使用）
+        const recipeIdx = this.pillRecipes.indexOf(recipeId)
+        if (recipeIdx > -1) this.pillRecipes.splice(recipeIdx, 1)
         this.saveData()
       }
       return result
@@ -875,7 +914,7 @@ export const usePlayerStore = defineStore('player', {
       this.saveData()
     },
     // 升级焰兽
-    upgradePet(pet, essenceCount) {
+    async upgradePet(pet, essenceCount) {
       if (this.petEssence < essenceCount) {
         return { success: false, message: '焰兽精华不足' }
       }
@@ -928,7 +967,18 @@ export const usePlayerStore = defineStore('player', {
           this.applyPetBonuses()
         }
       }
-      this.saveData()
+      // 直接写服务器，避免 serverManagedFields 覆盖
+      const token = localStorage.getItem('xx_token')
+      if (token) {
+        try {
+          await fetch('/api/game/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ gameData: this.$state, level: this.level, realm: this.realm, name: this.name })
+          })
+        } catch(e) { console.error('pet upgrade save failed', e) }
+      }
+      this._dirty = false
       return { success: true, message: '升级成功' }
     },
     // 升星焰兽
@@ -951,6 +1001,102 @@ export const usePlayerStore = defineStore('player', {
         return { success: true, message: '升星成功' }
       }
       return { success: false, message: '升星失败' }
+    },
+    // 从服务器加载装备数据
+    async loadEquipmentFromServer() {
+      try {
+        const pinia = window.__pinia
+        if (!pinia) return
+        const authStore = pinia.state.value.auth
+        if (!authStore || !authStore.isLoggedIn) return
+        const data = await authStore.loadFromCloud()
+        if (data && data.game_data) {
+          const gd = data.game_data
+          if (gd.items) {
+            // 只更新装备类型物品（非丹药、非焰兽）
+            const serverEquipItems = gd.items.filter(i => i.type && i.type !== 'pill' && i.type !== 'pet')
+            // 保留本地非装备物品（丹药、焰兽）
+            const localNonEquipItems = this.items.filter(i => i.type === 'pill' || i.type === 'pet')
+            this.items = [...localNonEquipItems, ...serverEquipItems]
+          }
+          if (gd.equippedArtifacts) {
+            this.equippedArtifacts = gd.equippedArtifacts
+          }
+        }
+      } catch (error) {
+        console.error('从服务器加载装备失败:', error)
+      }
+    },
+    // 从服务器加载焰兽数据
+    async loadPetsFromServer() {
+      try {
+        const pinia = window.__pinia
+        if (!pinia) return
+        const authStore = pinia.state.value.auth
+        if (!authStore || !authStore.isLoggedIn) return
+        const data = await authStore.loadFromCloud()
+        if (data && data.game_data) {
+          const gd = data.game_data
+          if (gd.items) {
+            // 只更新焰兽类型物品
+            const serverPetItems = gd.items.filter(i => i.type === 'pet')
+            // 保留本地非焰兽物品
+            const localNonPetItems = this.items.filter(i => i.type !== 'pet')
+            this.items = [...localNonPetItems, ...serverPetItems]
+          }
+          if (gd.activePet !== undefined) {
+            this.activePet = gd.activePet
+          }
+          if (gd.petEssence !== undefined) {
+            this.petEssence = gd.petEssence
+          }
+        }
+      } catch (error) {
+        console.error('从服务器加载焰兽失败:', error)
+      }
+    },
+    // 从服务器加载焰草数据
+    async loadHerbsFromServer() {
+      try {
+        const pinia = window.__pinia
+        if (!pinia) return
+        const authStore = pinia.state.value.auth
+        if (!authStore || !authStore.isLoggedIn) return
+        const data = await authStore.loadFromCloud()
+        if (data && data.game_data && data.game_data.herbs) {
+          this.herbs = data.game_data.herbs
+        }
+      } catch (error) {
+        console.error('从服务器加载焰草失败:', error)
+      }
+    },
+    // 从服务器加载丹药数据
+    async loadPillsFromServer() {
+      try {
+        const pinia = window.__pinia
+        if (!pinia) return
+        const authStore = pinia.state.value.auth
+        if (!authStore || !authStore.isLoggedIn) return
+        const data = await authStore.loadFromCloud()
+        if (data && data.game_data) {
+          const gd = data.game_data
+          if (gd.items) {
+            // 只更新丹药类型物品
+            const serverPillItems = gd.items.filter(i => i.type === 'pill')
+            // 保留本地非丹药物品
+            const localNonPillItems = this.items.filter(i => i.type !== 'pill')
+            this.items = [...localNonPillItems, ...serverPillItems]
+          }
+          if (gd.pillFragments) {
+            this.pillFragments = gd.pillFragments
+          }
+          if (gd.pillRecipes) {
+            this.pillRecipes = gd.pillRecipes
+          }
+        }
+      } catch (error) {
+        console.error('从服务器加载丹药失败:', error)
+      }
     }
   }
 })

@@ -265,5 +265,296 @@ export default async function registerAdminRoutes(app, pool, auth, adminAuth) {
       });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
+  // ========== 8. 排行榜管理 ==========
+  app.get('/api/admin/leaderboard/:type', auth, adminAuth, async (req, res) => {
+    try {
+      const { type } = req.params;
+      let orderBy, selectFields;
+      
+      switch (type) {
+        case 'power':
+          orderBy = 'combat_power DESC';
+          selectFields = 'wallet, name, level, realm, combat_power, vip_level, spirit_stones';
+          break;
+        case 'level':
+          orderBy = 'level DESC, combat_power DESC';
+          selectFields = 'wallet, name, level, realm, combat_power, vip_level, spirit_stones';
+          break;
+        case 'recharge':
+          orderBy = 'total_recharge DESC';
+          selectFields = 'wallet, name, level, realm, total_recharge, vip_level, spirit_stones';
+          break;
+        default:
+          return res.status(400).json({ error: 'Invalid type. Use: power, level, or recharge' });
+      }
+      
+      const result = await pool.query(
+        `SELECT ${selectFields} FROM players ORDER BY ${orderBy} LIMIT 50`
+      );
+      res.json({ type, leaderboard: result.rows });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ========== 9. 商城配置 ==========
+  app.get('/api/admin/shop-config', auth, adminAuth, async (req, res) => {
+    try {
+      const result = await pool.query("SELECT value FROM settings WHERE key = 'shop_config'");
+      res.json({ config: result.rows[0]?.value || {} });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.put('/api/admin/shop-config', auth, adminAuth, async (req, res) => {
+    try {
+      const { config } = req.body;
+      if (!config || typeof config !== 'object') return res.status(400).json({ error: 'config 必须为对象' });
+      await pool.query(
+        `INSERT INTO settings (key, value, updated_at) VALUES ('shop_config', $1, NOW())
+         ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()`,
+        [JSON.stringify(config)]
+      );
+      await logAction(pool, req.user.wallet, 'update_shop_config', null, { config });
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ========== 10. 抽卡配置 ==========
+  app.get('/api/admin/gacha-config', auth, adminAuth, async (req, res) => {
+    try {
+      const result = await pool.query("SELECT value FROM settings WHERE key = 'gacha_config'");
+      res.json({ config: result.rows[0]?.value || {} });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.put('/api/admin/gacha-config', auth, adminAuth, async (req, res) => {
+    try {
+      const { config } = req.body;
+      if (!config || typeof config !== 'object') return res.status(400).json({ error: 'config 必须为对象' });
+      await pool.query(
+        `INSERT INTO settings (key, value, updated_at) VALUES ('gacha_config', $1, NOW())
+         ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()`,
+        [JSON.stringify(config)]
+      );
+      await logAction(pool, req.user.wallet, 'update_gacha_config', null, { config });
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ========== 11. 拍卖行监控 ==========
+  app.get('/api/admin/auction/active', auth, adminAuth, async (req, res) => {
+    try {
+      const result = await pool.query(
+        `SELECT al.*, p.name as seller_name_display 
+         FROM auction_listings al 
+         LEFT JOIN players p ON al.seller_wallet = p.wallet 
+         WHERE al.status = 'active' 
+         ORDER BY al.created_at DESC`
+      );
+      res.json({ auctions: result.rows });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get('/api/admin/auction/history', auth, adminAuth, async (req, res) => {
+    try {
+      const result = await pool.query(
+        `SELECT ah.*, 
+          sp.name as seller_name, bp.name as buyer_name
+         FROM auction_history ah
+         LEFT JOIN players sp ON ah.seller_wallet = sp.wallet
+         LEFT JOIN players bp ON ah.buyer_wallet = bp.wallet
+         ORDER BY ah.sold_at DESC LIMIT 100`
+      );
+      res.json({ history: result.rows });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.delete('/api/admin/auction/:id', auth, adminAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const auction = await pool.query(
+        "SELECT * FROM auction_listings WHERE id = $1 AND status = 'active'",
+        [id]
+      );
+      if (!auction.rows.length) return res.status(404).json({ error: '拍品不存在或已结束' });
+      
+      await pool.query(
+        "UPDATE auction_listings SET status = 'cancelled', updated_at = NOW() WHERE id = $1",
+        [id]
+      );
+      await logAction(pool, req.user.wallet, 'cancel_auction', id, { 
+        item_name: auction.rows[0].item_name,
+        seller: auction.rows[0].seller_wallet 
+      });
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ========== 12. 在线监控 ==========
+  app.get('/api/admin/online', auth, adminAuth, async (req, res) => {
+    try {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const [onlineCount, recentPlayers] = await Promise.all([
+        pool.query("SELECT COUNT(*) FROM players WHERE updated_at > NOW() - INTERVAL '5 minutes'"),
+        pool.query(
+          `SELECT wallet, name, level, realm, combat_power, updated_at 
+           FROM players 
+           WHERE updated_at > $1 
+           ORDER BY updated_at DESC LIMIT 100`,
+          [oneHourAgo]
+        )
+      ]);
+      res.json({
+        onlineCount: parseInt(onlineCount.rows[0].count),
+        recentPlayers: recentPlayers.rows
+      });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ========== 13. 经济总览 ==========
+  app.get('/api/admin/economy', auth, adminAuth, async (req, res) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const [totalStones, avgStones, richestPlayers, todayRecharge] = await Promise.all([
+        pool.query('SELECT COALESCE(SUM(spirit_stones),0) as total FROM players'),
+        pool.query('SELECT COALESCE(AVG(spirit_stones),0) as avg FROM players'),
+        pool.query(
+          `SELECT wallet, name, spirit_stones, level, realm 
+           FROM players ORDER BY spirit_stones DESC LIMIT 10`
+        ),
+        pool.query(
+          `SELECT COALESCE(SUM(spirit_stones),0) as total FROM recharge_log WHERE created_at::date = $1`,
+          [today]
+        )
+      ]);
+      res.json({
+        totalSpiritStones: parseInt(totalStones.rows[0].total),
+        avgSpiritStones: parseFloat(avgStones.rows[0].avg).toFixed(2),
+        richestPlayers: richestPlayers.rows,
+        todayRechargeStones: parseInt(todayRecharge.rows[0].total)
+      });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ========== 14. 玩家深度编辑 ==========
+  app.put('/api/admin/players/:wallet/level', auth, adminAuth, async (req, res) => {
+    try {
+      const { level, realm } = req.body;
+      const wallet = req.params.wallet.toLowerCase();
+      if (!level || !realm) return res.status(400).json({ error: 'level 和 realm 不能为空' });
+      
+      const result = await pool.query(
+        'UPDATE players SET level = $1, realm = $2, updated_at = NOW() WHERE wallet = $3 RETURNING wallet, level, realm',
+        [level, realm, wallet]
+      );
+      if (!result.rows.length) return res.status(404).json({ error: '玩家不存在' });
+      await logAction(pool, req.user.wallet, 'edit_player_level', wallet, { level, realm });
+      res.json({ ok: true, wallet, level, realm });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.put('/api/admin/players/:wallet/vip', auth, adminAuth, async (req, res) => {
+    try {
+      const { vipLevel } = req.body;
+      const wallet = req.params.wallet.toLowerCase();
+      if (typeof vipLevel !== 'number') return res.status(400).json({ error: 'vipLevel 必须为数字' });
+      
+      const result = await pool.query(
+        'UPDATE players SET vip_level = $1, updated_at = NOW() WHERE wallet = $2 RETURNING wallet, vip_level',
+        [vipLevel, wallet]
+      );
+      if (!result.rows.length) return res.status(404).json({ error: '玩家不存在' });
+      await logAction(pool, req.user.wallet, 'edit_player_vip', wallet, { vipLevel });
+      res.json({ ok: true, wallet, vipLevel });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.put('/api/admin/players/:wallet/gamedata', auth, adminAuth, async (req, res) => {
+    try {
+      const { fields } = req.body;
+      const wallet = req.params.wallet.toLowerCase();
+      if (!fields || typeof fields !== 'object') return res.status(400).json({ error: 'fields 必须为对象' });
+      
+      const player = await pool.query('SELECT game_data FROM players WHERE wallet = $1', [wallet]);
+      if (!player.rows.length) return res.status(404).json({ error: '玩家不存在' });
+      
+      const currentData = player.rows[0].game_data || {};
+      const newData = { ...currentData, ...fields };
+      
+      const result = await pool.query(
+        'UPDATE players SET game_data = $1, updated_at = NOW() WHERE wallet = $2 RETURNING wallet, game_data',
+        [JSON.stringify(newData), wallet]
+      );
+      await logAction(pool, req.user.wallet, 'edit_player_gamedata', wallet, { fields: Object.keys(fields) });
+      res.json({ ok: true, wallet, gameData: result.rows[0].game_data });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ========== 15. 批量操作 ==========
+  app.post('/api/admin/mail/broadcast', auth, adminAuth, async (req, res) => {
+    try {
+      const { title, content, attachments } = req.body;
+      if (!title || !content) return res.status(400).json({ error: 'title 和 content 不能为空' });
+      
+      const players = await pool.query('SELECT wallet FROM players');
+      const attachmentsJson = attachments ? JSON.stringify(attachments) : null;
+      
+      for (const p of players.rows) {
+        await pool.query(
+          `INSERT INTO player_mail (to_wallet, from_type, from_name, title, content, attachments) 
+           VALUES ($1, 'system', '系统', $2, $3, $4)`,
+          [p.wallet, title, content, attachmentsJson]
+        );
+      }
+      await logAction(pool, req.user.wallet, 'broadcast_mail', null, { 
+        title, 
+        recipientCount: players.rows.length,
+        hasAttachments: !!attachments 
+      });
+      res.json({ ok: true, sentCount: players.rows.length });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.post('/api/admin/airdrop', auth, adminAuth, async (req, res) => {
+    try {
+      const { spiritStones, reinforceStones, petEssence } = req.body;
+      const updates = [];
+      const detail = {};
+      
+      if (spiritStones && typeof spiritStones === 'number') {
+        updates.push(`spirit_stones = spirit_stones + ${spiritStones}`);
+        detail.spiritStones = spiritStones;
+      }
+      
+      // reinforceStones 和 petEssence 存储在 game_data 中
+      let gameDataUpdate = '';
+      if ((reinforceStones && typeof reinforceStones === 'number') || 
+          (petEssence && typeof petEssence === 'number')) {
+        const gameDataFields = [];
+        if (reinforceStones) {
+          gameDataFields.push(`'reinforceStones', COALESCE((game_data->>'reinforceStones')::int, 0) + ${reinforceStones}`);
+          detail.reinforceStones = reinforceStones;
+        }
+        if (petEssence) {
+          gameDataFields.push(`'petEssence', COALESCE((game_data->>'petEssence')::int, 0) + ${petEssence}`);
+          detail.petEssence = petEssence;
+        }
+        gameDataUpdate = `, game_data = game_data || jsonb_build_object(${gameDataFields.join(', ')})`;
+      }
+      
+      if (updates.length === 0 && !gameDataUpdate) {
+        return res.status(400).json({ error: '至少需要一种空投物品' });
+      }
+      
+      const setClause = updates.length > 0 ? updates.join(', ') : '';
+      const query = `UPDATE players SET ${setClause}${gameDataUpdate}, updated_at = NOW()`;
+      await pool.query(query);
+      
+      const playerCount = await pool.query('SELECT COUNT(*) FROM players');
+      await logAction(pool, req.user.wallet, 'airdrop', null, { 
+        ...detail,
+        affectedPlayers: parseInt(playerCount.rows[0].count)
+      });
+      res.json({ ok: true, affectedPlayers: parseInt(playerCount.rows[0].count), detail });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
 
 } // end registerAdminRoutes

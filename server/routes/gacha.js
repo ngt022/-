@@ -584,7 +584,13 @@ router.post('/draw', auth, async (req, res) => {
     const vipLevel = player.vip_level || 0
     
     // 获取活动效果
-    const { gachaRateBoost } = await getEventEffects()
+    let { gachaRateBoost } = await getEventEffects()
+    
+    // 幸运符buff：提升稀有品质概率 (等效 gachaRateBoost +30%)
+    const buffs = gameData.buffs || {}
+    if (buffs.luckyCharm && buffs.luckyCharm > Date.now()) {
+      gachaRateBoost = (gachaRateBoost || 1) * 1.3
+    }
     
     // 从配置获取费用
     const gachaCost = await getConfig('gacha_cost')

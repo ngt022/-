@@ -29,6 +29,10 @@
                 <div class="header-title">火之文明</div>
                 <div class="header-actions">
                   <span v-if="authStore.vipLevel > 0" class="header-vip-tag">VIP{{ authStore.vipLevel }}</span>
+                  <button class="header-icon-btn mail-btn" @click="router.push('/mail')">
+                    <n-icon :size="15"><SmileOutlined /></n-icon>
+                    <span v-if="unreadMail > 0" class="mail-dot"></span>
+                  </button>
                   <button class="header-icon-btn" @click="router.push('/settings')">
                     <n-icon :size="15"><SettingOutlined /></n-icon>
                   </button>
@@ -39,6 +43,12 @@
               </div>
             </n-layout-header>
             <n-layout-content>
+              <!-- Buff状态栏 -->
+              <div class="buff-bar" v-if="activeBuffs.length > 0">
+                <span v-for="buff in activeBuffs" :key="buff.key" class="buff-tag" :title="buff.desc">
+                  {{ buff.icon }} {{ buff.name }} {{ buff.remaining }}
+                </span>
+              </div>
               <div class="content-wrapper">
                 <!-- 主城：只在首页显示 -->
                 <GameScene
@@ -161,7 +171,7 @@
   })
 
   const walletMenuOptions = [
-    { label: '云存档', key: 'save' },
+    
     { label: '断开连接', key: 'logout' }
   ]
 
@@ -180,30 +190,39 @@
   }
 
   const handleWalletMenu = async (key) => {
-    if (key === 'save') {
-      try {
-        await authStore.saveToCloud(playerStore)
-        alert('云存档保存成功！')
-      } catch (e) { alert('保存失败：' + e.message) }
-    } else if (key === 'logout') {
+    if (key === 'logout') {
       authStore.logout()
     }
   }
 
   const initGame = async () => {
     isLoading.value = true
+    // 如果已登录，先从云端加载存档（刷新页面场景）
+    if (authStore.isLoggedIn) {
+      try {
+        const cloudData = await authStore.loadFromCloud()
+        if (cloudData && cloudData.gameData && Object.keys(cloudData.gameData).length > 0) {
+          Object.entries(cloudData.gameData).forEach(([key, value]) => {
+            if (key in playerStore.$state) playerStore[key] = value
+          })
+        }
+      } catch (e) {
+        console.error("云存档加载失败:", e)
+      }
+    }
     await playerStore.initializePlayer()
     isLoading.value = false
     getMenuOptions()
     startAutoGain()
 
-    // 30秒自动云存档
+    // 10秒自动云存档（仅在数据变更时）
     if (window.__autoSaveTimer) clearInterval(window.__autoSaveTimer)
     window.__autoSaveTimer = setInterval(() => {
-      if (authStore.isLoggedIn) {
+      if (authStore.isLoggedIn && playerStore._dirty) {
+        playerStore._dirty = false
         authStore.saveToCloud(playerStore).catch(() => {})
       }
-    }, 30000)
+    }, 10000)
     // 离线收益
     const reward = playerStore.calculateOfflineReward()
     if (reward) {
@@ -288,7 +307,7 @@
       { label: '焰盟战', key: 'sect-war', icon: renderIcon(Flash) },
       { label: '焰友', key: 'friends', icon: renderIcon(SmileOutlined) },
       { label: '焰榜', key: 'rank', icon: renderIcon(BarChartOutlined) },
-      { label: () => h('span', {}, ['📬邮件', unreadMail.value > 0 ? h('span', {style:'background:#f00;color:#fff;border-radius:50%;padding:0 5px;font-size:10px;margin-left:4px'}, unreadMail.value) : null]), key: 'mail', icon: renderIcon(SmileOutlined) },
+
       { label: '设置', key: 'settings', icon: renderIcon(SettingOutlined) },
       ...(authStore.wallet?.toLowerCase() === "0xfad7eb0814b6838b05191a07fb987957d50c4ca9" ? [{ label: "后台管理", key: "admin", icon: renderIcon(SettingOutlined) }, { label: "活动管理", key: "admin/events", icon: renderIcon(SettingOutlined) }] : []),
       ...(playerStore.isGMMode
@@ -296,6 +315,40 @@
         : [])
     ]
   }
+
+  // Buff状态栏计算
+  const activeBuffs = computed(() => {
+    const now = Date.now()
+    const result = []
+    const buffs = playerStore.buffs || {}
+    const buffDefs = {
+      doubleCrystal: { icon: '💎', name: '焰晶双倍', desc: '所有焰晶收入×2' },
+      cultivationBoost: { icon: '⚡', name: '修炼加速', desc: '探索修为+50%' },
+      luckyCharm: { icon: '🍀', name: '幸运符', desc: '抽卡稀有概率+30%' }
+    }
+    for (const [key, expires] of Object.entries(buffs)) {
+      if (expires > now && buffDefs[key]) {
+        const remain = expires - now
+        const hours = Math.floor(remain / 3600000)
+        const mins = Math.floor((remain % 3600000) / 60000)
+        result.push({ key, ...buffDefs[key], remaining: hours > 0 ? hours + 'h' + mins + 'm' : mins + 'm' })
+      }
+    }
+    // 丹药buff
+    const effects = (playerStore.activeEffects || []).filter(e => e.endTime > now)
+    const effectNames = {
+      spiritRate: '焰灵恢复', cultivationRate: '焰修速度', combatBoost: '战斗加成',
+      allAttributes: '全属性', spiritCap: '焰灵上限', autoHeal: '自动回血',
+      spiritRecovery: '焰灵恢复', cultivationEfficiency: '焰修效率',
+      comprehension: '悟性', fireAttribute: '火属性'
+    }
+    for (const e of effects) {
+      const remain = e.endTime - now
+      const mins = Math.floor(remain / 60000)
+      result.push({ key: 'pill_' + e.type, icon: '💊', name: effectNames[e.type] || e.type, remaining: mins + 'm', desc: '+' + ((e.value || 0) * 100).toFixed(0) + '%' })
+    }
+    return result
+  })
 
   const startAutoGain = () => {
     if (spiritWorker.value) return
@@ -398,6 +451,7 @@ const fetchUnreadMail = async () => {
     unreadMail.value = d.unread || 0
   } catch (e) {}
 }
+window.addEventListener('mail-read', fetchUnreadMail)
 // 每60秒刷新未读数
 setInterval(fetchUnreadMail, 60000)
 
@@ -480,6 +534,23 @@ watch(() => authStore.wallet, (w) => { if (w) { setTimeout(checkAnnouncementPopu
   .header-icon-btn:hover {
     color: var(--gold-light);
     background: rgba(212,168,67,0.1);
+  }
+  .mail-btn {
+    position: relative;
+  }
+  .mail-dot {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
+    background: #e74c3c;
+    border-radius: 50%;
+    animation: mail-pulse 1.5s infinite;
+  }
+  @keyframes mail-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.8; }
     text-shadow: 0 0 8px rgba(212,168,67,0.4);
   }  .header-vip-tag {
     display: inline-flex;
@@ -1110,4 +1181,6 @@ watch(() => authStore.wallet, (w) => { if (w) { setTimeout(checkAnnouncementPopu
     background-color: #1a1a24 !important;
     color: #e8e0d0 !important;
   }
+.buff-bar { display:flex; flex-wrap:wrap; gap:6px; padding:6px 12px; background:rgba(26,26,46,0.9); border-bottom:1px solid rgba(212,168,67,0.15); }
+.buff-tag { font-size:11px; padding:2px 8px; border-radius:12px; background:rgba(212,168,67,0.15); color:#d4a843; white-space:nowrap; cursor:default; }
 </style>

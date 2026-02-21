@@ -251,7 +251,7 @@ export const calculatePillEffect = (recipe, playerLevel) => {
 export const tryCreatePill = (recipe, herbs, player, fragments = 0, luck = 1) => {
   // 检查材料是否足够
   for (const material of recipe.materials) {
-    const herbCount = herbs.filter(h => h.id === material.herb).length
+    const herbCount = herbs.filter(h => (h.herbId || h.herb_id || h.id) === material.herb).length
     if (herbCount < material.count) {
       return { success: false, message: '材料不足' }
     }

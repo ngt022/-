@@ -1,5 +1,11 @@
 import dotenv from 'dotenv';
-dotenv.config({ path: new URL('./.env', import.meta.url).pathname });
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+const __dirname_env = dirname(fileURLToPath(import.meta.url));
+const _gameEnv = process.env.GAME_ENV || 'production';
+dotenv.config({ path: join(__dirname_env, '.env.' + _gameEnv) });
+dotenv.config({ path: join(__dirname_env, '.env') });
+console.log('[ENV] GAME_ENV=' + _gameEnv + ' DB=' + (process.env.DATABASE_URL || '').split('/').pop());
 import express from 'express';
 import cors from 'cors';
 import pg from 'pg';
@@ -152,6 +158,108 @@ function safeError(e) {
   return e.message;
 }
 
+// === 从 equippedArtifacts 重算所有派生属性 ===
+function recalcDerivedStats(gd) {
+  // Ensure all required fields exist (new player has empty game_data)
+  if (!gd.baseAttributes) gd.baseAttributes = { attack: 10, health: 100, defense: 5, speed: 10 };
+  if (!gd.equippedArtifacts) gd.equippedArtifacts = {};
+  if (!gd.combatAttributes) gd.combatAttributes = { critRate:0, comboRate:0, counterRate:0, stunRate:0, dodgeRate:0, vampireRate:0 };
+  if (!gd.combatResistance) gd.combatResistance = { critResist:0, comboResist:0, counterResist:0, stunResist:0, dodgeResist:0, vampireResist:0 };
+  if (!gd.specialAttributes) gd.specialAttributes = { healBoost:0, critDamageBoost:0, critDamageReduce:0, finalDamageBoost:0, finalDamageReduce:0, combatBoost:0, resistanceBoost:0 };
+  if (!gd.artifactBonuses) gd.artifactBonuses = {};
+  // Reset artifactBonuses
+  const ab = {
+    attack:0, health:0, defense:0, speed:0,
+    critRate:0, comboRate:0, counterRate:0, stunRate:0, dodgeRate:0, vampireRate:0,
+    critResist:0, comboResist:0, counterResist:0, stunResist:0, dodgeResist:0, vampireResist:0,
+    healBoost:0, critDamageBoost:0, critDamageReduce:0, finalDamageBoost:0, finalDamageReduce:0,
+    combatBoost:0, resistanceBoost:0, cultivationRate:1, spiritRate:1
+  };
+  const equipped = gd.equippedArtifacts || {};
+  for (const slot of Object.keys(equipped)) {
+    const item = equipped[slot];
+    if (!item || !item.stats) continue;
+    for (const [k, v] of Object.entries(item.stats)) {
+      if (k in ab) {
+        if (k === 'cultivationRate' || k === 'spiritRate') {
+          ab[k] += v; // these are additive on top of base 1
+        } else {
+          ab[k] += v;
+        }
+      }
+    }
+  }
+  gd.artifactBonuses = ab;
+
+  // Pet bonus
+  const pet = gd.activePet;
+  let petAtk = 0, petHp = 0, petDef = 0, petSpd = 0;
+  if (pet && pet.deployed !== false) {
+    const q = pet.quality || {};
+    petAtk = (q.strength || 0) * (pet.level || 1);
+    petHp = (q.constitution || 0) * (pet.level || 1) * 5;
+    petDef = (q.constitution || 0) * (pet.level || 1) * 0.5;
+    petSpd = (q.agility || 0) * (pet.level || 1) * 0.3;
+  }
+
+  // Base attributes: we need the "naked" base (without equipment)
+  // The naked base should be stored separately, but currently baseAttributes includes equip bonuses
+  // Strategy: store a _nakedBase if not present, derive from level
+  if (!gd._nakedBase) {
+    // First time: subtract current artifactBonuses from baseAttributes to get naked base
+    // But old artifactBonuses was all zeros, so current baseAttributes IS the naked base
+    gd._nakedBase = {
+      attack: gd.baseAttributes.attack || 10,
+      health: gd.baseAttributes.health || 100,
+      defense: gd.baseAttributes.defense || 5,
+      speed: gd.baseAttributes.speed || 10
+    };
+  }
+
+  // Recalc baseAttributes = naked + equipment
+  gd.baseAttributes = {
+    attack: gd._nakedBase.attack + ab.attack + petAtk,
+    health: gd._nakedBase.health + ab.health + petHp,
+    defense: gd._nakedBase.defense + ab.defense + petDef,
+    speed: gd._nakedBase.speed + ab.speed + petSpd
+  };
+
+  // Recalc combatAttributes from equipment only (base combat is 0)
+  gd.combatAttributes = {
+    critRate: ab.critRate,
+    comboRate: ab.comboRate,
+    counterRate: ab.counterRate,
+    stunRate: ab.stunRate,
+    dodgeRate: ab.dodgeRate,
+    vampireRate: ab.vampireRate
+  };
+
+  // Recalc combatResistance from equipment only
+  gd.combatResistance = {
+    critResist: ab.critResist,
+    comboResist: ab.comboResist,
+    counterResist: ab.counterResist,
+    stunResist: ab.stunResist,
+    dodgeResist: ab.dodgeResist,
+    vampireResist: ab.vampireResist
+  };
+
+  // Recalc specialAttributes from equipment only
+  gd.specialAttributes = {
+    healBoost: ab.healBoost,
+    critDamageBoost: ab.critDamageBoost,
+    critDamageReduce: ab.critDamageReduce,
+    finalDamageBoost: ab.finalDamageBoost,
+    finalDamageReduce: ab.finalDamageReduce,
+    combatBoost: ab.combatBoost,
+    resistanceBoost: ab.resistanceBoost
+  };
+
+  return gd;
+}
+
+
+
 const strictLimit = rateLimit({ windowMs: 60000, max: 10, message: { error: '操作太频繁，请稍后再试' } });
 const authLimit = rateLimit({ windowMs: 300000, max: 5, message: { error: '登录尝试太频繁' } });
 
@@ -224,7 +332,7 @@ app.post('/api/game/save', auth, async (req, res) => {
       'dungeonHighestFloor', 'dungeonHighestFloor_2', 'dungeonHighestFloor_5', 'dungeonHighestFloor_10', 'dungeonHighestFloor_100',
       'dungeonTotalKills', 'dungeonBossKills', 'dungeonEliteKills', 'dungeonTotalRewards', 'dungeonTotalRuns', 'dungeonDeathCount', 'dungeonLastFailedFloor','spiritStones', 'items', 'reinforceStones', 'refinementStones', 'petEssence', 
       'purchasedPacks', 'buffs', 'herbs', 'pillRecipes', 'pillFragments',
-      'storageExpand', 'autoSellQualities', 'autoReleaseRarities'];
+      'storageExpand', 'autoSellQualities', 'autoReleaseRarities', 'shopWeeklyPurchases', 'activePet', 'pets', 'equippedArtifacts', 'baseAttributes', 'vipLevel', 'activeMount', 'activeTitle', 'realmName', 'realmIndex', 'level', 'realm', 'combatAttributes', 'specialAttributes', 'combatResistance', 'artifactBonuses', 'activeMountBonus', 'activeTitleBonus', 'completedAchievements', 'nameChangeCount', 'pillsConsumed', 'pillsCrafted', 'explorationCount', 'itemsFound', 'breakthroughCount', 'selectedWishEquipQuality', 'selectedWishPetRarity', 'isNewPlayer', 'name', '_nakedBase'];
     
     // Merge: frontend data as base, but server-managed fields use DB values
     const mergedData = { ...gameData };
@@ -258,10 +366,11 @@ app.post('/api/game/save', auth, async (req, res) => {
     // spirit_stones column also uses DB value
     const dbSpiritStones = current.rows[0].spirit_stones ?? mergedData.spiritStones ?? 0;
 
+    console.log('[SAVE]', req.user.wallet.slice(-6), 'cult:', dbCult, '->', mergedData.cultivation, 'lv:', level);
     await pool.query(
       `UPDATE players SET game_data = $1, combat_power = $2, level = $3, realm = $4, 
        spirit_stones = $5, name = $6, updated_at = NOW() WHERE wallet = $7`,
-      [JSON.stringify(mergedData), combatPower || 0, level || 1, realm || '燃火期一层',
+      [JSON.stringify(mergedData), combatPower || 0, mergedData.level || level || oldLevel, mergedData.realm || realm || current.rows[0]?.realm || '燃火期一层',
        dbSpiritStones, playerName, req.user.wallet]
     );
 
@@ -299,7 +408,7 @@ app.post('/api/game/save-beacon', async (req, res) => {
       'dungeonHighestFloor', 'dungeonHighestFloor_2', 'dungeonHighestFloor_5', 'dungeonHighestFloor_10', 'dungeonHighestFloor_100',
       'dungeonTotalKills', 'dungeonBossKills', 'dungeonEliteKills', 'dungeonTotalRewards', 'dungeonTotalRuns', 'dungeonDeathCount', 'dungeonLastFailedFloor','spiritStones', 'items', 'reinforceStones', 'refinementStones', 'petEssence',
       'purchasedPacks', 'buffs', 'herbs', 'pillRecipes', 'pillFragments',
-      'storageExpand', 'autoSellQualities', 'autoReleaseRarities'];
+      'storageExpand', 'autoSellQualities', 'autoReleaseRarities', 'shopWeeklyPurchases', 'activePet', 'pets', 'equippedArtifacts', 'baseAttributes', 'vipLevel', 'activeMount', 'activeTitle', 'realmName', 'realmIndex', 'level', 'realm', 'combatAttributes', 'specialAttributes', 'combatResistance', 'artifactBonuses', 'activeMountBonus', 'activeTitleBonus', 'completedAchievements', 'nameChangeCount', 'pillsConsumed', 'pillsCrafted', 'explorationCount', 'itemsFound', 'breakthroughCount', 'selectedWishEquipQuality', 'selectedWishPetRarity', 'isNewPlayer', 'name', '_nakedBase'];
 
     const mergedData = { ...gameData };
     for (const field of serverManagedFields) {
@@ -323,7 +432,7 @@ app.post('/api/game/save-beacon', async (req, res) => {
     await pool.query(
       `UPDATE players SET game_data = $1, combat_power = $2, level = $3, realm = $4,
        spirit_stones = $5, name = $6, updated_at = NOW() WHERE wallet = $7`,
-      [JSON.stringify(mergedData), combatPower || 0, level || 1, realm || '燃火期一层',
+      [JSON.stringify(mergedData), combatPower || 0, mergedData.level || level || oldLevel, mergedData.realm || realm || current.rows[0]?.realm || '燃火期一层',
        dbSpiritStones, playerName, user.wallet]
     );
 
@@ -382,13 +491,17 @@ app.post('/api/exploration/reward', auth, async (req, res) => {
     }
 
     if (type === 'spirit_stone') {
+      // 检查双倍卡
+      const erGd = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [w]);
+      const erData = erGd.rows[0]?.game_data || {};
+      const finalAmount = isBuffActive(erData, 'doubleCrystal') ? amount * 2 : amount;
       await pool.query(
         `UPDATE players SET spirit_stones = spirit_stones + $1,
          game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::bigint, 0) + $1)::bigint))
          WHERE wallet = $2`,
-        [amount, w]
+        [finalAmount, w]
       );
-      res.json({ ok: true, type, amount });
+      res.json({ ok: true, type, amount: finalAmount });
     } else if (type === 'herb') {
       // herb reward: { herbId, name, quality, value }
       const { herbId, name, quality, value } = req.body;
@@ -505,6 +618,10 @@ app.get('/api/vip/info', auth, async (req, res) => {
   }
 });
 
+function isBuffActive(gameData, key) {
+  return gameData?.buffs?.[key] && gameData.buffs[key] > Date.now();
+}
+
 // === 每日签到 ===
 app.post('/api/sign/daily', auth, async (req, res) => {
   try {
@@ -520,13 +637,18 @@ app.post('/api/sign/daily', auth, async (req, res) => {
 
     const reward = SIGN_REWARDS[(streak - 1) % 7];
 
+    // 检查双倍卡buff
+    const gdResult = await pool.query('SELECT game_data FROM players WHERE wallet = $1', [req.user.wallet]);
+    const signGd = typeof gdResult.rows[0].game_data === 'string' ? JSON.parse(gdResult.rows[0].game_data) : (gdResult.rows[0].game_data || {});
+    const signStones = isBuffActive(signGd, 'doubleCrystal') ? reward.stones * 2 : reward.stones;
+
     // 发放焰晶
     await pool.query(
       `UPDATE players SET daily_sign_date = $1, daily_sign_streak = $2, 
        spirit_stones = spirit_stones + $3,
        game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::bigint, 0) + $3)::bigint)),
        updated_at = NOW() WHERE wallet = $4`,
-      [today, streak, reward.stones, req.user.wallet]
+      [today, streak, signStones, req.user.wallet]
     );
     // 发放材料奖励
     if (reward.reinforceStones || reward.refinementStones || reward.petEssence) {
@@ -617,6 +739,9 @@ app.get('/api/recharge/history', auth, async (req, res) => {
 });
 
 function sanitizePlayer(p) {
+  // Recalc derived stats from equipment before sending to frontend
+  if (!p.game_data || typeof p.game_data !== 'object') p.game_data = {};
+  recalcDerivedStats(p.game_data);
   return {
     id: p.id, wallet: p.wallet, name: p.name, gameData: p.game_data,
     vipLevel: p.vip_level, totalRecharge: p.total_recharge,
@@ -748,11 +873,15 @@ app.post('/api/monthly-card/claim', auth, async (req, res) => {
       [today, card.id]
     );
 
+    // 检查双倍卡
+    const mcGd = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [req.user.wallet]);
+    const mcData = mcGd.rows[0]?.game_data || {};
+    const mcStones = isBuffActive(mcData, 'doubleCrystal') ? MONTHLY_CARD_DAILY * 2 : MONTHLY_CARD_DAILY;
     await pool.query(
       `UPDATE players SET spirit_stones = spirit_stones + $1,
        game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::bigint, 0) + $1)::bigint))
        WHERE wallet = $2`,
-      [MONTHLY_CARD_DAILY, req.user.wallet]
+      [mcStones, req.user.wallet]
     );
 
     res.json({ ok: true, stones: MONTHLY_CARD_DAILY, daysClaimed: card.days_claimed + 1 });
@@ -1127,10 +1256,12 @@ app.post('/api/sect/tasks/:id/complete', auth, async (req, res) => {
     // Add stones to player
     const player = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [req.user.wallet]);
     const gameData = typeof player.rows[0].game_data === 'string' ? JSON.parse(player.rows[0].game_data) : player.rows[0].game_data;
-    gameData.spiritStones = (gameData.spiritStones || 0) + task.rows[0].reward_stones;
+    let taskStones = task.rows[0].reward_stones;
+    if (isBuffActive(gameData, 'doubleCrystal')) taskStones *= 2;
+    gameData.spiritStones = (gameData.spiritStones || 0) + taskStones;
     await pool.query('UPDATE players SET game_data=$1, spirit_stones=$2 WHERE wallet=$3',
       [JSON.stringify(gameData), gameData.spiritStones, req.user.wallet]);
-    res.json({ ok: true, reward_contribution: task.rows[0].reward_contribution, reward_stones: task.rows[0].reward_stones });
+    res.json({ ok: true, reward_contribution: task.rows[0].reward_contribution, reward_stones: taskStones });
   } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
@@ -1582,10 +1713,10 @@ app.get('/api/friend/unread', auth, async (req, res) => {
 });
 
 // === Admin 活动管理 ===
+const ADMIN_WALLETS = (process.env.ADMIN_WALLETS || "0xfad7eb0814b6838b05191a07fb987957d50c4ca9,0x82e402b05f3e936b63a874788c73e1552657c4f7").toLowerCase().split(",").map(function(w){return w.trim()});
 const adminAuth = async (req, res, next) => {
   if (!req.user) return res.status(401).json({ error: "未登录" });
-  const adminWallet = process.env.ADMIN_WALLET || "0xfad7eb0814b6838b05191a07fb987957d50c4ca9";
-  if (req.user.wallet.toLowerCase() !== adminWallet) return res.status(403).json({ error: "无权限" });
+  if (!ADMIN_WALLETS.includes(req.user.wallet.toLowerCase())) return res.status(403).json({ error: "无权限" });
   next();
 };
 
@@ -1870,6 +2001,8 @@ app.post('/api/boss/rewards/claim', auth, async (req, res) => {
     }
     const player = await pool.query('SELECT game_data FROM players WHERE wallet = $1', [req.user.wallet]);
     const gameData = typeof player.rows[0].game_data === 'string' ? JSON.parse(player.rows[0].game_data) : (player.rows[0].game_data || {});
+    // 双倍卡buff
+    if (isBuffActive(gameData, 'doubleCrystal')) totalStones *= 2;
     gameData.spiritStones = (gameData.spiritStones || 0) + totalStones;
     await pool.query('UPDATE players SET game_data = $1, spirit_stones = $2 WHERE wallet = $3',
       [JSON.stringify(gameData), gameData.spiritStones, req.user.wallet]);
@@ -2601,7 +2734,7 @@ app.post('/api/auction/list', auth, async (req, res) => {
     const gd = player.rows[0].game_data;
     const playerName = player.rows[0].name || '无名焰修';
     const items = gd.items || [];
-    const itemIndex = items.findIndex(i => i.id === item_id);
+    const itemIndex = items.findIndex(i => String(i.id) === String(item_id));
     if (itemIndex === -1) return res.status(400).json({ error: '物品不存在' });
 
     const item = items[itemIndex];
@@ -2609,7 +2742,7 @@ app.post('/api/auction/list', auth, async (req, res) => {
     // 检查是否已装备
     const equipped = gd.equippedArtifacts || {};
     const equippedIds = Object.values(equipped).filter(Boolean).map(e => e.id);
-    if (equippedIds.includes(item_id)) return res.status(400).json({ error: '已装备的物品不能上架' });
+    if (equippedIds.map(String).includes(String(item_id))) return res.status(400).json({ error: '已装备的物品不能上架' });
 
     // 上架费 5%
     const listingFee = Math.max(1, Math.floor(starting_price * 0.05));
@@ -3169,6 +3302,12 @@ app.post("/api/dungeon-daily/enter", auth, async (req, res) => {
       if (rc.petEssence) rewards.petEssence = rc.petEssence;
       if (rc.refinementStones) rewards.refinementStones = rc.refinementStones;
 
+      // buff检查
+      const dBuf = gameData.buffs || {};
+      if (dBuf.doubleCrystal && dBuf.doubleCrystal > Date.now()) {
+        rewards.spiritStones = (rewards.spiritStones || 0) * 2;
+        if (rc.spiritStones) rc.spiritStones *= 2;
+      }
       // 发放焰晶、修为、焰兽精华、符文石
       const curStones = Number(gameData.spiritStones) || 0;
       const curCult = Number(gameData.cultivation) || 0;
@@ -3676,6 +3815,367 @@ await registerAdminRoutes(app, pool, auth, adminAuth);
 registerDungeonRoutes(app, pool, auth);
 
 
+// === 炼丹API ===
+app.post('/api/alchemy/craft', auth, async (req, res) => {
+  try {
+    const { recipeId } = req.body;
+    const w = req.user.wallet;
+    const player = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [w]);
+    if (!player.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = typeof player.rows[0].game_data === 'string' ? JSON.parse(player.rows[0].game_data) : (player.rows[0].game_data || {});
+    
+    if (!gd.pillRecipes || !gd.pillRecipes.includes(recipeId)) {
+      return res.json({ success: false, message: '未掌握该焰方' });
+    }
+    
+    // 简单成功率（品阶越高越难）
+    const gradeRates = { grade1:0.9, grade2:0.8, grade3:0.7, grade4:0.6, grade5:0.5, grade6:0.4, grade7:0.3, grade8:0.2 };
+    // 需要前端传材料信息，这里简化：信任前端检查，后端只做扣材料+出丹
+    const herbs = gd.herbs || [];
+    
+    // 从前端传来的配方材料列表
+    const { materials, recipeName, recipeDesc, recipeGrade, effectType, effectValue, effectDuration } = req.body;
+    if (!materials || !materials.length) return res.json({ success: false, message: '缺少材料信息' });
+    
+    // 检查并扣除材料
+    for (const mat of materials) {
+      let found = 0;
+      for (let i = 0; i < mat.count; i++) {
+        const idx = herbs.findIndex(h => (h.herbId || h.herb_id || h.id) === mat.herb);
+        if (idx > -1) { herbs.splice(idx, 1); found++; }
+      }
+      if (found < mat.count) return res.json({ success: false, message: '材料不足: ' + mat.herb });
+    }
+    
+    // 成功率判定
+    const rate = gradeRates[recipeGrade] || 0.5;
+    const luck = (gd.luck || 1) * (gd.alchemyRate || 1);
+    if (Math.random() > rate * luck) {
+      // 失败也扣材料
+      gd.herbs = herbs;
+      await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
+      return res.json({ success: false, message: '焰炼失败，材料已消耗' });
+    }
+    
+    // 成功：扣材料 + 加丹药 + 消耗焰方
+    gd.herbs = herbs;
+    const pill = {
+      id: recipeId + '_' + Date.now(),
+      name: recipeName || recipeId,
+      type: 'pill',
+      description: recipeDesc || '',
+      quality: 'common',
+      effect: { type: effectType, value: effectValue, duration: effectDuration }
+    };
+    if (!gd.items) gd.items = [];
+    gd.items.push(pill);
+    
+    // 消耗焰方
+    const rIdx = gd.pillRecipes.indexOf(recipeId);
+    if (rIdx > -1) gd.pillRecipes.splice(rIdx, 1);
+    
+    gd.pillsCrafted = (gd.pillsCrafted || 0) + 1;
+    await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
+    res.json({ success: true, message: '焰炼成功！', pill, herbs: gd.herbs, pillRecipes: gd.pillRecipes, items: gd.items });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
+// === 焰兽升级API ===
+app.post('/api/pet/upgrade', auth, async (req, res) => {
+  try {
+    const { petId } = req.body;
+    const w = req.user.wallet;
+    const player = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [w]);
+    if (!player.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = typeof player.rows[0].game_data === 'string' ? JSON.parse(player.rows[0].game_data) : (player.rows[0].game_data || {});
+    
+    const items = gd.items || [];
+    const petIdx = items.findIndex(i => String(i.id) === String(petId) && i.type === 'pet');
+    if (petIdx === -1) return res.json({ success: false, message: '焰兽不存在' });
+    
+    const pet = items[petIdx];
+    const cost = (pet.level || 1) * 10;
+    const essence = gd.petEssence || 0;
+    if (essence < cost) return res.json({ success: false, message: '焰兽精华不足' });
+    
+    gd.petEssence = essence - cost;
+    pet.level = (pet.level || 1) + 1;
+    
+    const qm = { divine:2.0, celestial:1.8, mystic:1.6, spiritual:1.4, mortal:1.2 }[pet.rarity] || 1.2;
+    if (pet.combatAttributes) {
+      pet.combatAttributes.attack = Math.floor(pet.combatAttributes.attack * (1 + 0.01 * qm));
+      pet.combatAttributes.health = Math.floor(pet.combatAttributes.health * (1 + 0.01 * qm));
+      pet.combatAttributes.defense = Math.floor(pet.combatAttributes.defense * (1 + 0.01 * qm));
+      pet.combatAttributes.speed = Math.floor(pet.combatAttributes.speed * (1 + 0.01 * qm));
+    }
+    
+    items[petIdx] = pet;
+    gd.items = items;
+    
+    // 如果是出战焰兽也更新
+    if (gd.activePet && String(gd.activePet.id) === String(petId)) {
+      gd.activePet = pet;
+    }
+    
+    await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
+    res.json({ success: true, message: '升级成功！等级: ' + pet.level, pet, petEssence: gd.petEssence });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
+// === 服用丹药API ===
+app.post('/api/pill/use', auth, async (req, res) => {
+  try {
+    const { pillId } = req.body;
+    const w = req.user.wallet;
+    const player = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [w]);
+    if (!player.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = typeof player.rows[0].game_data === 'string' ? JSON.parse(player.rows[0].game_data) : (player.rows[0].game_data || {});
+    
+    const items = gd.items || [];
+    const pillIdx = items.findIndex(i => String(i.id) === String(pillId) && i.type === 'pill');
+    if (pillIdx === -1) return res.json({ success: false, message: '丹药不存在' });
+    
+    const pill = items[pillIdx];
+    const now = Date.now();
+    
+    // 检查是否已有相同效果的buff
+    if (!gd.activeEffects) gd.activeEffects = [];
+    gd.activeEffects = gd.activeEffects.filter(e => e.endTime > now);
+    const existing = gd.activeEffects.find(e => e.type === pill.effect.type);
+    if (existing) {
+      return res.json({ success: false, message: '已有相同效果的丹药在生效中，不能叠加' });
+    }
+    
+    // 添加效果
+    gd.activeEffects.push({
+      ...pill.effect,
+      startTime: now,
+      endTime: now + (pill.effect.duration || 3600) * 1000
+    });
+    
+    // 移除丹药
+    items.splice(pillIdx, 1);
+    gd.items = items;
+    gd.pillsConsumed = (gd.pillsConsumed || 0) + 1;
+    
+    await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
+    res.json({ success: true, message: '服用成功！', activeEffects: gd.activeEffects, items: gd.items });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
+// === 焰兽升星API ===
+app.post('/api/pet/evolve', auth, async (req, res) => {
+  try {
+    const { petId, foodPetId } = req.body;
+    const w = req.user.wallet;
+    const r = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [w]);
+    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = typeof r.rows[0].game_data === 'string' ? JSON.parse(r.rows[0].game_data) : (r.rows[0].game_data || {});
+    const items = gd.items || [];
+    const petIdx = items.findIndex(i => String(i.id) === String(petId) && i.type === 'pet');
+    const foodIdx = items.findIndex(i => String(i.id) === String(foodPetId) && i.type === 'pet');
+    if (petIdx === -1) return res.json({ success: false, message: '焰兽不存在' });
+    if (foodIdx === -1) return res.json({ success: false, message: '材料焰兽不存在' });
+    if (petIdx === foodIdx) return res.json({ success: false, message: '不能用自己升星' });
+    const pet = items[petIdx]; const food = items[foodIdx];
+    if (pet.rarity !== food.rarity || pet.name !== food.name) return res.json({ success: false, message: '只能使用相同品质和名字的焰兽升星' });
+    if ((pet.star || 0) >= 10) return res.json({ success: false, message: '已达最高星级' });
+    pet.star = (pet.star || 0) + 1;
+    const starBonus = 1 + pet.star * 0.05;
+    if (pet.combatAttributes) {
+      pet.combatAttributes.attack = Math.floor(pet.combatAttributes.attack * starBonus / (starBonus - 0.05));
+      pet.combatAttributes.health = Math.floor(pet.combatAttributes.health * starBonus / (starBonus - 0.05));
+      pet.combatAttributes.defense = Math.floor(pet.combatAttributes.defense * starBonus / (starBonus - 0.05));
+      pet.combatAttributes.speed = Math.floor(pet.combatAttributes.speed * starBonus / (starBonus - 0.05));
+    }
+    items.splice(foodIdx, 1);
+    gd.items = items;
+    if (gd.activePet && String(gd.activePet.id) === String(petId)) gd.activePet = pet;
+    await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
+    res.json({ success: true, message: '升星成功！当前' + pet.star + '星', pet, items: gd.items });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
+// === 焰兽放生API ===
+app.post('/api/pet/release', auth, async (req, res) => {
+  try {
+    const { petId } = req.body;
+    const w = req.user.wallet;
+    const r = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [w]);
+    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = typeof r.rows[0].game_data === 'string' ? JSON.parse(r.rows[0].game_data) : (r.rows[0].game_data || {});
+    const items = gd.items || [];
+    const idx = items.findIndex(i => String(i.id) === String(petId) && i.type === 'pet');
+    if (idx === -1) return res.json({ success: false, message: '焰兽不存在' });
+    if (gd.activePet && String(gd.activePet.id) === String(petId)) gd.activePet = null;
+    const essenceGain = { divine:50, celestial:30, mystic:20, spiritual:10, mortal:5 }[items[idx].rarity] || 5;
+    gd.petEssence = (gd.petEssence || 0) + essenceGain;
+    items.splice(idx, 1);
+    gd.items = items;
+    await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
+    res.json({ success: true, message: '放生成功，获得' + essenceGain + '精华', items: gd.items, petEssence: gd.petEssence, activePet: gd.activePet });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
+// === 焰兽批量放生API ===
+app.post('/api/pet/release-batch', auth, async (req, res) => {
+  try {
+    const { rarity } = req.body; // 'all' or specific rarity
+    const w = req.user.wallet;
+    const r = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [w]);
+    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = typeof r.rows[0].game_data === 'string' ? JSON.parse(r.rows[0].game_data) : (r.rows[0].game_data || {});
+    const items = gd.items || [];
+    const activeId = gd.activePet ? String(gd.activePet.id) : null;
+    let count = 0; let essenceTotal = 0;
+    const essenceMap = { divine:50, celestial:30, mystic:20, spiritual:10, mortal:5 };
+    gd.items = items.filter(i => {
+      if (i.type !== 'pet') return true;
+      if (String(i.id) === activeId) return true;
+      if (rarity !== 'all' && i.rarity !== rarity) return true;
+      count++; essenceTotal += essenceMap[i.rarity] || 5;
+      return false;
+    });
+    gd.petEssence = (gd.petEssence || 0) + essenceTotal;
+    await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
+    res.json({ success: true, message: '放生' + count + '只，获得' + essenceTotal + '精华', count, items: gd.items, petEssence: gd.petEssence });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
+// === 焰兽出战/召回API ===
+app.post('/api/pet/deploy', auth, async (req, res) => {
+  try {
+    const { petId } = req.body; // null = recall
+    const w = req.user.wallet;
+    const r = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [w]);
+    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = typeof r.rows[0].game_data === 'string' ? JSON.parse(r.rows[0].game_data) : (r.rows[0].game_data || {});
+    if (!petId) {
+      gd.activePet = null;
+      await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
+      return res.json({ success: true, message: '已召回焰兽', activePet: null });
+    }
+    const pet = (gd.items || []).find(i => String(i.id) === String(petId) && i.type === 'pet');
+    if (!pet) return res.json({ success: false, message: '焰兽不存在' });
+    gd.activePet = pet;
+    await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
+    res.json({ success: true, message: '出战成功', activePet: pet });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
+// === 装备穿戴API ===
+app.post('/api/equip/wear', auth, async (req, res) => {
+  try {
+    const { equipId, slot } = req.body;
+    const w = req.user.wallet;
+    const r = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [w]);
+    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = typeof r.rows[0].game_data === 'string' ? JSON.parse(r.rows[0].game_data) : (r.rows[0].game_data || {});
+    const items = gd.items || [];
+    const idx = items.findIndex(i => String(i.id) === String(equipId));
+    if (idx === -1) return res.json({ success: false, message: '装备不存在' });
+    const equip = items[idx];
+    if (!gd.equippedArtifacts) gd.equippedArtifacts = {};
+    const targetSlot = slot || equip.type;
+    // 如果槽位已有装备，先卸下到背包
+    if (gd.equippedArtifacts[targetSlot]) {
+      items.push(gd.equippedArtifacts[targetSlot]);
+    }
+    gd.equippedArtifacts[targetSlot] = equip;
+    items.splice(idx, 1);
+    gd.items = items;
+    recalcDerivedStats(gd);
+    await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
+    res.json({ success: true, message: '装备成功', items: gd.items, equippedArtifacts: gd.equippedArtifacts });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
+// === 装备卸下API ===
+app.post('/api/equip/unwear', auth, async (req, res) => {
+  try {
+    const { slot } = req.body;
+    const w = req.user.wallet;
+    const r = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [w]);
+    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = typeof r.rows[0].game_data === 'string' ? JSON.parse(r.rows[0].game_data) : (r.rows[0].game_data || {});
+    if (!gd.equippedArtifacts || !gd.equippedArtifacts[slot]) return res.json({ success: false, message: '该槽位没有装备' });
+    if (!gd.items) gd.items = [];
+    gd.items.push(gd.equippedArtifacts[slot]);
+    gd.equippedArtifacts[slot] = null;
+    recalcDerivedStats(gd);
+    await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
+    res.json({ success: true, message: '卸下成功', items: gd.items, equippedArtifacts: gd.equippedArtifacts });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
+// === 装备强化API ===
+app.post('/api/equip/enhance', auth, async (req, res) => {
+  try {
+    const { equipId, slot } = req.body;
+    const w = req.user.wallet;
+    const r = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [w]);
+    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = typeof r.rows[0].game_data === 'string' ? JSON.parse(r.rows[0].game_data) : (r.rows[0].game_data || {});
+    const stones = gd.reinforceStones || 0;
+    const cost = 1;
+    if (stones < cost) return res.json({ success: false, message: '强化石不足' });
+    // 找装备（可能在背包或已穿戴）
+    let equip = null; let inSlot = null;
+    if (slot && gd.equippedArtifacts && gd.equippedArtifacts[slot] && String(gd.equippedArtifacts[slot].id) === String(equipId)) {
+      equip = gd.equippedArtifacts[slot]; inSlot = slot;
+    } else {
+      const idx = (gd.items || []).findIndex(i => String(i.id) === String(equipId));
+      if (idx > -1) equip = gd.items[idx];
+    }
+    if (!equip) return res.json({ success: false, message: '装备不存在' });
+    const level = (equip.enhanceLevel || 0);
+    const maxLevel = 20;
+    if (level >= maxLevel) return res.json({ success: false, message: '已达最高强化等级' });
+    // 成功率递减
+    const rate = Math.max(0.3, 1 - level * 0.05);
+    gd.reinforceStones = stones - cost;
+    if (Math.random() < rate) {
+      equip.enhanceLevel = level + 1;
+      const bonus = 1 + equip.enhanceLevel * 0.05;
+      if (equip.attributes) {
+        for (const k of Object.keys(equip.attributes)) {
+          if (typeof equip.attributes[k] === 'number') equip.attributes[k] = Math.floor(equip.attributes[k] * (1 + 0.05) );
+          }
+      }
+      if (inSlot) gd.equippedArtifacts[inSlot] = equip;
+      recalcDerivedStats(gd);
+      await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
+      res.json({ success: true, message: '强化成功！+' + equip.enhanceLevel, equip, reinforceStones: gd.reinforceStones, items: gd.items, equippedArtifacts: gd.equippedArtifacts });
+    } else {
+      recalcDerivedStats(gd);
+      await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
+      res.json({ success: false, message: '强化失败，强化石已消耗', reinforceStones: gd.reinforceStones });
+    }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
+// === 装备分解API ===
+app.post('/api/equip/disassemble', auth, async (req, res) => {
+  try {
+    const { equipId } = req.body;
+    const w = req.user.wallet;
+    const r = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [w]);
+    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = typeof r.rows[0].game_data === 'string' ? JSON.parse(r.rows[0].game_data) : (r.rows[0].game_data || {});
+    const items = gd.items || [];
+    const idx = items.findIndex(i => String(i.id) === String(equipId));
+    if (idx === -1) return res.json({ success: false, message: '装备不存在' });
+    const equip = items[idx];
+    const stoneGain = { legendary:5, epic:3, rare:2, uncommon:1, common:1 }[equip.quality] || 1;
+    const stoneGainTotal = stoneGain + (equip.enhanceLevel || 0);
+    gd.reinforceStones = (gd.reinforceStones || 0) + stoneGainTotal;
+    items.splice(idx, 1);
+    gd.items = items;
+    await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
+    res.json({ success: true, message: '分解成功，获得' + stoneGainTotal + '强化石', reinforceStones: gd.reinforceStones, items: gd.items });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
 // === 新手礼包（防重复领取）===
 app.post('/api/gift/newplayer', auth, async (req, res) => {
   try {
@@ -3692,6 +4192,16 @@ app.post('/api/gift/newplayer', auth, async (req, res) => {
     res.json({ success: true, spiritStones: gd.spiritStones });
   } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
+// === 玩家资料 ===
+app.get("/api/player/profile", auth, async (req, res) => {
+  try {
+    const r = await pool.query("SELECT name, level, realm, vip_level, combat_power, created_at, total_recharge FROM players WHERE wallet = $1", [req.wallet]);
+    if (r.rows.length === 0) return res.status(404).json({ error: "玩家不存在" });
+    const p = r.rows[0];
+    res.json({ success: true, name: p.name, level: p.level, realm: p.realm, vipLevel: p.vip_level, combatPower: p.combat_power, createdAt: p.created_at, totalRecharge: p.total_recharge });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
 
 // === 改名（服务端扣费）===
 app.post('/api/player/rename', auth, async (req, res) => {
@@ -3916,7 +4426,7 @@ app.post('/api/equipment/batch-sell', auth, async (req, res) => {
 // === 玩家活跃度统计（管理员） ===
 app.get('/api/admin/activity', auth, async (req, res) => {
   try {
-    if (req.user.wallet.toLowerCase() !== (process.env.ADMIN_WALLET || '0xfad7eb0814b6838b05191a07fb987957d50c4ca9').toLowerCase())
+    if (!ADMIN_WALLETS.includes(req.user.wallet.toLowerCase()))
       return res.status(403).json({ error: '无权限' });
     const [dau, wau, mau, newToday, loginToday] = await Promise.all([
       pool.query("SELECT COUNT(DISTINCT wallet) as c FROM players WHERE updated_at > NOW() - INTERVAL '1 day'"),
@@ -3934,6 +4444,55 @@ app.get('/api/admin/activity', auth, async (req, res) => {
       newToday: +newToday.rows[0].c, loginToday: +loginToday.rows[0].c,
       trend: trend.rows
     });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
+// === 装备分解回收 ===
+app.post('/api/equipment/disassemble', auth, async (req, res) => {
+  try {
+    const { equipmentId } = req.body;
+    if (!equipmentId) return res.status(400).json({ error: '缺少装备ID' });
+    const result = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [req.user.wallet]);
+    const gd = result.rows[0]?.game_data;
+    if (!gd) return res.status(404).json({ error: '玩家不存在' });
+    const items = gd.items || [];
+    const idx = items.findIndex(i => String(i.id) === String(equipmentId) && i.type !== 'pill' && i.type !== 'pet');
+    if (idx === -1) return res.status(400).json({ error: '装备不存在' });
+    const equip = items[idx];
+    // 根据品质计算回收材料
+    const qualityRewards = {
+      common: { stones: 50, reinforce: 1 },
+      uncommon: { stones: 150, reinforce: 3 },
+      rare: { stones: 500, reinforce: 8 },
+      epic: { stones: 2000, reinforce: 20, refinement: 5 },
+      legendary: { stones: 8000, reinforce: 50, refinement: 15 },
+      mythic: { stones: 30000, reinforce: 100, refinement: 50, essence: 20 }
+    };
+    const reward = qualityRewards[equip.quality] || qualityRewards.common;
+    // 强化等级额外奖励
+    const enhLvl = equip.enhanceLevel || 0;
+    reward.stones += enhLvl * 200;
+    reward.reinforce += enhLvl * 2;
+    // 移除装备
+    items.splice(idx, 1);
+    // 更新数据
+    const updates = [
+      "game_data = jsonb_set(game_data, '{items}', $2::jsonb)",
+      "game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::bigint, 0) + $3)::bigint))",
+      "game_data = jsonb_set(game_data, '{reinforceStones}', to_jsonb((COALESCE((game_data->>'reinforceStones')::int, 0) + $4)::int))"
+    ];
+    const vals = [req.user.wallet, JSON.stringify(items), reward.stones, reward.reinforce];
+    let idx2 = 5;
+    if (reward.refinement) {
+      updates.push("game_data = jsonb_set(game_data, '{refinementStones}', to_jsonb((COALESCE((game_data->>'refinementStones')::int, 0) + $" + idx2 + ")::int))");
+      vals.push(reward.refinement); idx2++;
+    }
+    if (reward.essence) {
+      updates.push("game_data = jsonb_set(game_data, '{petEssence}', to_jsonb((COALESCE((game_data->>'petEssence')::int, 0) + $" + idx2 + ")::int))");
+      vals.push(reward.essence); idx2++;
+    }
+    await pool.query('UPDATE players SET ' + updates.join(', ') + ' WHERE wallet=$1', vals);
+    res.json({ ok: true, reward, equipName: equip.name || equip.type, quality: equip.quality });
   } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
@@ -4042,7 +4601,7 @@ app.get('/api/stats/online', (req, res) => {
 
 app.get('/api/stats/server', auth, async (req, res) => {
   try {
-    if (req.user.wallet.toLowerCase() !== (process.env.ADMIN_WALLET || '0xfad7eb0814b6838b05191a07fb987957d50c4ca9').toLowerCase()) {
+    if (!ADMIN_WALLETS.includes(req.user.wallet.toLowerCase())) {
       return res.status(403).json({ error: '无权限' });
     }
     const totalPlayers = await pool.query('SELECT COUNT(*) FROM players');
@@ -4133,10 +4692,38 @@ app.post('/api/mail/delete', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
+// === 好友邮件（私信）===
+app.post('/api/mail/send-friend', auth, async (req, res) => {
+  try {
+    const { toWallet, title, content } = req.body;
+    const fromWallet = req.user.wallet;
+    if (!toWallet || !content) return res.status(400).json({ error: '收件人和内容必填' });
+    if (content.length > 500) return res.status(400).json({ error: '内容不能超过500字' });
+    const friendship = await pool.query(
+      `SELECT id FROM friendships WHERE status='accepted' AND ((from_wallet=$1 AND to_wallet=$2) OR (from_wallet=$2 AND to_wallet=$1))`,
+      [fromWallet, toWallet]
+    );
+    if (!friendship.rows.length) return res.status(400).json({ error: '只能给好友发送邮件' });
+    const recent = await pool.query(
+      `SELECT COUNT(*) FROM player_mail WHERE from_wallet=$1 AND created_at > NOW() - INTERVAL '1 minute'`,
+      [fromWallet]
+    );
+    if (parseInt(recent.rows[0].count) >= 5) return res.status(429).json({ error: '发送太频繁，请稍后再试' });
+    const sender = await pool.query('SELECT name FROM players WHERE wallet=$1', [fromWallet]);
+    const senderName = sender.rows[0]?.name || '无名焰修';
+    const mailTitle = title || ('来自 ' + senderName + ' 的消息');
+    await pool.query(
+      `INSERT INTO player_mail (to_wallet, from_type, from_name, from_wallet, title, content) VALUES ($1, 'friend', $2, $3, $4, $5)`,
+      [toWallet, senderName, fromWallet, mailTitle, content]
+    );
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
 // 管理员发送全服邮件
 app.post('/api/admin/mail/send', auth, async (req, res) => {
   try {
-    if (req.user.wallet.toLowerCase() !== (process.env.ADMIN_WALLET || '0xfad7eb0814b6838b05191a07fb987957d50c4ca9').toLowerCase()) {
+    if (!ADMIN_WALLETS.includes(req.user.wallet.toLowerCase())) {
       return res.status(403).json({ error: '无权限' });
     }
     const { title, content, rewards, target } = req.body;

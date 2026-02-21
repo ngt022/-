@@ -306,16 +306,11 @@ const equipQualityOptions = Object.entries(equipmentQualities).map(([k, v]) => (
 
 const airdropEquipment = async () => {
   const { type, quality, count } = equipForm.value
-  if (authStore.isLoggedIn) {
-    for (let i = 0; i < count; i++) {
-      await playerStore.generateEquipmentOnServer(playerStore.level, type, quality)
-    }
-  } else {
-    for (let i = 0; i < count; i++) {
-      const equip = generateEquipment(playerStore.level, type, quality)
-      playerStore.gainItem(equip)
-    }
+  for (let i = 0; i < count; i++) {
+    const equip = generateEquipment(playerStore.level, type, quality)
+    playerStore.gainItem(equip)
   }
+  playerStore.saveData()
   message.success(`成功空投 ${count} 件 ${equipmentQualities[quality].name} ${equipmentTypes[type].name}`)
 }
 
@@ -328,16 +323,10 @@ const airdropHerb = async () => {
   const { id, quality, count } = herbForm.value
   const herbInfo = herbs.find(h => h.id === id)
   if (!herbInfo) return message.error('焰草不存在')
-  if (authStore.isLoggedIn) {
-    for (let i = 0; i < count; i++) {
-      await playerStore.addHerbOnServer(herbInfo.id, herbInfo.name, quality, getHerbValue(herbInfo, quality))
-    }
-  } else {
-    for (let i = 0; i < count; i++) {
-      playerStore.herbs.push({ ...herbInfo, quality, value: getHerbValue(herbInfo, quality) })
-    }
-    playerStore.saveData()
+  for (let i = 0; i < count; i++) {
+    playerStore.herbs.push({ id: Date.now() + '_' + Math.random(), herbId: herbInfo.id, name: herbInfo.name, quality, value: getHerbValue(herbInfo, quality), obtainedAt: Date.now() })
   }
+  playerStore.saveData()
   message.success(`成功空投 ${count} 株 ${herbQualities[quality].name} ${herbInfo.name}`)
 }
 
@@ -350,19 +339,14 @@ const airdropPill = async () => {
   const recipe = pillRecipes.find(r => r.id === id)
   if (!recipe) return message.error('焰丹不存在')
   const effect = calculatePillEffect(recipe, playerStore.level)
-  if (authStore.isLoggedIn) {
-    for (let i = 0; i < count; i++) {
-      await playerStore.addPillOnServer(recipe.id, recipe.name, recipe.description, { type: effect.type, value: effect.value, duration: effect.duration })
-    }
-  } else {
-    for (let i = 0; i < count; i++) {
-      playerStore.gainItem({
-        id: `${recipe.id}_${Date.now()}_${Math.random()}`,
-        name: recipe.name, description: recipe.description, type: 'pill',
-        effect: { type: effect.type, value: effect.value, duration: effect.duration }
-      })
-    }
+  for (let i = 0; i < count; i++) {
+    playerStore.gainItem({
+      id: `${recipe.id}_${Date.now()}_${Math.random()}`,
+      name: recipe.name, description: recipe.description, type: 'pill',
+      effect: { type: effect.type, value: effect.value, duration: effect.duration }
+    })
   }
+  playerStore.saveData()
   message.success(`成功空投 ${count} 颗 ${recipe.name}`)
 }
 
@@ -415,12 +399,13 @@ const generatePet = (rarity, petInfo) => {
 const airdropPet = async () => {
   const { rarity, name, count } = petForm.value
   const pool = petPool[rarity]
-  if (authStore.isLoggedIn) {
-    for (let i = 0; i < count; i++) {
-      const petInfo = name ? pool.find(p => p.name === name) : pool[Math.floor(Math.random() * pool.length)]
-      await playerStore.generatePetOnServer(rarity, petInfo.name)
-    }
-  } else {
+  for (let i = 0; i < count; i++) {
+    const petInfo = name ? pool.find(p => p.name === name) : pool[Math.floor(Math.random() * pool.length)]
+    playerStore.gainItem(generatePet(rarity, petInfo))
+  }
+  playerStore.saveData()
+  // dummy block to keep structure
+  if (false) {
     for (let i = 0; i < count; i++) {
       const petInfo = name ? pool.find(p => p.name === name) : pool[Math.floor(Math.random() * pool.length)]
       playerStore.gainItem(generatePet(rarity, petInfo))

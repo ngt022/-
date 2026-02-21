@@ -48,10 +48,10 @@ const MATERIAL_ITEMS = {
   refine_10:    { name:'符文石 x10', give:{ refinementStones:10 } },
   pet_essence:  { name:'焰兽精华',   give:{ petEssence:100 } },
   pet_ticket:   { name:'宠物召唤券', give:{ petSummon:true } },
-  pill_frag_health:  { name:'回春焰丹碎片', give:{ pillFragment:'health_pill' } },
-  pill_frag_attack:  { name:'破军焰丹碎片', give:{ pillFragment:'attack_pill' } },
-  pill_frag_defense: { name:'金钟焰丹碎片', give:{ pillFragment:'defense_pill' } },
-  pill_frag_speed:   { name:'疾风焰丹碎片', give:{ pillFragment:'speed_pill' } },
+  pill_frag_health:  { name:'回灵丹碎片', give:{ pillFragment:'spirit_recovery' } },
+  pill_frag_attack:  { name:'雷灵丹碎片', give:{ pillFragment:'thunder_power' } },
+  pill_frag_defense: { name:'清心丹碎片', give:{ pillFragment:'mind_clarity' } },
+  pill_frag_speed:   { name:'聚灵丹碎片', give:{ pillFragment:'spirit_gathering' } },
 };
 
 const PACK_ITEMS = {
@@ -192,14 +192,15 @@ export default function(pool, auth) {
 
     router.post('/buy-equip', auth, async (req, res) => {
     try {
+      console.log("[buy-equip] body:", JSON.stringify(req.body), "wallet:", req.user?.wallet);
       const { quality, equipType } = req.body;
       const wallet = req.user.wallet;
       
       // 读取限购配置
       const shopLimits = await getConfig('shop_limits') || { mythic_equip_enabled: false, legendary_equip_per_week: 1 };
       
-      if (!EQUIP_PRICES[quality]) return res.status(400).json({ error: '无效品质' });
-      if (!equipmentTypes[equipType]) return res.status(400).json({ error: '无效装备类型' });
+      if (!EQUIP_PRICES[quality]) { console.log('[buy-equip] invalid quality:', quality); return res.status(400).json({ error: '无效品质' }); };
+      if (!equipmentTypes[equipType]) { console.log('[buy-equip] invalid equipType:', equipType); return res.status(400).json({ error: '无效装备类型' }); };
       
       // 检查仙品装备是否启用
       if (quality === 'mythic' && shopLimits.mythic_equip_enabled === false) {
@@ -431,7 +432,7 @@ export default function(pool, auth) {
       const herb = HERB_ITEMS[herbId];
       if (!herb) return res.status(400).json({ error: '焰草不存在' });
       const mult = HERB_QUALITY_MULT[quality];
-      if (!mult) return res.status(400).json({ error: '无效品质' });
+      if (!mult) { console.log('[buy-equip] invalid quality:', quality); return res.status(400).json({ error: '无效品质' }); };
       if (quantity < 1 || quantity > 99) return res.status(400).json({ error: '数量无效' });
       const unitPrice = Math.floor(herb.baseValue * mult * 100);
       const totalPrice = unitPrice * quantity;

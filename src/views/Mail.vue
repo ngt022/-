@@ -67,6 +67,8 @@ const showDetail = ref(false)
 const currentMail = ref(null)
 const claiming = ref(false)
 
+const refreshBadge = () => { window.dispatchEvent(new Event('mail-read')) }
+
 const loadMails = async () => {
   loading.value = true
   try {

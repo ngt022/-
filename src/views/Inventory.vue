@@ -64,7 +64,37 @@
     </div>
 
     <!-- 储藏室网格 -->
-    <div class="storage-grid" v-if="activeFilter !== 'formula' && activeFilter !== 'pet'">
+    <!-- 材料展示 -->
+    <div class="material-section" v-if="activeFilter === 'material'">
+      <div class="material-grid">
+        <div class="material-card">
+          <div class="material-icon">🔨</div>
+          <div class="material-name">淬火石</div>
+          <div class="material-count">{{ playerStore.reinforceStones || 0 }}</div>
+          <div class="material-desc">装备淬火必备</div>
+        </div>
+        <div class="material-card">
+          <div class="material-icon">🔮</div>
+          <div class="material-name">洗练石</div>
+          <div class="material-count">{{ playerStore.refinementStones || 0 }}</div>
+          <div class="material-desc">装备铭符用</div>
+        </div>
+        <div class="material-card">
+          <div class="material-icon">🐾</div>
+          <div class="material-name">焰兽精华</div>
+          <div class="material-count">{{ playerStore.petEssence || 0 }}</div>
+          <div class="material-desc">焰兽升星用</div>
+        </div>
+        <div class="material-card">
+          <div class="material-icon">💎</div>
+          <div class="material-name">焰晶</div>
+          <div class="material-count">{{ playerStore.spiritStones || 0 }}</div>
+          <div class="material-desc">通用货币</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="storage-grid" v-if="activeFilter !== 'formula' && activeFilter !== 'pet' && activeFilter !== 'material'">
       <div
         v-for="item in filteredStorageItems" :key="item._key"
         class="storage-cell"
@@ -77,7 +107,7 @@
         </div>
         <span class="cell-label">{{ item._displayName || item.name }}</span>
         <span v-if="item._count > 1" class="cell-count">×{{ item._count }}</span>
-        <span v-if="item._category === 'pill'" class="cell-use-hint">服用</span>
+        <span v-if="item._category === 'pill'" class="cell-use-hint">详情</span>
       </div>
       <!-- 空格子填充 -->
       <div v-for="n in emptySlots" :key="'empty-' + n" class="storage-cell storage-cell-empty">
@@ -313,12 +343,37 @@
           <n-button @click="equipItem(selectedEquipment)" :disabled="playerStore.level < selectedEquipment?.requiredRealm" v-if="selectedEquipment?.id != playerStore.equippedArtifacts[selectedEquipment?.type]?.id">装备</n-button>
           <n-button @click="unequipItem(selectedEquipment)" :disabled="playerStore.level < selectedEquipment?.requiredRealm" v-else>卸下</n-button>
           <n-button type="error" @click="sellEquipment(selectedEquipment)" v-if="selectedEquipment?.id != playerStore.equippedArtifacts[selectedEquipment?.type]?.id">出售</n-button>
+          <n-popconfirm @positive-click="recycleEquipment(selectedEquipment)" v-if="selectedEquipment?.id != playerStore.equippedArtifacts[selectedEquipment?.type]?.id">
+            <template #trigger>
+              <n-button type="warning">♻️ 回收</n-button>
+            </template>
+            <div>确认回收？预计获得：</div>
+            <div style="color:#d4a843;font-size:12px">{{ getRecyclePreview(selectedEquipment) }}</div>
+          </n-popconfirm>
         </n-space>
       </n-space>
     </template>
   </n-modal>
 
   <!-- 强化确认弹窗 -->
+  <!-- 丹药详情弹窗 -->
+  <n-modal v-model:show="showPillDetailModal" preset="card" title="丹药详情" style="width:90%;max-width:400px">
+    <n-space vertical v-if="selectedPill">
+      <div style="text-align:center;font-size:32px">💊</div>
+      <div style="text-align:center;font-size:16px;font-weight:bold;color:#d4a843">{{ selectedPill.name }}</div>
+      <div style="font-size:13px;color:#999">{{ selectedPill.description }}</div>
+      <n-divider>效果预览</n-divider>
+      <div v-if="selectedPill.effect" style="font-size:13px">
+        <p>📈 效果：+{{ ((selectedPill.effect.value || 0) * 100).toFixed(0) }}%</p>
+        <p>⏱️ 持续：{{ Math.floor((selectedPill.effect.duration || 0) / 60) }}分钟</p>
+      </div>
+      <n-space justify="end" style="margin-top:12px">
+        <n-button @click="showPillDetailModal = false">关闭</n-button>
+        <n-button type="success" @click="usePill(selectedPill); showPillDetailModal = false">服用</n-button>
+      </n-space>
+    </n-space>
+  </n-modal>
+
   <n-modal v-model:show="showEnhanceConfirm" preset="dialog" title="装备淬火">
     <n-space vertical>
       <p>是否消耗 {{ ((selectedEquipment?.enhanceLevel || 0) + 1) * 10 }} 淬火石淬火装备？</p>
@@ -565,6 +620,7 @@ const playerStore = usePlayerStore()
     { label: `焰丹 ${pillCount.value}/${getLimit('pill')}`, value: 'pill' },
     { label: `焰方 ${formulaCount.value}/${getLimit('formula')}`, value: 'formula' },
     { label: `焰兽 ${petCount.value}/${getLimit('pet')}`, value: 'pet' },
+    { label: '材料', value: 'material' },
   ])
 
   // 容量条相关
@@ -700,7 +756,8 @@ const playerStore = usePlayerStore()
     if (item._category === 'equip') {
       showEquipmentDetails(item)
     } else if (item._category === 'pill') {
-      usePill(item)
+      selectedPill.value = item
+      showPillDetailModal.value = true
     }
     // herb: no action (just display)
   }
@@ -723,15 +780,17 @@ const playerStore = usePlayerStore()
   const onPageSizeChange = size => { pageSize.value = size; currentPage.value = 1 }
 
   const usePill = async pill => {
-    if (authStore.isLoggedIn) {
-      const result = await playerStore.usePillOnServer(pill.id)
-      if (result.success) message.success(result.message)
-      else message.error(result.message)
-    } else {
-      const result = playerStore.usePill(pill)
-      if (result.success) message.success(result.message)
-      else message.error(result.message)
-    }
+    try {
+      const authStore = useAuthStore()
+      const resp = await authStore.apiPost('/pill/use', { pillId: pill.id })
+      if (resp.success) {
+        message.success(resp.message)
+        if (resp.items) playerStore.items = resp.items
+        if (resp.activeEffects) playerStore.activeEffects = resp.activeEffects
+      } else {
+        message.error(resp.message)
+      }
+    } catch (e) { message.error(e.message || '服用失败') }
   }
 
   const petRarities = {
@@ -754,15 +813,16 @@ const playerStore = usePlayerStore()
 
   const releasePet = async () => {
     if (petToRelease.value) {
-      if (authStore.isLoggedIn) {
-        const result = await playerStore.releasePetOnServer(petToRelease.value.id)
-        if (result.success) message.success('已放生焰兽')
-        else message.error(result.message || '放生失败')
-      } else {
-        if (playerStore.activePet?.id === petToRelease.value.id) playerStore.activePet = null
-        const index = playerStore.items.findIndex(item => item.id === petToRelease.value.id)
-        if (index > -1) { playerStore.items.splice(index, 1); playerStore.saveData(); message.success('已放生焰兽') }
-      }
+      try {
+        const authStore = useAuthStore()
+        const resp = await authStore.apiPost('/pet/release', { petId: petToRelease.value.id })
+        if (resp.success) {
+          message.success(resp.message)
+          if (resp.items) playerStore.items = resp.items
+          if (resp.petEssence !== undefined) playerStore.petEssence = resp.petEssence
+          if (resp.activePet !== undefined) playerStore.activePet = resp.activePet
+        } else { message.error(resp.message) }
+      } catch (e) { message.error('放生失败') }
       showReleaseConfirm.value = false; showPetModal.value = false; petToRelease.value = null
     }
   }
@@ -770,23 +830,16 @@ const playerStore = usePlayerStore()
   const selectedRarityToRelease = ref('all')
 
   const batchReleasePets = async () => {
-    if (authStore.isLoggedIn) {
-      const petsToRelease = playerStore.items.filter(item =>
-        item.type === 'pet' && item.id !== playerStore.activePet?.id &&
-        (selectedRarityToRelease.value === 'all' || item.rarity === selectedRarityToRelease.value)
-      )
-      let count = 0
-      for (const pet of petsToRelease) {
-        const r = await playerStore.releasePetOnServer(pet.id)
-        if (r.success) count++
-      }
-      showBatchReleaseConfirm.value = false
-      message.success(`已放生 ${count} 只焰兽`)
-    } else {
-      playerStore.items = playerStore.items.filter(item => item.type !== 'pet' || item.id === playerStore.activePet?.id || (selectedRarityToRelease.value !== 'all' && item.rarity !== selectedRarityToRelease.value))
-      showBatchReleaseConfirm.value = false
-      message.success(`已放生${selectedRarityToRelease.value === 'all' ? '所有' : petRarities[selectedRarityToRelease.value].name}品阶的未出战焰兽`)
-    }
+    try {
+      const authStore = useAuthStore()
+      const resp = await authStore.apiPost('/pet/release-batch', { rarity: selectedRarityToRelease.value })
+      if (resp.success) {
+        message.success(resp.message)
+        if (resp.items) playerStore.items = resp.items
+        if (resp.petEssence !== undefined) playerStore.petEssence = resp.petEssence
+      } else { message.error(resp.message) }
+    } catch (e) { message.error('批量放生失败') }
+    showBatchReleaseConfirm.value = false
   }
 
   const showPetDetails = pet => { selectedPet.value = pet; selectedFoodPet.value = null; showPetModal.value = true }
@@ -814,30 +867,40 @@ const playerStore = usePlayerStore()
   }
 
   const upgradePet = async pet => {
-    if (authStore.isLoggedIn) {
-      const result = await playerStore.upgradePetOnServer(pet.id)
-      if (result.success) message.success(result.message)
-      else message.error(result.message)
-    } else {
-      const result = playerStore.upgradePet(pet, getUpgradeCost(pet))
-      if (result.success) message.success(result.message)
-      else message.error(result.message)
-    }
+    try {
+      const authStore = useAuthStore()
+      const resp = await authStore.apiPost('/pet/upgrade', { petId: pet.id })
+      if (resp.success) {
+        message.success(resp.message)
+        if (resp.petEssence !== undefined) playerStore.petEssence = resp.petEssence
+        // 更新本地焰兽数据
+        const idx = playerStore.items.findIndex(i => String(i.id) === String(pet.id))
+        if (idx > -1 && resp.pet) playerStore.items[idx] = resp.pet
+        if (selectedPet.value) selectedPet.value = resp.pet
+        if (playerStore.activePet && String(playerStore.activePet.id) === String(pet.id)) {
+          playerStore.activePet = resp.pet
+        }
+      } else {
+        message.error(resp.message)
+      }
+    } catch (e) { message.error(e.message || '升级失败') }
   }
 
   const evolvePet = async pet => {
     if (!selectedFoodPet.value) { message.error('请选择用于升星的焰兽'); return }
-    if (authStore.isLoggedIn) {
-      const result = await playerStore.evolvePetOnServer(pet.id, selectedFoodPet.value)
-      if (result.success) { message.success(result.message); selectedFoodPet.value = null; showPetModal.value = false }
-      else message.error(result.message)
-    } else {
-      const foodPet = playerStore.items.find(item => item.id === selectedFoodPet.value)
-      if (!foodPet) { message.error('升星材料焰兽不存在'); return }
-      const result = playerStore.evolvePet(pet, foodPet)
-      if (result.success) { message.success(result.message); selectedFoodPet.value = null; showPetModal.value = false }
-      else message.error(result.message)
-    }
+    try {
+      const authStore = useAuthStore()
+      const resp = await authStore.apiPost('/pet/evolve', { petId: pet.id, foodPetId: selectedFoodPet.value })
+      if (resp.success) {
+        message.success(resp.message)
+        if (resp.items) playerStore.items = resp.items
+        if (resp.pet) {
+          selectedPet.value = resp.pet
+          if (playerStore.activePet && String(playerStore.activePet.id) === String(pet.id)) playerStore.activePet = resp.pet
+        }
+        selectedFoodPet.value = null; showPetModal.value = false
+      } else { message.error(resp.message) }
+    } catch (e) { message.error('升星失败') }
   }
 
   const equipTypeIcons = {
@@ -871,14 +934,16 @@ const playerStore = usePlayerStore()
   const unequipItem = async (equipment) => {
     if (!equipment) { message.error('未选择装备'); return }
     const slot = equipment.equippedSlot || equipment.slot || equipment.type
-    const result = playerStore.unequipArtifact(slot)
-    if (result) {
-      showEquipmentDetailModal.value = false
-      message.success('当前装备已卸下')
-      if (authStore.isLoggedIn) playerStore.saveData()
-    } else {
-      message.error('卸下装备失败')
-    }
+    try {
+      const authStore = useAuthStore()
+      const resp = await authStore.apiPost('/equip/unwear', { slot })
+      if (resp.success) {
+        if (resp.items) playerStore.items = resp.items
+        if (resp.equippedArtifacts) playerStore.equippedArtifacts = resp.equippedArtifacts
+        showEquipmentDetailModal.value = false
+        message.success('当前装备已卸下')
+      } else { message.error(resp.message || '卸下装备失败') }
+    } catch (e) { message.error('卸下装备失败') }
   }
 
   const showEquipmentModal = ref(false)
@@ -932,64 +997,73 @@ const playerStore = usePlayerStore()
         }
         message.success(`成功卖出${resp.count}件装备，获得${resp.totalStones}个淬火石`)
       } catch (e) { message.error(e.message || '批量卖出失败') }
-    } else {
-      const result = await playerStore.batchSellEquipments(selectedQuality.value === 'all' ? null : selectedQuality.value, selectedEquipmentType.value)
-      if (result.success) {
-        message.success(result.message)
-      } else message.error(result.message || '批量卖出失败')
     }
   }
 
   const sellEquipment = async equipment => {
-    if (authStore.isLoggedIn) {
-      try {
-        const resp = await authStore.apiPost('/equipment/sell', { equipmentId: equipment.id })
-        playerStore.reinforceStones = resp.reinforceStones
+    try {
+      const resp = await authStore.apiPost('/equipment/sell', { equipmentId: equipment.id })
+      playerStore.reinforceStones = resp.reinforceStones
+      const idx = playerStore.items.findIndex(i => String(i.id) === String(equipment.id))
+      if (idx > -1) playerStore.items.splice(idx, 1)
+      message.success(`成功卖出装备，获得${resp.stones}个淬火石`)
+      showEquipmentDetailModal.value = false
+    } catch (e) { message.error(e.message || '卖出失败') }
+  }
+
+  // 官方回收（分解）
+  const recycleRewards = {
+    common: '50💎 + 1淬火石',
+    uncommon: '150💎 + 3淬火石',
+    rare: '500💎 + 8淬火石',
+    epic: '2000💎 + 20淬火石 + 5洗练石',
+    legendary: '8000💎 + 50淬火石 + 15洗练石',
+    mythic: '30000💎 + 100淬火石 + 50洗练石 + 20精华'
+  }
+  const getRecyclePreview = (equip) => {
+    const base = recycleRewards[equip?.quality] || '50💎 + 1淬火石'
+    const enhLvl = equip?.enhanceLevel || 0
+    return enhLvl > 0 ? base + ` (+${enhLvl * 200}💎 强化返还)` : base
+  }
+  const recycleEquipment = async (equipment) => {
+    if (!authStore.isLoggedIn) { message.warning('请先登录'); return }
+    try {
+      const resp = await authStore.apiPost('/equipment/disassemble', { equipmentId: equipment.id })
+      if (resp.ok) {
         const idx = playerStore.items.findIndex(i => String(i.id) === String(equipment.id))
         if (idx > -1) playerStore.items.splice(idx, 1)
-        message.success(`成功卖出装备，获得${resp.stones}个淬火石`)
+        const r = resp.reward
+        let msg = `回收成功！获得 ${r.stones}💎`
+        if (r.reinforce) msg += ` + ${r.reinforce}淬火石`
+        if (r.refinement) msg += ` + ${r.refinement}洗练石`
+        if (r.essence) msg += ` + ${r.essence}精华`
+        message.success(msg)
         showEquipmentDetailModal.value = false
-      } catch (e) { message.error(e.message || '卖出失败') }
-    } else {
-      const result = await playerStore.sellEquipment(equipment)
-      if (result.success) {
-        message.success(result.message)
-        showEquipmentDetailModal.value = false
-      } else message.error(result.message || '卖出失败')
-    }
+      }
+    } catch (e) { message.error(e.message || '回收失败') }
   }
 
   const showEquipmentDetails = equipment => { selectedEquipment.value = equipment; showEquipmentDetailModal.value = true }
   const showEquipmentDetailModal = ref(false)
+  const selectedPill = ref(null)
+  const showPillDetailModal = ref(false)
   const selectedEquipment = ref(null)
   const showEnhanceConfirm = ref(false)
 
   const handleEnhanceEquipment = async () => {
     if (!selectedEquipment.value) return
-    if (authStore.isLoggedIn) {
-      try {
-        const resp = await authStore.apiPost('/equipment/enhance', { equipmentId: selectedEquipment.value.id })
-        if (resp.enhanced) {
-          selectedEquipment.value.stats = { ...resp.newStats }
-          selectedEquipment.value.enhanceLevel = resp.newLevel
-          playerStore.reinforceStones = resp.reinforceStones
-          message.success('淬火成功')
-        } else {
-          playerStore.reinforceStones = resp.reinforceStones
-          message.warning(resp.message || '淬火失败，淬火石已消耗')
-        }
-        playerStore.saveData()
-      } catch (e) { message.error(e.message || '淬火失败') }
-    } else {
-      const result = enhanceEquipment(selectedEquipment.value, playerStore.reinforceStones)
-      if (result.success) {
-        playerStore.reinforceStones -= result.cost
-        selectedEquipment.value.stats = { ...result.newStats }
-        selectedEquipment.value.enhanceLevel = result.newLevel
+    try {
+      const resp = await authStore.apiPost('/equipment/enhance', { equipmentId: selectedEquipment.value.id })
+      if (resp.enhanced) {
+        selectedEquipment.value.stats = { ...resp.newStats }
+        selectedEquipment.value.enhanceLevel = resp.newLevel
+        playerStore.reinforceStones = resp.reinforceStones
         message.success('淬火成功')
-        playerStore.saveData()
-      } else message.error(result.message || '淬火失败')
-    }
+      } else {
+        playerStore.reinforceStones = resp.reinforceStones
+        message.warning(resp.message || '淬火失败，淬火石已消耗')
+      }
+    } catch (e) { message.error(e.message || '淬火失败') }
     showEnhanceConfirm.value = false
   }
 
@@ -998,52 +1072,38 @@ const playerStore = usePlayerStore()
 
   const handleReforgeEquipment = async () => {
     if (!selectedEquipment.value) return
-    if (authStore.isLoggedIn) {
-      try {
-        const resp = await authStore.apiPost('/equipment/reforge', { equipmentId: selectedEquipment.value.id })
-        playerStore.refinementStones = resp.refinementStones
-        reforgeResult.value = { success: true, oldStats: resp.oldStats, newStats: resp.newStats, cost: resp.cost }
-        showReforgeConfirm.value = true
-      } catch (e) { message.error(e.message || '铭符失败') }
-    } else {
-      const result = reforgeEquipment(selectedEquipment.value, playerStore.refinementStones, false)
-      if (result.success) {
-        playerStore.refinementStones -= result.cost
-        reforgeResult.value = result
-        showReforgeConfirm.value = true
-      } else message.error(result.message || '铭符失败')
-    }
+    try {
+      const resp = await authStore.apiPost('/equipment/reforge', { equipmentId: selectedEquipment.value.id })
+      playerStore.refinementStones = resp.refinementStones
+      reforgeResult.value = { success: true, oldStats: resp.oldStats, newStats: resp.newStats, cost: resp.cost }
+      showReforgeConfirm.value = true
+    } catch (e) { message.error(e.message || '铭符失败') }
   }
 
   const confirmReforgeResult = async (keepNew) => {
     if (!reforgeResult.value) return
-    if (authStore.isLoggedIn) {
-      try {
-        await authStore.apiPost('/equipment/reforge-confirm', { confirm: keepNew })
-        if (keepNew && selectedEquipment.value) {
-          selectedEquipment.value.stats = reforgeResult.value.newStats
-        }
-        message.success(keepNew ? '已确认新属性' : '已保留原有属性')
-      } catch (e) { message.error(e.message || '确认失败') }
-    } else {
+    try {
+      await authStore.apiPost('/equipment/reforge-confirm', { confirm: keepNew })
       if (keepNew && selectedEquipment.value) {
         selectedEquipment.value.stats = reforgeResult.value.newStats
       }
       message.success(keepNew ? '已确认新属性' : '已保留原有属性')
-    }
-    showReforgeConfirm.value = false; reforgeResult.value = null; playerStore.saveData()
+    } catch (e) { message.error(e.message || '确认失败') }
+    showReforgeConfirm.value = false; reforgeResult.value = null
   }
 
   const equipItem = async (equipment) => {
-    const result = playerStore.equipArtifact(equipment, equipment.type)
-    if (result.success) {
-      message.success(result.message)
-      showEquipmentModal.value = false
-      showEquipmentDetailModal.value = false
-      if (authStore.isLoggedIn) playerStore.saveData()
-    } else {
-      message.error(result.message || '装备失败')
-    }
+    try {
+      const authStore = useAuthStore()
+      const resp = await authStore.apiPost('/equip/wear', { equipId: equipment.id, slot: equipment.type })
+      if (resp.success) {
+        if (resp.items) playerStore.items = resp.items
+        if (resp.equippedArtifacts) playerStore.equippedArtifacts = resp.equippedArtifacts
+        message.success(resp.message)
+        showEquipmentModal.value = false
+        showEquipmentDetailModal.value = false
+      } else { message.error(resp.message || '装备失败') }
+    } catch (e) { message.error('装备失败') }
   }
 
   const getEquipPower = (equip) => {
@@ -1053,31 +1113,44 @@ const playerStore = usePlayerStore()
 
   const oneKeyEquip = async () => {
     let count = 0
-    Object.keys(equipmentTypes).forEach(slot => {
+    const authStore = useAuthStore()
+    for (const slot of Object.keys(equipmentTypes)) {
       const candidates = playerStore.items.filter(item => item.type === slot && (!item.requiredRealm || playerStore.level >= item.requiredRealm))
-      if (candidates.length === 0) return
+      if (candidates.length === 0) continue
       const best = candidates.reduce((a, b) => getEquipPower(a) > getEquipPower(b) ? a : b)
       const current = playerStore.equippedArtifacts[slot]
       if (!current || getEquipPower(best) > getEquipPower(current)) {
-        const result = playerStore.equipArtifact(best, slot)
-        if (result.success) count++
+        try {
+          const resp = await authStore.apiPost('/equip/wear', { equipId: best.id, slot })
+          if (resp.success) {
+            if (resp.items) playerStore.items = resp.items
+            if (resp.equippedArtifacts) playerStore.equippedArtifacts = resp.equippedArtifacts
+            count++
+          }
+        } catch (e) {}
       }
-    })
-    if (count > 0) {
-      message.success(`一键穿戴完成，更换了 ${count} 件装备`)
-      if (authStore.isLoggedIn) playerStore.saveData()
-    } else message.info('没有更强的装备可以替换')
+    }
+    if (count > 0) message.success(`一键穿戴完成，更换了 ${count} 件装备`)
+    else message.info('没有更强的装备可以替换')
   }
 
   const oneKeyUnequip = async () => {
     let count = 0
-    Object.keys(equipmentTypes).forEach(slot => {
-      if (playerStore.equippedArtifacts[slot]) { playerStore.unequipArtifact(slot); count++ }
-    })
-    if (count > 0) {
-      message.success(`已卸下 ${count} 件装备`)
-      if (authStore.isLoggedIn) playerStore.saveData()
-    } else message.info('没有装备需要卸下')
+    const authStore = useAuthStore()
+    for (const slot of Object.keys(equipmentTypes)) {
+      if (playerStore.equippedArtifacts[slot]) {
+        try {
+          const resp = await authStore.apiPost('/equip/unwear', { slot })
+          if (resp.success) {
+            if (resp.items) playerStore.items = resp.items
+            if (resp.equippedArtifacts) playerStore.equippedArtifacts = resp.equippedArtifacts
+            count++
+          }
+        } catch (e) {}
+      }
+    }
+    if (count > 0) message.success(`已卸下 ${count} 件装备`)
+    else message.info('没有装备需要卸下')
   }
 
   const groupedHerbs = computed(() => {
@@ -1112,20 +1185,15 @@ const playerStore = usePlayerStore()
 
   const useItem = async item => {
     if (item.type === 'pet') {
-      if (authStore.isLoggedIn) {
-        let result
-        if (playerStore.activePet?.id === item.id) {
-          result = await playerStore.recallPetOnServer(item.id)
-        } else {
-          result = await playerStore.deployPetOnServer(item.id)
-        }
-        if (result.success) message.success(result.message)
-        else message.error(result.message || '操作失败')
-      } else {
-        const result = playerStore.usePet(item)
-        if (result.success) message.success(result.message)
-        else message.error(result.message || '操作失败')
-      }
+      try {
+        const authStore = useAuthStore()
+        const isDeployed = playerStore.activePet && String(playerStore.activePet.id) === String(item.id)
+        const resp = await authStore.apiPost('/pet/deploy', { petId: isDeployed ? null : item.id })
+        if (resp.success) {
+          playerStore.activePet = resp.activePet
+          message.success(resp.message)
+        } else { message.error(resp.message || '操作失败') }
+      } catch (e) { message.error('操作失败') }
     }
   }
 
@@ -1305,4 +1373,12 @@ const playerStore = usePlayerStore()
     .storage-grid { grid-template-columns: repeat(3, 1fr); }
     .equip-bar-grid { grid-template-columns: repeat(4, 1fr); }
   }
+.material-section { padding: 8px 0; }
+.material-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.material-card { background: rgba(26,26,46,0.8); border: 1px solid rgba(212,168,67,0.2); border-radius: 10px; padding: 16px; text-align: center; transition: all 0.2s; }
+.material-card:hover { border-color: rgba(212,168,67,0.5); }
+.material-icon { font-size: 32px; margin-bottom: 6px; }
+.material-name { font-size: 13px; color: #d4a843; font-weight: bold; }
+.material-count { font-size: 22px; color: #e0d0b0; font-weight: bold; margin: 4px 0; }
+.material-desc { font-size: 11px; color: #666; }
 </style>

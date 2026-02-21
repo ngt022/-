@@ -335,25 +335,31 @@ function registerDungeonRoutes(app, pool, auth) {
         return res.status(400).json({ error: '无效的难度' })
       }
       
-      // 防作弊：必须有活跃的焚天塔会话，且 floor 匹配
+      // 防作弊：检查活跃会话（服务器重启后会话丢失则放行）
       const dungeon = activeDungeons.get(wallet)
-      if (!dungeon) {
-        return res.status(400).json({ error: '没有进行中的焚天塔挑战' })
+      if (dungeon) {
+        if (dungeon.difficulty !== difficulty) {
+          return res.status(400).json({ error: '难度不匹配' })
+        }
+        if (floor !== dungeon.floor) {
+          return res.status(400).json({ error: '只能领取当前层(' + dungeon.floor + ')的奖励' })
+        }
+        if (!dungeon._claimedFloors) dungeon._claimedFloors = new Set()
+        const claimKey = floor + '_' + difficulty
+        if (dungeon._claimedFloors.has(claimKey)) {
+          return res.status(400).json({ error: '该层奖励已领取' })
+        }
+        dungeon._claimedFloors.add(claimKey)
       }
-      if (dungeon.difficulty !== difficulty) {
-        return res.status(400).json({ error: '难度不匹配' })
-      }
-      // 只能领取当前正在挑战的层
-      if (floor !== dungeon.floor) {
-        return res.status(400).json({ error: '只能领取当前层(' + dungeon.floor + ')的奖励' })
-      }
-      // 防重复领取：记录已领取的层
-      if (!dungeon._claimedFloors) dungeon._claimedFloors = new Set()
-      const claimKey = floor + '_' + difficulty
-      if (dungeon._claimedFloors.has(claimKey)) {
+      // 无会话时（服务器重启后）仍允许领取，用DB防重复
+      const gameCheck = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [wallet])
+      const gdCheck = typeof gameCheck.rows[0]?.game_data === 'string' ? JSON.parse(gameCheck.rows[0].game_data) : (gameCheck.rows[0]?.game_data || {})
+      if (!gdCheck._dungeonClaimed) gdCheck._dungeonClaimed = {}
+      const dbClaimKey = floor + '_' + difficulty
+      if (!dungeon && gdCheck._dungeonClaimed[dbClaimKey]) {
         return res.status(400).json({ error: '该层奖励已领取' })
       }
-      dungeon._claimedFloors.add(claimKey)
+      gdCheck._dungeonClaimed[dbClaimKey] = Date.now()
       
       // 服务端重新计算奖励（防止前端作弊）
       const isBossFloor = floor % 10 === 0
@@ -364,6 +370,12 @@ function registerDungeonRoutes(app, pool, auth) {
       let spiritStones = (10 * floor) * diffMult
       if (isBossFloor) spiritStones = Math.floor(spiritStones * 2)
       else if (isEliteFloor) spiritStones = Math.floor(spiritStones * 1.5)
+      
+      // VIP加成
+      const vipRow = await pool.query('SELECT vip_level FROM players WHERE wallet=$1', [wallet]);
+      const vipLvl = vipRow.rows[0]?.vip_level || 0;
+      const vipStoneMult = [1, 1.05, 1.1, 1.15, 1.2, 1.3][Math.min(vipLvl, 5)];
+      spiritStones = Math.floor(spiritStones * vipStoneMult);
       
       const rewards = {
         spiritStones,
@@ -385,6 +397,12 @@ function registerDungeonRoutes(app, pool, auth) {
         ? JSON.parse(playerResult.rows[0].game_data) 
         : (playerResult.rows[0].game_data || {})
       
+      // buff检查
+      const buffs = gameData.buffs || {}
+      if (buffs.doubleCrystal && buffs.doubleCrystal > Date.now()) {
+        rewards.spiritStones = Math.floor(rewards.spiritStones * 2)
+      }
+
       // 发放奖励到数据库
       const currentStones = gameData.spiritStones || 0
       const currentRefinement = gameData.refinementStones || 0
@@ -404,6 +422,15 @@ function registerDungeonRoutes(app, pool, auth) {
         gameData.dungeonEliteKills = (gameData.dungeonEliteKills || 0) + 1
       }
       
+      // 持久化领取记录
+      if (!gameData._dungeonClaimed) gameData._dungeonClaimed = {}
+      gameData._dungeonClaimed[floor + '_' + difficulty] = Date.now()
+      // 清理30天前的领取记录
+      const thirtyDaysAgo = Date.now() - 30 * 86400000
+      for (const [k, v] of Object.entries(gameData._dungeonClaimed)) {
+        if (v < thirtyDaysAgo) delete gameData._dungeonClaimed[k]
+      }
+
       // 更新最高层数记录
       const floorKeyMap = {
         1: 'dungeonHighestFloor',
@@ -561,6 +588,15 @@ function registerDungeonRoutes(app, pool, auth) {
         return res.status(400).json({ error: '没有进行中的副本' })
       }
       
+      // 持久化领取记录
+      if (!gameData._dungeonClaimed) gameData._dungeonClaimed = {}
+      gameData._dungeonClaimed[floor + '_' + difficulty] = Date.now()
+      // 清理30天前的领取记录
+      const thirtyDaysAgo = Date.now() - 30 * 86400000
+      for (const [k, v] of Object.entries(gameData._dungeonClaimed)) {
+        if (v < thirtyDaysAgo) delete gameData._dungeonClaimed[k]
+      }
+
       // 更新最高层数记录
       const playerResult = await pool.query('SELECT game_data FROM players WHERE wallet = $1', [wallet])
       const gameData = typeof playerResult.rows[0].game_data === 'string' 

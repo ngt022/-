@@ -470,11 +470,15 @@ const handleDefeat = () => {
   } else {
     // 跌落境界作为惩罚
     const randomGradeLoss = Math.floor(Math.random() * 3) + 1 // 随机损失1-3个境界
-    const playerLevel = Math.max(1, playerStore.level - randomGradeLoss) // 降低境界
-    playerStore.level = playerLevel
+    const oldLevel = playerStore.level
+    const newLevel = Math.max(1, oldLevel - randomGradeLoss) // 降低境界
+    const actualLoss = oldLevel - newLevel
+    playerStore.level = newLevel
     playerStore.cultivation = 0 // 移除所有灵力
-    playerStore.maxCultivation = getRealmName(playerLevel).maxCultivation // 降低所需最大灵力值
-    message.error(`战斗失败！跌落了${playerLevel}个境界。`)
+    playerStore.maxCultivation = getRealmName(newLevel).maxCultivation // 降低所需最大灵力值
+    message.error(`战斗失败！跌落了${actualLoss}个境界（${getRealmName(oldLevel).name} → ${getRealmName(newLevel).name}）`)
+    // 同步到服务器
+    playerStore.saveData()
   }
 }
 

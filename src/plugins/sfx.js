@@ -1,5 +1,11 @@
 // 纯 Web Audio API 合成音效，零依赖
 let audioCtx = null
+let _muted = localStorage.getItem("xx_sfx_muted") === "1"
+
+const sfxMute = {
+  get muted() { return _muted },
+  set muted(v) { _muted = v; localStorage.setItem("xx_sfx_muted", v ? "1" : "0") }
+}
 
 const getCtx = () => {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)()
@@ -8,6 +14,7 @@ const getCtx = () => {
 }
 
 const playTone = (freq, duration, type = 'sine', volume = 0.3, decay = true) => {
+  if (_muted) return
   try {
     const ctx = getCtx()
     const osc = ctx.createOscillator()
@@ -24,6 +31,7 @@ const playTone = (freq, duration, type = 'sine', volume = 0.3, decay = true) => 
 }
 
 const playNoise = (duration, volume = 0.1) => {
+  if (_muted) return
   try {
     const ctx = getCtx()
     const bufferSize = ctx.sampleRate * duration
@@ -133,4 +141,5 @@ export const sfx = {
   }
 }
 
+export { sfxMute }
 export default sfx

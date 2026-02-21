@@ -327,6 +327,19 @@ export default function(pool, auth) {
       const cultivationBoostActive = isBuffActive(buffs, 'cultivationBoost');
       const luckyCharmActive = isBuffActive(buffs, 'luckyCharm');
 
+      // VIP加成
+      const vipRow = await pool.query('SELECT vip_level FROM players WHERE wallet=$1', [wallet]);
+      const vipLevel = vipRow.rows[0]?.vip_level || 0;
+      const VIP_BOOSTS = [
+        { cultivationBoost:1, extraDrop:0 },
+        { cultivationBoost:1.1, extraDrop:0.05 },
+        { cultivationBoost:1.2, extraDrop:0.1 },
+        { cultivationBoost:1.5, extraDrop:0.15 },
+        { cultivationBoost:1.8, extraDrop:0.2 },
+        { cultivationBoost:2.0, extraDrop:0.3 }
+      ];
+      const vipBoost = VIP_BOOSTS[Math.min(vipLevel, 5)];
+
       // 检查等级要求
       if (playerLevel < location.minLevel) {
         return res.status(400).json({ error: '等级不足' });
@@ -424,11 +437,18 @@ export default function(pool, auth) {
         }
       }
 
+      // 应用VIP修为加成
+      if (cultivationBonus > 0 && vipBoost.cultivationBoost > 1) {
+        const vipExtra = Math.floor(cultivationBonus * (vipBoost.cultivationBoost - 1));
+        cultivationBonus += vipExtra;
+        gameData.cultivation = (gameData.cultivation || 0) + vipExtra;
+      }
+
       // 生成奖励
       let reward = null;
       if (!event || event.effect === 'stone_bonus') {
         // 如果触发了宝藏事件，额外给奖励
-        reward = await getRandomReward(location.rewards, playerLuck);
+        reward = await getRandomReward(location.rewards, playerLuck + vipBoost.extraDrop);
         
         if (reward) {
           switch (reward.type) {
@@ -455,6 +475,10 @@ export default function(pool, auth) {
               // 修炼加速buff效果
               if (cultivationBoostActive) {
                 cultAmount = Math.floor(cultAmount * 1.5);
+              }
+              // VIP修为加成
+              if (vipBoost.cultivationBoost > 1) {
+                cultAmount = Math.floor(cultAmount * vipBoost.cultivationBoost);
               }
               gameData.cultivation = (gameData.cultivation || 0) + cultAmount;
               reward.name = '修为';
@@ -493,6 +517,7 @@ export default function(pool, auth) {
           cultivationBoost: cultivationBoostActive,
           luckyCharm: luckyCharmActive
         },
+        vipLevel,
         spiritStones: updatedGameData.spiritStones ?? updatedPlayer.rows[0].spirit_stones ?? 0,
         spirit: updatedGameData.spirit ?? 0,
         cultivation: updatedGameData.cultivation ?? 0

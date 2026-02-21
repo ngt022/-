@@ -71,10 +71,10 @@
                 <n-tag size="small" type="info">需{{ material.count }}个</n-tag>
               </n-space>
               <n-tag
-                :type="playerStore.herbs.filter(h => h.herb_id === material.herb || h.id === material.herb).length >= material.count ? 'success' : 'error'"
+                :type="playerStore.herbs.filter(h => (h.herbId || h.herb_id || h.id) === material.herb).length >= material.count ? 'success' : 'error'"
                 size="small"
               >
-                有{{ playerStore.herbs.filter(h => h.herb_id === material.herb || h.id === material.herb).length }}个
+                有{{ playerStore.herbs.filter(h => (h.herbId || h.herb_id || h.id) === material.herb).length }}个
               </n-tag>
             </n-space>
           </n-list-item>
@@ -150,14 +150,14 @@ const playerStore = usePlayerStore()
   const checkMaterials = recipe => {
     if (!recipe) return false
     return recipe.materials.every(material => {
-      const count = playerStore.herbs.filter(h => h.herbId === material.herb || h.herb_id === material.herb || h.id === material.herb).length
+      const count = playerStore.herbs.filter(h => (h.herbId || h.herb_id || h.id) === material.herb).length
       return count >= material.count
     })
   }
 
   // 获取材料状态文本
   const getMaterialStatus = material => {
-    const count = playerStore.herbs.filter(h => h.herbId === material.herb || h.herb_id === material.herb || h.id === material.herb).length
+    const count = playerStore.herbs.filter(h => (h.herbId || h.herb_id || h.id) === material.herb).length
     return `${count}/${material.count}`
   }
 
@@ -168,7 +168,7 @@ const playerStore = usePlayerStore()
   }
 
   const getHerbCount = (herbId) => {
-    return playerStore.herbs.filter(h => h.herbId === herbId || h.herb_id === herbId || h.id === herbId).length
+    return playerStore.herbs.filter(h => (h.herbId || h.herb_id || h.id) === herbId).length
   }
 
   const getEffectText = (recipe) => {
@@ -195,36 +195,36 @@ const playerStore = usePlayerStore()
     
     const btn = document.querySelector('.craft-confirm-btn')
     
-    if (authStore.isLoggedIn) {
-      // 在线模式：调用服务器API
-      const result = await playerStore.craftPillOnServer(selectedRecipe.value.id)
-      if (result.success) {
-        logRef.value?.addLog('success', result.message || '炼制成功！')
-        // 关闭弹窗
+    try {
+      const recipe = selectedRecipe.value
+      const effect = calculatePillEffect(recipe, playerStore.level)
+      const resp = await authStore.apiPost('/alchemy/craft', {
+        recipeId: recipe.id,
+        materials: recipe.materials,
+        recipeName: recipe.name,
+        recipeDesc: recipe.description,
+        recipeGrade: recipe.grade,
+        effectType: effect.type,
+        effectValue: effect.value,
+        effectDuration: effect.duration
+      })
+      if (resp.success) {
+        logRef.value?.addLog('success', resp.message || '炼制成功！')
+        if (resp.herbs) playerStore.herbs = resp.herbs
+        if (resp.pillRecipes) playerStore.pillRecipes = resp.pillRecipes
+        if (resp.items) playerStore.items = resp.items
         showCraftConfirm.value = false
         selectedRecipe.value = null
       } else {
-        logRef.value?.addLog('error', `炼制失败：${result.message}`)
+        logRef.value?.addLog('error', `炼制失败：${resp.message}`)
+        if (resp.herbs) playerStore.herbs = resp.herbs
         if (btn) {
           btn.classList.add('fail-animation')
           setTimeout(() => btn.classList.remove('fail-animation'), 1000)
         }
       }
-    } else {
-      // 离线模式：本地计算
-      const result = playerStore.craftPillOffline(selectedRecipe.value.id)
-      if (result.success) {
-        logRef.value?.addLog('success', '炼制成功！')
-        // 关闭弹窗
-        showCraftConfirm.value = false
-        selectedRecipe.value = null
-      } else {
-        logRef.value?.addLog('error', `炼制失败：${result.message}`)
-        if (btn) {
-          btn.classList.add('fail-animation')
-          setTimeout(() => btn.classList.remove('fail-animation'), 1000)
-        }
-      }
+    } catch (e) {
+      logRef.value?.addLog('error', '炼制失败：' + (e.message || '网络错误'))
     }
   }
 </script>
