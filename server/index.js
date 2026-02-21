@@ -3882,104 +3882,6 @@ app.post('/api/equipment/batch-sell', auth, async (req, res) => {
 
 
 
-// ============ 404 catch-all ============
-app.use('/api/*', (req, res) => {
-  res.status(404).json({ error: 'API not found' });
-});
-
-
-// ============ 全局错误处理 ============
-process.on('uncaughtException', (err) => {
-  console.error('[FATAL] uncaughtException:', err.message, err.stack);
-});
-process.on('unhandledRejection', (reason) => {
-  console.error('[WARN] unhandledRejection:', reason);
-});
-
-
-
-// ===== 定时任务 =====
-
-// 拍卖过期自动结算（每5分钟）
-async function settleExpiredAuctions() {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const expired = await client.query(
-      "SELECT * FROM auction_listings WHERE status='active' AND expires_at < NOW()"
-    );
-    for (const listing of expired.rows) {
-      const bids = await client.query(
-        'SELECT * FROM auction_bids WHERE listing_id=$1 ORDER BY amount DESC LIMIT 1',
-        [listing.id]
-      );
-      if (bids.rows.length > 0) {
-        const topBid = bids.rows[0];
-        // 物品给最高出价者
-        const buyerData = await client.query('SELECT game_data FROM players WHERE wallet=$1', [topBid.bidder_wallet]);
-        if (buyerData.rows.length > 0) {
-          const gd = buyerData.rows[0].game_data;
-          const items = gd.items || [];
-          items.push(listing.item_data);
-          await client.query("UPDATE players SET game_data = jsonb_set(game_data, '{items}', $1::jsonb) WHERE wallet=$2",
-            [JSON.stringify(items), topBid.bidder_wallet]);
-        }
-        // 焰晶给卖家（扣5%手续费）
-        const payout = Math.floor(topBid.amount * 0.95);
-        await client.query("UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', (COALESCE((game_data->>'spiritStones')::int,0) + $1)::text::jsonb) WHERE wallet=$2",
-          [payout, listing.seller_wallet]);
-        await client.query("UPDATE auction_listings SET status='sold', sold_to=$1, sold_price=$2 WHERE id=$3",
-          [topBid.bidder_wallet, topBid.amount, listing.id]);
-      } else {
-        // 无人出价，物品退还卖家
-        const sellerData = await client.query('SELECT game_data FROM players WHERE wallet=$1', [listing.seller_wallet]);
-        if (sellerData.rows.length > 0) {
-          const gd = sellerData.rows[0].game_data;
-          const items = gd.items || [];
-          items.push(listing.item_data);
-          await client.query("UPDATE players SET game_data = jsonb_set(game_data, '{items}', $1::jsonb) WHERE wallet=$2",
-            [JSON.stringify(items), listing.seller_wallet]);
-        }
-        await client.query("UPDATE auction_listings SET status='expired' WHERE id=$1", [listing.id]);
-      }
-    }
-    await client.query('COMMIT');
-    if (expired.rows.length > 0) console.log('[Auction] Settled', expired.rows.length, 'expired listings');
-  } catch (e) {
-    await client.query('ROLLBACK');
-    console.error('[Auction] Settlement error:', e.message);
-  } finally {
-    client.release();
-  }
-}
-setInterval(settleExpiredAuctions, 5 * 60 * 1000); // 每5分钟
-
-// 排行榜缓存刷新（每10分钟）
-async function refreshLeaderboard() {
-  try {
-    const types = ['level', 'combat_power', 'recharge'];
-    for (const t of types) {
-      const col = t === 'recharge' ? 'total_recharge' : t;
-      const rows = await pool.query(
-        `SELECT wallet, name, ${col} as score, realm, level, combat_power, vip_level, total_recharge FROM players WHERE wallet NOT LIKE '0xbot%' ORDER BY ${col} DESC LIMIT 50`
-      );
-      const data = rows.rows.map((r, i) => ({ rank: i + 1, wallet: r.wallet, name: r.name, score: r.score, realm: r.realm, level: r.level, combat_power: Number(r.combat_power || 0), vip_level: r.vip_level || 0, total_recharge: r.total_recharge }));
-      await pool.query(
-        `INSERT INTO leaderboard_cache (type, data, updated_at) VALUES ($1, $2::jsonb, NOW())
-         ON CONFLICT (type) DO UPDATE SET data = $2::jsonb, updated_at = NOW()`,
-        [t, JSON.stringify(data)]
-      );
-    }
-    console.log('[Leaderboard] Cache refreshed');
-  } catch (e) {
-    console.error('[Leaderboard] Refresh error:', e.message);
-  }
-}
-setInterval(refreshLeaderboard, 10 * 60 * 1000);
-setTimeout(refreshLeaderboard, 5000);
-
-server.listen(PORT, '127.0.0.1', () => console.log(`焰修后端启动 127.0.0.1:${PORT}`));
-
 // === 邮件系统 ===
 // 获取邮件列表
 app.get('/api/mail/list', auth, async (req, res) => {
@@ -4080,6 +3982,106 @@ setInterval(async () => {
     await pool.query('DELETE FROM player_mail WHERE expires_at IS NOT NULL AND expires_at < NOW()');
   } catch {}
 }, 3600000);
+
+// ============ 404 catch-all ============
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'API not found' });
+});
+
+
+// ============ 全局错误处理 ============
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] uncaughtException:', err.message, err.stack);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[WARN] unhandledRejection:', reason);
+});
+
+
+
+// ===== 定时任务 =====
+
+// 拍卖过期自动结算（每5分钟）
+async function settleExpiredAuctions() {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const expired = await client.query(
+      "SELECT * FROM auction_listings WHERE status='active' AND expires_at < NOW()"
+    );
+    for (const listing of expired.rows) {
+      const bids = await client.query(
+        'SELECT * FROM auction_bids WHERE listing_id=$1 ORDER BY amount DESC LIMIT 1',
+        [listing.id]
+      );
+      if (bids.rows.length > 0) {
+        const topBid = bids.rows[0];
+        // 物品给最高出价者
+        const buyerData = await client.query('SELECT game_data FROM players WHERE wallet=$1', [topBid.bidder_wallet]);
+        if (buyerData.rows.length > 0) {
+          const gd = buyerData.rows[0].game_data;
+          const items = gd.items || [];
+          items.push(listing.item_data);
+          await client.query("UPDATE players SET game_data = jsonb_set(game_data, '{items}', $1::jsonb) WHERE wallet=$2",
+            [JSON.stringify(items), topBid.bidder_wallet]);
+        }
+        // 焰晶给卖家（扣5%手续费）
+        const payout = Math.floor(topBid.amount * 0.95);
+        await client.query("UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', (COALESCE((game_data->>'spiritStones')::int,0) + $1)::text::jsonb) WHERE wallet=$2",
+          [payout, listing.seller_wallet]);
+        await client.query("UPDATE auction_listings SET status='sold', sold_to=$1, sold_price=$2 WHERE id=$3",
+          [topBid.bidder_wallet, topBid.amount, listing.id]);
+      } else {
+        // 无人出价，物品退还卖家
+        const sellerData = await client.query('SELECT game_data FROM players WHERE wallet=$1', [listing.seller_wallet]);
+        if (sellerData.rows.length > 0) {
+          const gd = sellerData.rows[0].game_data;
+          const items = gd.items || [];
+          items.push(listing.item_data);
+          await client.query("UPDATE players SET game_data = jsonb_set(game_data, '{items}', $1::jsonb) WHERE wallet=$2",
+            [JSON.stringify(items), listing.seller_wallet]);
+        }
+        await client.query("UPDATE auction_listings SET status='expired' WHERE id=$1", [listing.id]);
+      }
+    }
+    await client.query('COMMIT');
+    if (expired.rows.length > 0) console.log('[Auction] Settled', expired.rows.length, 'expired listings');
+  } catch (e) {
+    await client.query('ROLLBACK');
+    console.error('[Auction] Settlement error:', e.message);
+  } finally {
+    client.release();
+  }
+}
+setInterval(settleExpiredAuctions, 5 * 60 * 1000); // 每5分钟
+
+// 排行榜缓存刷新（每10分钟）
+async function refreshLeaderboard() {
+  try {
+    const types = ['level', 'combat_power', 'recharge'];
+    for (const t of types) {
+      const col = t === 'recharge' ? 'total_recharge' : t;
+      const rows = await pool.query(
+        `SELECT wallet, name, ${col} as score, realm, level, combat_power, vip_level, total_recharge FROM players WHERE wallet NOT LIKE '0xbot%' ORDER BY ${col} DESC LIMIT 50`
+      );
+      const data = rows.rows.map((r, i) => ({ rank: i + 1, wallet: r.wallet, name: r.name, score: r.score, realm: r.realm, level: r.level, combat_power: Number(r.combat_power || 0), vip_level: r.vip_level || 0, total_recharge: r.total_recharge }));
+      await pool.query(
+        `INSERT INTO leaderboard_cache (type, data, updated_at) VALUES ($1, $2::jsonb, NOW())
+         ON CONFLICT (type) DO UPDATE SET data = $2::jsonb, updated_at = NOW()`,
+        [t, JSON.stringify(data)]
+      );
+    }
+    console.log('[Leaderboard] Cache refreshed');
+  } catch (e) {
+    console.error('[Leaderboard] Refresh error:', e.message);
+  }
+}
+setInterval(refreshLeaderboard, 10 * 60 * 1000);
+setTimeout(refreshLeaderboard, 5000);
+
+server.listen(PORT, '127.0.0.1', () => console.log(`焰修后端启动 127.0.0.1:${PORT}`));
+
+
 
 
 // Graceful shutdown
