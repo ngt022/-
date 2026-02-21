@@ -30,6 +30,10 @@ server/*.bak*
 # Build output (regeneratable)
 docs/assets/js/
 docs/assets/css/
+docs/assets/images/
+docs/assets/ico/
+docs/assets/png/
+docs/assets/json/
 
 # Env & secrets
 .env
