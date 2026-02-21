@@ -289,553 +289,576 @@
 </template>
 
 <script setup>
-  import { ref } from 'vue'
-  import { usePlayerStore } from '../stores/player'
-  import { getRealmName } from '../plugins/realm'
-  import { CombatManager, CombatEntity, generateEnemy, CombatType } from '../plugins/combat'
-  import { getRandomOptions } from '../plugins/dungeon'
-  import dungeonBuffs from '../plugins/dungeonBuffs'
-  import { useMessage } from 'naive-ui'
-  import LogPanel from '../components/LogPanel.vue'
+import { ref, computed } from 'vue'
+import { usePlayerStore } from '../stores/player'
+import { getRealmName } from '../plugins/realm'
+import { CombatManager, CombatEntity, generateEnemy, CombatType } from '../plugins/combat'
+import { getRandomOptions } from '../plugins/dungeon'
+import dungeonBuffs from '../plugins/dungeonBuffs'
+import { useMessage } from 'naive-ui'
+import LogPanel from '../components/LogPanel.vue'
 
-  const playerStore = usePlayerStore()
-  const message = useMessage()
-  const logRef = ref(null)
-  const playerAttacking = ref(false)
-  const playerHurt = ref(false)
-  const enemyAttacking = ref(false)
-  const enemyHurt = ref(false)
-  const infoShow = ref(false)
-  const infoType = ref('')
+const playerStore = usePlayerStore()
+const message = useMessage()
+const logRef = ref(null)
+const playerAttacking = ref(false)
+const playerHurt = ref(false)
+const enemyAttacking = ref(false)
+const enemyHurt = ref(false)
+const infoShow = ref(false)
+const infoType = ref('')
 
-  const floorData = computed(() => {
-    switch (playerStore.dungeonDifficulty) {
-      case 1:
-        return playerStore.dungeonHighestFloor
-      case 2:
-        return playerStore.dungeonHighestFloor_2
-      case 5:
-        return playerStore.dungeonHighestFloor_5
-      case 10:
-        return playerStore.dungeonHighestFloor_10
-      case 100:
-        return playerStore.dungeonHighestFloor_100
-      default:
-        return playerStore.dungeonHighestFloor
+const floorData = computed(() => {
+  switch (playerStore.dungeonDifficulty) {
+    case 1:
+      return playerStore.dungeonHighestFloor
+    case 2:
+      return playerStore.dungeonHighestFloor_2
+    case 5:
+      return playerStore.dungeonHighestFloor_5
+    case 10:
+      return playerStore.dungeonHighestFloor_10
+    case 100:
+      return playerStore.dungeonHighestFloor_100
+    default:
+      return playerStore.dungeonHighestFloor
+  }
+})
+
+// 副本状态
+const dungeonState = ref({
+  floor: floorData.value,
+  inCombat: false,
+  showingOptions: false,
+  currentOptions: [],
+  combatManager: null
+})
+
+// 当前战斗日志
+const combatLog = ref([])
+
+// 根据选项类型获取颜色
+const getOptionColor = type => {
+  const types = {
+    epic: {
+      name: '史诗',
+      color: '#e91e63'
+    },
+    rare: {
+      name: '稀有',
+      color: '#2196f3'
+    },
+    common: {
+      name: '普通',
+      color: '#4caf50'
+    }
+  }
+  return types[type]
+}
+
+// 创建玩家战斗实体
+const createPlayerEntity = () => {
+  const s = playerStore.getTotalStats()
+  const baseStats = {
+    health: s.health,
+    damage: s.attack,
+    defense: s.defense,
+    speed: s.speed,
+    critRate: s.critRate,
+    comboRate: s.comboRate,
+    counterRate: s.counterRate,
+    stunRate: s.stunRate,
+    dodgeRate: s.dodgeRate,
+    vampireRate: s.vampireRate,
+    critResist: s.critResist,
+    comboResist: s.comboResist,
+    counterResist: s.counterResist,
+    stunResist: s.stunResist,
+    dodgeResist: s.dodgeResist,
+    vampireResist: s.vampireResist,
+    healBoost: s.healBoost,
+    critDamageBoost: s.critDamageBoost,
+    critDamageReduce: s.critDamageReduce,
+    finalDamageBoost: s.finalDamageBoost,
+    finalDamageReduce: s.finalDamageReduce,
+    combatBoost: s.combatBoost,
+    resistanceBoost: s.resistanceBoost,
+    spiritDamage: playerStore.spirit * 0.1,
+    maxHealth: s.health
+  }
+  const entity = new CombatEntity(playerStore.name, playerStore.level, baseStats, playerStore.realm)
+  // 应用所有激活的增益效果
+  const activeBuffs = dungeonBuffs.getActiveBuffs()
+  activeBuffs.forEach(buff => {
+    if (typeof buff.effect === 'function') {
+      buff.effect(entity)
     }
   })
+  return entity
+}
 
-  // 副本状态
-  const dungeonState = ref({
-    floor: floorData.value,
+// 开始新的副本
+const startDungeon = () => {
+  const startingFloor = floorData.value
+  dungeonState.value = {
+    floor: startingFloor,
     inCombat: false,
     showingOptions: false,
     currentOptions: [],
     combatManager: null
-  })
-
-  // 当前战斗日志
-  const combatLog = ref([])
-
-  // 根据选项类型获取颜色
-  const getOptionColor = type => {
-    const types = {
-      epic: {
-        name: '史诗',
-        color: '#e91e63'
-      },
-      rare: {
-        name: '稀有',
-        color: '#2196f3'
-      },
-      common: {
-        name: '普通',
-        color: '#4caf50'
-      }
-    }
-    return types[type]
   }
+  playerStore.dungeonTotalRuns++ // 增加总探索次数
+  nextFloor()
+}
 
-  // 创建玩家战斗实体
-  const createPlayerEntity = () => {
-    const s = playerStore.getTotalStats()
-    const baseStats = {
-      health: s.health,
-      damage: s.attack,
-      defense: s.defense,
-      speed: s.speed,
-      critRate: s.critRate,
-      comboRate: s.comboRate,
-      counterRate: s.counterRate,
-      stunRate: s.stunRate,
-      dodgeRate: s.dodgeRate,
-      vampireRate: s.vampireRate,
-      critResist: s.critResist,
-      comboResist: s.comboResist,
-      counterResist: s.counterResist,
-      stunResist: s.stunResist,
-      dodgeResist: s.dodgeResist,
-      vampireResist: s.vampireResist,
-      healBoost: s.healBoost,
-      critDamageBoost: s.critDamageBoost,
-      critDamageReduce: s.critDamageReduce,
-      finalDamageBoost: s.finalDamageBoost,
-      finalDamageReduce: s.finalDamageReduce,
-      combatBoost: s.combatBoost,
-      resistanceBoost: s.resistanceBoost,
-      spiritDamage: playerStore.spirit * 0.1,
-      maxHealth: s.health
-    }
-    const entity = new CombatEntity(playerStore.name, playerStore.level, baseStats, playerStore.realm)
-    // 应用所有激活的增益效果
-    const activeBuffs = dungeonBuffs.getActiveBuffs()
-    activeBuffs.forEach(buff => {
-      if (typeof buff.effect === 'function') {
-        buff.effect(entity)
-      }
-    })
-    return entity
+// 进入下一层
+const nextFloor = () => {
+  dungeonState.value = {
+    ...dungeonState.value,
+    floor: dungeonState.value.floor + 1
   }
-
-  // 开始新的副本
-  const startDungeon = () => {
-    const startingFloor = floorData.value
-    dungeonState.value = {
-      floor: startingFloor,
-      inCombat: false,
-      showingOptions: false,
-      currentOptions: [],
-      combatManager: null
-    }
-    playerStore.dungeonTotalRuns++ // 增加总探索次数
-    nextFloor()
-  }
-
-  // 进入下一层
-  const nextFloor = () => {
-    dungeonState.value = {
-      ...dungeonState.value,
-      floor: dungeonState.value.floor + 1
-    }
-    const floor = dungeonState.value.floor
-    // 检查是否需要显示选项
-    if (floor === 1 || floor % 5 === 0) {
-      const randRefres = Math.floor(Math.random() * 3) + 1
-      message.success(`获得了${randRefres}刷新次数`)
-      refreshNumber.value = randRefres
-      showOptions()
-      return
-    }
-    startCombat()
-  }
-
-  // 显示随机选项
-  const showOptions = () => {
-    dungeonState.value.showingOptions = true
-    dungeonState.value.currentOptions = getRandomOptions(dungeonState.value.floor)
-  }
-
-  // 选择选项
-  const selectOption = option => {
-    dungeonBuffs.apply(playerStore, option)
-    message.success(`选择了：${option.name}`)
-    dungeonState.value.showingOptions = false
-    dungeonState.value.currentOptions = []
-    startCombat()
-  }
-
-  // 处理失败
-  const handleDefeat = () => {
-    dungeonState.value.inCombat = false
-    infoShow.value = false
-    infoType.value = ''
-    message.error(`在第 ${dungeonState.value.floor} 层被击败了...`)
-    playerStore.dungeonDeathCount++
-    // 清除所有临时增益效果
-    dungeonBuffs.clear(playerStore)
-    // 记录失败层数
-    playerStore.dungeonLastFailedFloor = dungeonState.value.floor
-    // 随机跌落境界或修为
-    if (playerStore.dungeonDifficulty !== 100) {
-      // 损失一定修为值作为惩罚
-      const cultivationLossRate = Math.random() * 0.4 + 0.1 // 随机10%到50%
-      const cultivationLoss = Math.floor(playerStore.cultivation * cultivationLossRate)
-      playerStore.cultivation = Math.max(0, playerStore.cultivation - cultivationLoss)
-      message.error(`战斗失败！损失了${cultivationLoss}点修为。`)
-    } else {
-      // 跌落境界作为惩罚
-      const randomGradeLoss = Math.floor(Math.random() * 3) + 1 // 随机损失1-3个境界
-      const playerLevel = Math.max(1, playerStore.level - randomGradeLoss) // 降低境界
-      playerStore.level = playerLevel
-      playerStore.cultivation = 0 // 移除所有灵力
-      playerStore.maxCultivation = getRealmName(playerLevel).maxCultivation // 降低所需最大灵力值
-      message.error(`战斗失败！跌落了${playerLevel}个境界。`)
-    }
-  }
-
-  // 开始战斗
-  const startCombat = () => {
-    const floor = dungeonState.value.floor
-    const isBossFloor = floor % 10 === 0
-    const isEliteFloor = floor % 5 === 0
-    const enemyType = isBossFloor ? CombatType.BOSS : isEliteFloor ? CombatType.ELITE : CombatType.NORMAL
-    // 创建玩家战斗实体，并应用所有增益效果
-    const playerEntity = createPlayerEntity()
-    // 创建敌人
-    const enemy = generateEnemy(floor, enemyType, playerStore.dungeonDifficulty)
-    // 创建战斗管理器
-    dungeonState.value.combatManager = new CombatManager(playerEntity, enemy, log => {
-      if (logRef.value) {
-        logRef.value.addLog(log)
-      }
-    })
-    dungeonState.value.inCombat = true
-    dungeonState.value.combatManager.start() // 初始化战斗状态
-    autoCombat() // 开始自动战斗
-  }
-
-  // 自动战斗
-  const autoCombat = async () => {
-    while (dungeonState.value.inCombat) {
-      const result = dungeonState.value.combatManager.executeTurn()
-      const getCombatLog = dungeonState.value.combatManager.getCombatLog()
-      // 添加动画效果
-      if (result.attacker === dungeonState.value.combatManager.player) {
-        playerAttacking.value = true
-        enemyHurt.value = true
-        await new Promise(resolve => setTimeout(resolve, 500))
-        playerAttacking.value = false
-        enemyHurt.value = false
-      } else {
-        enemyAttacking.value = true
-        playerHurt.value = true
-        await new Promise(resolve => setTimeout(resolve, 500))
-        enemyAttacking.value = false
-        playerHurt.value = false
-      }
-      if (!result) break
-      // 更新战斗日志
-      getCombatLog.forEach(item => {
-        logRef.value?.addLog('info', item)
-      })
-      // 检查战斗是否结束
-      if (result.state === 'victory') {
-        handleVictory()
-        break
-      } else if (result.state === 'defeat') {
-        handleDefeat()
-        break
-      }
-      // 添加延迟使战斗动画更流畅
-      await new Promise(resolve => setTimeout(resolve, 500))
-    }
-  }
-
-  // 处理胜利
-  const handleVictory = () => {
-    dungeonState.value.inCombat = false
-    message.success(`击败了第 ${dungeonState.value.floor} 层的敌人！`)
-    // 更新统计数据
-    playerStore.dungeonTotalKills++
-    if (dungeonState.value.floor % 10 === 0) {
-      playerStore.dungeonBossKills++
-    } else if (dungeonState.value.floor % 5 === 0) {
-      // 增加洗练石
-      playerStore.refinementStones += playerStore.dungeonDifficulty
-      playerStore.dungeonEliteKills++
-      message.success(`获得了${playerStore.dungeonDifficulty}颗洗练石`)
-    }
-    // 更新最高层数记录
-    if (dungeonState.value.floor > playerStore.dungeonHighestFloor) {
-      playerStore.dungeonHighestFloor = dungeonState.value.floor
-    }
-    // 获得奖励
-    const rewards = generateRewards()
-    rewards.forEach(reward => {
-      playerStore.spiritStones += reward.amount
-      message.success(`获得了 ${reward.amount} 灵石！`)
-      playerStore.dungeonTotalRewards++
-    })
-    // 进入下一层
-    nextFloor()
-  }
-
-  // 生成奖励
-  const generateRewards = () => {
-    const rewards = []
-    // 灵石奖励
-    const baseStones = 10 * dungeonState.value.floor * playerStore.dungeonDifficulty
-    rewards.push({
-      type: 'spirit_stones',
-      amount: baseStones
-    })
-    return rewards
-  }
-
-  const infoCliclk = type => {
-    infoShow.value = true
-    infoType.value = type
-  }
-
-  const dungeonOptions = [
-    {
-      label: '简单',
-      value: 1
-    },
-    {
-      label: '普通',
-      value: 2
-    },
-    {
-      label: '困难',
-      value: 5
-    },
-    {
-      label: '地狱',
-      value: 10
-    },
-    {
-      label: '通天',
-      value: 100
-    }
-  ]
-
-  const handleUpdateValue = (value, option) => {
-    if (value === 100) {
-      message.warning('警告! 通天难度挑战失败后会跌落境界')
-    }
-  }
-  const refreshNumber = ref(3)
-  // 刷新选择
-  const handleRefreshOptions = () => {
+  const floor = dungeonState.value.floor
+  // 检查是否需要显示选项
+  if (floor === 1 || floor % 5 === 0) {
+    const randRefres = Math.floor(Math.random() * 3) + 1
+    message.success(`获得了${randRefres}刷新次数`)
+    refreshNumber.value = randRefres
     showOptions()
-    refreshNumber.value--
+    return
   }
+  startCombat()
+}
+
+// 显示随机选项
+const showOptions = () => {
+  dungeonState.value.showingOptions = true
+  dungeonState.value.currentOptions = getRandomOptions(dungeonState.value.floor)
+}
+
+// 选择选项
+const selectOption = option => {
+  dungeonBuffs.apply(playerStore, option)
+  message.success(`选择了：${option.name}`)
+  dungeonState.value.showingOptions = false
+  dungeonState.value.currentOptions = []
+  startCombat()
+}
+
+// 处理失败
+const handleDefeat = () => {
+  dungeonState.value.inCombat = false
+  infoShow.value = false
+  infoType.value = ''
+  message.error(`在第 ${dungeonState.value.floor} 层被击败了...`)
+  playerStore.dungeonDeathCount++
+  // 清除所有临时增益效果
+  dungeonBuffs.clear(playerStore)
+  // 记录失败层数
+  playerStore.dungeonLastFailedFloor = dungeonState.value.floor
+  // 随机跌落境界或修为
+  if (playerStore.dungeonDifficulty !== 100) {
+    // 损失一定修为值作为惩罚
+    const cultivationLossRate = Math.random() * 0.4 + 0.1 // 随机10%到50%
+    const cultivationLoss = Math.floor(playerStore.cultivation * cultivationLossRate)
+    playerStore.cultivation = Math.max(0, playerStore.cultivation - cultivationLoss)
+    message.error(`战斗失败！损失了${cultivationLoss}点修为。`)
+  } else {
+    // 跌落境界作为惩罚
+    const randomGradeLoss = Math.floor(Math.random() * 3) + 1 // 随机损失1-3个境界
+    const playerLevel = Math.max(1, playerStore.level - randomGradeLoss) // 降低境界
+    playerStore.level = playerLevel
+    playerStore.cultivation = 0 // 移除所有灵力
+    playerStore.maxCultivation = getRealmName(playerLevel).maxCultivation // 降低所需最大灵力值
+    message.error(`战斗失败！跌落了${playerLevel}个境界。`)
+  }
+}
+
+// 开始战斗
+const startCombat = () => {
+  const floor = dungeonState.value.floor
+  const isBossFloor = floor % 10 === 0
+  const isEliteFloor = floor % 5 === 0
+  const enemyType = isBossFloor ? CombatType.BOSS : isEliteFloor ? CombatType.ELITE : CombatType.NORMAL
+  // 创建玩家战斗实体，并应用所有增益效果
+  const playerEntity = createPlayerEntity()
+  // 创建敌人
+  const enemy = generateEnemy(floor, enemyType, playerStore.dungeonDifficulty)
+  // 创建战斗管理器
+  dungeonState.value.combatManager = new CombatManager(playerEntity, enemy, log => {
+    if (logRef.value) {
+      logRef.value.addLog(log)
+    }
+  })
+  dungeonState.value.inCombat = true
+  dungeonState.value.combatManager.start() // 初始化战斗状态
+  autoCombat() // 开始自动战斗
+}
+
+// 自动战斗
+const autoCombat = async () => {
+  while (dungeonState.value.inCombat) {
+    const result = dungeonState.value.combatManager.executeTurn()
+    const getCombatLog = dungeonState.value.combatManager.getCombatLog()
+    // 添加动画效果
+    if (result.attacker === dungeonState.value.combatManager.player) {
+      playerAttacking.value = true
+      enemyHurt.value = true
+      await new Promise(resolve => setTimeout(resolve, 500))
+      playerAttacking.value = false
+      enemyHurt.value = false
+    } else {
+      enemyAttacking.value = true
+      playerHurt.value = true
+      await new Promise(resolve => setTimeout(resolve, 500))
+      enemyAttacking.value = false
+      playerHurt.value = false
+    }
+    if (!result) break
+    // 更新战斗日志
+    getCombatLog.forEach(item => {
+      logRef.value?.addLog('info', item)
+    })
+    // 检查战斗是否结束
+    if (result.state === 'victory') {
+      await handleVictory()
+      break
+    } else if (result.state === 'defeat') {
+      handleDefeat()
+      break
+    }
+    // 添加延迟使战斗动画更流畅
+    await new Promise(resolve => setTimeout(resolve, 500))
+  }
+}
+
+// 处理胜利 - 调用服务端接口防作弊
+const handleVictory = async () => {
+  dungeonState.value.inCombat = false
+  message.success(`击败了第 ${dungeonState.value.floor} 层的敌人！`)
+  
+  const floor = dungeonState.value.floor
+  const isBossFloor = floor % 10 === 0
+  const isEliteFloor = floor % 5 === 0
+  
+  try {
+    // 调用服务端接口领取奖励（防作弊）
+    const response = await fetch('/api/dungeon/claim', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('xx_token')}`
+      },
+      body: JSON.stringify({
+        floor: floor,
+        result: 'victory',
+        difficulty: playerStore.dungeonDifficulty
+      })
+    })
+    
+    if (!response.ok) {
+      throw new Error('领取奖励失败')
+    }
+    
+    const data = await response.json()
+    
+    if (data.ok) {
+      // 更新前端状态（以服务端返回为准）
+      playerStore.spiritStones = data.newTotal.spiritStones
+      playerStore.refinementStones = data.newTotal.refinementStones
+      
+      // 显示奖励
+      message.success(`获得了 ${data.rewards.spiritStones} 灵石！`)
+      if (data.rewards.refinementStones > 0) {
+        message.success(`获得了 ${data.rewards.refinementStones} 颗洗练石！`)
+      }
+      
+      // 更新最高层数记录（以服务端为准）
+      if (floor > floorData.value) {
+        switch (playerStore.dungeonDifficulty) {
+          case 1: playerStore.dungeonHighestFloor = floor; break
+          case 2: playerStore.dungeonHighestFloor_2 = floor; break
+          case 5: playerStore.dungeonHighestFloor_5 = floor; break
+          case 10: playerStore.dungeonHighestFloor_10 = floor; break
+          case 100: playerStore.dungeonHighestFloor_100 = floor; break
+        }
+      }
+    } else {
+      message.error(data.error || '领取奖励失败')
+    }
+  } catch (error) {
+    console.error('领取奖励失败:', error)
+    message.error('领取奖励失败，请重试')
+    return
+  }
+  
+  // 进入下一层
+  nextFloor()
+}
+
+const infoCliclk = type => {
+  infoShow.value = true
+  infoType.value = type
+}
+
+const dungeonOptions = [
+  {
+    label: '简单',
+    value: 1
+  },
+  {
+    label: '普通',
+    value: 2
+  },
+  {
+    label: '困难',
+    value: 5
+  },
+  {
+    label: '地狱',
+    value: 10
+  },
+  {
+    label: '通天',
+    value: 100
+  }
+]
+
+const handleUpdateValue = (value, option) => {
+  if (value === 100) {
+    message.warning('警告! 通天难度挑战失败后会跌落境界')
+  }
+}
+const refreshNumber = ref(3)
+// 刷新选择
+const handleRefreshOptions = () => {
+  showOptions()
+  refreshNumber.value--
+}
 </script>
 
 <style scoped>
-  .dungeon-container {
-    margin: 0 auto;
-  }
+.dungeon-container {
+  margin: 0 auto;
+}
 
-  .option-cards {
-    display: flex;
-    gap: 16px;
-    padding: 16px;
-    margin: 0 auto;
-  }
+.option-cards {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  margin: 0 auto;
+}
 
-  .option-card {
-    position: relative;
-    padding: 20px;
-    border: 2px solid;
-    border-radius: 12px;
-    background: var(--n-color);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    min-height: 100px;
-    width: 33%;
-  }
+.option-card {
+  position: relative;
+  padding: 20px;
+  border: 2px solid;
+  border-radius: 12px;
+  background: var(--n-color);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  min-height: 100px;
+  width: 33%;
+}
 
-  .option-card:hover {
-    transform: translateX(5px);
-    box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.1);
-  }
+.option-card:hover {
+  transform: translateX(5px);
+  box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.1);
+}
 
-  .option-name {
-    font-size: 1.3em;
-    font-weight: bold;
-    margin-bottom: 12px;
-    padding-right: 80px;
-  }
+.option-name {
+  font-size: 1.3em;
+  font-weight: bold;
+  margin-bottom: 12px;
+  padding-right: 80px;
+}
 
-  .option-description {
-    flex-grow: 1;
-    font-size: 1em;
-    color: var(--n-text-color);
-    line-height: 1.6;
-    margin-bottom: 8px;
-  }
+.option-description {
+  flex-grow: 1;
+  font-size: 1em;
+  color: var(--n-text-color);
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
 
-  .option-quality {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    font-size: 0.9em;
-    font-weight: bold;
-    padding: 4px 12px;
-    border-radius: 20px;
-    background: var(--n-color);
-  }
+.option-quality {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 0.9em;
+  font-weight: bold;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: var(--n-color);
+}
 
-  .combat-scene {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-    margin-bottom: 20px;
-    min-height: 200px;
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 8px;
-  }
+.combat-scene {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  margin-bottom: 20px;
+  min-height: 200px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+}
 
-  .character {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    transition: transform 0.3s ease;
-  }
+.character {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.3s ease;
+}
 
-  .character-avatar {
-    font-size: 48px;
-    margin: 10px 0;
-  }
+.character-avatar {
+  font-size: 48px;
+  margin: 10px 0;
+}
 
-  .character-name {
-    font-weight: bold;
-    margin-bottom: 8px;
-  }
+.character-name {
+  font-weight: bold;
+  margin-bottom: 8px;
+}
 
-  .health-bar {
-    width: 100px;
-    height: 10px;
-    background: #ff000033;
-    border-radius: 5px;
-    overflow: hidden;
-  }
+.health-bar {
+  width: 100px;
+  height: 10px;
+  background: #ff000033;
+  border-radius: 5px;
+  overflow: hidden;
+}
 
-  .health-fill {
-    height: 100%;
-    background: #ff0000;
-    transition: width 0.3s ease;
-  }
+.health-fill {
+  height: 100%;
+  background: #ff0000;
+  transition: width 0.3s ease;
+}
 
-  .character.attack {
-    animation: attack 0.5s ease;
-  }
+.character.attack {
+  animation: attack 0.5s ease;
+}
 
-  .character.hurt {
-    animation: hurt 0.5s ease;
-  }
+.character.hurt {
+  animation: hurt 0.5s ease;
+}
 
-  .character-avatar {
-    width: 60px;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    font-weight: bold;
-    margin: 10px 0;
-    color: #fff;
-  }
+.character-avatar {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  margin: 10px 0;
+  color: #fff;
+}
 
-  .player-avatar {
-    background: linear-gradient(135deg, #4caf50, #2196f3);
-    border-radius: 12px;
-  }
+.player-avatar {
+  background: linear-gradient(135deg, #4caf50, #2196f3);
+  border-radius: 12px;
+}
 
-  .enemy-avatar {
-    background: linear-gradient(135deg, #ff5722, #e91e63);
-    clip-path: polygon(50% 0%, 100% 38%, 100% 100%, 0 100%, 0% 38%);
-  }
+.enemy-avatar {
+  background: linear-gradient(135deg, #ff5722, #e91e63);
+  clip-path: polygon(50% 0%, 100% 38%, 100% 100%, 0 100%, 0% 38%);
+}
 
-  .attack-effect {
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    pointer-events: none;
-  }
+.attack-effect {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  pointer-events: none;
+}
 
-  .player-effect {
-    background: radial-gradient(circle, #4caf50, #2196f3);
-    animation: player-attack-effect 0.5s ease-out;
-    right: -10px;
-  }
+.player-effect {
+  background: radial-gradient(circle, #4caf50, #2196f3);
+  animation: player-attack-effect 0.5s ease-out;
+  right: -10px;
+}
 
-  .enemy-effect {
-    background: radial-gradient(circle, #ff5722, #e91e63);
-    animation: enemy-attack-effect 0.5s ease-out;
-    left: -10px;
-  }
+.enemy-effect {
+  background: radial-gradient(circle, #ff5722, #e91e63);
+  animation: enemy-attack-effect 0.5s ease-out;
+  left: -10px;
+}
 
-  .enemy.attack {
-    animation: enemy-attack 0.5s ease;
-  }
+.enemy.attack {
+  animation: enemy-attack 0.5s ease;
+}
 
-  @keyframes player-attack-effect {
-    0% {
-      transform: scale(0.5) translateX(0);
-      opacity: 1;
-    }
-    100% {
-      transform: scale(1.5) translateX(200px);
-      opacity: 0;
-    }
+@keyframes player-attack-effect {
+  0% {
+    transform: scale(0.5) translateX(0);
+    opacity: 1;
   }
+  100% {
+    transform: scale(1.5) translateX(200px);
+    opacity: 0;
+  }
+}
 
-  @keyframes enemy-attack-effect {
-    0% {
-      transform: scale(0.5) translateX(0);
-      opacity: 1;
-    }
-    100% {
-      transform: scale(1.5) translateX(-200px);
-      opacity: 0;
-    }
+@keyframes enemy-attack-effect {
+  0% {
+    transform: scale(0.5) translateX(0);
+    opacity: 1;
   }
+  100% {
+    transform: scale(1.5) translateX(-200px);
+    opacity: 0;
+  }
+}
 
-  @keyframes attack {
-    0% {
-      transform: translateX(0) rotate(0deg);
-    }
-    25% {
-      transform: translateX(20px) rotate(5deg);
-    }
-    50% {
-      transform: translateX(40px) rotate(0deg);
-    }
-    75% {
-      transform: translateX(20px) rotate(-5deg);
-    }
-    100% {
-      transform: translateX(0) rotate(0deg);
-    }
+@keyframes attack {
+  0% {
+    transform: translateX(0) rotate(0deg);
   }
+  25% {
+    transform: translateX(20px) rotate(5deg);
+  }
+  50% {
+    transform: translateX(40px) rotate(0deg);
+  }
+  75% {
+    transform: translateX(20px) rotate(-5deg);
+  }
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+}
 
-  @keyframes hurt {
-    0% {
-      transform: translateX(0);
-    }
-    25% {
-      transform: translateX(-10px);
-    }
-    75% {
-      transform: translateX(10px);
-    }
-    100% {
-      transform: translateX(0);
-    }
+@keyframes hurt {
+  0% {
+    transform: translateX(0);
   }
+  25% {
+    transform: translateX(-10px);
+  }
+  75% {
+    transform: translateX(10px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
 
-  @keyframes enemy-attack {
-    0% {
-      transform: translateX(0) rotate(0deg);
-    }
-    25% {
-      transform: translateX(-20px) rotate(-5deg);
-    }
-    50% {
-      transform: translateX(-40px) rotate(0deg);
-    }
-    75% {
-      transform: translateX(-20px) rotate(5deg);
-    }
-    100% {
-      transform: translateX(0) rotate(0deg);
-    }
+@keyframes enemy-attack {
+  0% {
+    transform: translateX(0) rotate(0deg);
   }
+  25% {
+    transform: translateX(-20px) rotate(-5deg);
+  }
+  50% {
+    transform: translateX(-40px) rotate(0deg);
+  }
+  75% {
+    transform: translateX(-20px) rotate(5deg);
+  }
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+}
 </style>

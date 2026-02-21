@@ -143,7 +143,9 @@ console.log("[SAVE DEBUG]", req.user.wallet.slice(-4), "level:", level, "realm:"
       : (current.rows[0].game_data || {});
     
     // Server-managed fields: use DB values, never accept frontend overwrite
-    const serverManagedFields = ['spiritStones', 'items', 'reinforceStones', 'refinementStones', 'petEssence', 
+    const serverManagedFields = [
+      'dungeonHighestFloor', 'dungeonHighestFloor_2', 'dungeonHighestFloor_5', 'dungeonHighestFloor_10', 'dungeonHighestFloor_100',
+      'dungeonTotalKills', 'dungeonBossKills', 'dungeonEliteKills', 'dungeonTotalRewards', 'dungeonTotalRuns', 'dungeonDeathCount', 'dungeonLastFailedFloor','spiritStones', 'items', 'reinforceStones', 'refinementStones', 'petEssence', 
       'purchasedPacks', 'buffs', 'herbs', 'pillRecipes', 'pillFragments',
       'storageExpand', 'autoSellQualities', 'autoReleaseRarities'];
     
@@ -196,7 +198,9 @@ console.log("[SAVE DEBUG]", req.user.wallet.slice(-4), "level:", level, "realm:"
       ? JSON.parse(current.rows[0].game_data)
       : (current.rows[0].game_data || {});
 
-    const serverManagedFields = ['spiritStones', 'items', 'reinforceStones', 'refinementStones', 'petEssence',
+    const serverManagedFields = [
+      'dungeonHighestFloor', 'dungeonHighestFloor_2', 'dungeonHighestFloor_5', 'dungeonHighestFloor_10', 'dungeonHighestFloor_100',
+      'dungeonTotalKills', 'dungeonBossKills', 'dungeonEliteKills', 'dungeonTotalRewards', 'dungeonTotalRuns', 'dungeonDeathCount', 'dungeonLastFailedFloor','spiritStones', 'items', 'reinforceStones', 'refinementStones', 'petEssence',
       'purchasedPacks', 'buffs', 'herbs', 'pillRecipes', 'pillFragments',
       'storageExpand', 'autoSellQualities', 'autoReleaseRarities'];
 

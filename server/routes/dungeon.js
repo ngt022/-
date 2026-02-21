@@ -9,7 +9,7 @@ const DIFFICULTY_MULTIPLIERS = {
   2: { name: '普通', multiplier: 2 },
   5: { name: '困难', multiplier: 5 },
   10: { name: '地狱', multiplier: 10 },
-  25: { name: '通天', multiplier: 25 }
+  100: { name: '通天', multiplier: 100 }
 }
 
 // 增益选项池
@@ -270,7 +270,7 @@ function registerDungeonRoutes(app, pool, auth) {
       
       // 创建战斗实体
       const playerStats = { ...dungeon.playerStats, health: dungeon.playerHealth }
-      const player = new CombatEntity(player.name || '修士', dungeon.floor, playerStats, player.realm || '燃火期一层')
+      const player = new CombatEntity(dungeon.playerName || '修士', dungeon.floor, playerStats, dungeon.playerRealm || '燃火期一层')
       player.currentHealth = dungeon.playerHealth
       
       const isBossFloor = dungeon.floor % 10 === 0
@@ -286,18 +286,18 @@ function registerDungeonRoutes(app, pool, auth) {
       dungeon.playerHealth = combatResult.finalPlayerHealth
       dungeon.inCombat = false
       
-      // 计算奖励
+      // 计算奖励（仅计算，不发放）
       let rewards = {}
       if (combatResult.result === 'victory') {
         const diffMult = DIFFICULTY_MULTIPLIERS[dungeon.difficulty].multiplier
-        let spiritStones = (30 * dungeon.floor + Math.floor(dungeon.floor * dungeon.floor * 0.5)) * diffMult
+        let spiritStones = (10 * dungeon.floor) * diffMult
         if (isBossFloor) spiritStones = Math.floor(spiritStones * 2)
         else if (isEliteFloor) spiritStones = Math.floor(spiritStones * 1.5)
         rewards = { spiritStones }
         
-        // 精英怪额外奖励符文石
+        // 精英怪额外奖励洗练石
         if (isEliteFloor && !isBossFloor) {
-          rewards.runeStones = dungeon.difficulty
+          rewards.refinementStones = dungeon.difficulty
         }
       }
       
@@ -308,6 +308,112 @@ function registerDungeonRoutes(app, pool, auth) {
         playerHealth: combatResult.finalPlayerHealth,
         enemyHealth: combatResult.finalEnemyHealth,
         floor: dungeon.floor
+      })
+    } catch (e) {
+      res.status(500).json({ error: e.message })
+    }
+  })
+
+  // ========== 新增：领取奖励接口（防作弊）==========
+  app.post('/api/dungeon/claim', auth, async (req, res) => {
+    try {
+      const { floor, result, difficulty } = req.body
+      const wallet = req.user.wallet
+      
+      if (!floor || !result || !difficulty) {
+        return res.status(400).json({ error: '参数缺失' })
+      }
+      
+      if (result !== 'victory') {
+        return res.status(400).json({ error: '只有胜利才能领取奖励' })
+      }
+      
+      if (!DIFFICULTY_MULTIPLIERS[difficulty]) {
+        return res.status(400).json({ error: '无效的难度' })
+      }
+      
+      // 服务端重新计算奖励（防止前端作弊）
+      const isBossFloor = floor % 10 === 0
+      const isEliteFloor = floor % 5 === 0
+      const diffMult = DIFFICULTY_MULTIPLIERS[difficulty].multiplier
+      
+      // 灵石奖励公式：10 * floor * difficulty
+      let spiritStones = (10 * floor) * diffMult
+      if (isBossFloor) spiritStones = Math.floor(spiritStones * 2)
+      else if (isEliteFloor) spiritStones = Math.floor(spiritStones * 1.5)
+      
+      const rewards = {
+        spiritStones,
+        refinementStones: 0
+      }
+      
+      // 精英楼层额外奖励洗练石
+      if (isEliteFloor && !isBossFloor) {
+        rewards.refinementStones = difficulty
+      }
+      
+      // 获取玩家当前数据
+      const playerResult = await pool.query('SELECT game_data FROM players WHERE wallet = $1', [wallet])
+      if (playerResult.rows.length === 0) {
+        return res.status(404).json({ error: '玩家不存在' })
+      }
+      
+      const gameData = typeof playerResult.rows[0].game_data === 'string' 
+        ? JSON.parse(playerResult.rows[0].game_data) 
+        : (playerResult.rows[0].game_data || {})
+      
+      // 发放奖励到数据库
+      const currentStones = gameData.spiritStones || 0
+      const currentRefinement = gameData.refinementStones || 0
+      
+      gameData.spiritStones = currentStones + rewards.spiritStones
+      if (rewards.refinementStones > 0) {
+        gameData.refinementStones = currentRefinement + rewards.refinementStones
+      }
+      
+      // 更新统计数据
+      gameData.dungeonTotalKills = (gameData.dungeonTotalKills || 0) + 1
+      gameData.dungeonTotalRewards = (gameData.dungeonTotalRewards || 0) + rewards.spiritStones
+      
+      if (isBossFloor) {
+        gameData.dungeonBossKills = (gameData.dungeonBossKills || 0) + 1
+      } else if (isEliteFloor) {
+        gameData.dungeonEliteKills = (gameData.dungeonEliteKills || 0) + 1
+      }
+      
+      // 更新最高层数记录
+      const floorKeyMap = {
+        1: 'dungeonHighestFloor',
+        2: 'dungeonHighestFloor_2',
+        5: 'dungeonHighestFloor_5',
+        10: 'dungeonHighestFloor_10',
+        100: 'dungeonHighestFloor_100'
+      }
+      const floorKey = floorKeyMap[difficulty] || 'dungeonHighestFloor'
+      const currentHighest = gameData[floorKey] || 0
+      if (floor > currentHighest) {
+        gameData[floorKey] = floor
+      }
+      
+      // 保存到数据库
+      await pool.query(
+        `UPDATE players SET 
+         game_data = $1,
+         spirit_stones = $2
+         WHERE wallet = $3`,
+        [JSON.stringify(gameData), gameData.spiritStones, wallet]
+      )
+      
+      res.json({
+        ok: true,
+        rewards: {
+          spiritStones: rewards.spiritStones,
+          refinementStones: rewards.refinementStones
+        },
+        newTotal: {
+          spiritStones: gameData.spiritStones,
+          refinementStones: gameData.refinementStones
+        }
       })
     } catch (e) {
       res.status(500).json({ error: e.message })
