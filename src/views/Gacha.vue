@@ -61,7 +61,8 @@
           </div>
           <div class="gacha-tool-row">
             <n-button quaternary circle size="small" @click="showProbabilityInfo = true">
-              <template #icon><n-icon><Help /></n-icon></template>
+              <template #icon><n-icon><Help /></n-icon>  <GuideTooltip v-if="showGuide" v-bind="guideTexts.gacha || {}" @dismiss="dismissGuide" />
+</template>
             </n-button>
             <n-button quaternary circle size="small" @click="showWishlistSettings = true">
               <template #icon><n-icon><HeartOutline /></n-icon></template>
@@ -312,6 +313,8 @@
 </template>
 
 <script setup>
+import { hasSeenGuide, markGuideSeen, guideTexts } from "../utils/guide.js"
+import GuideTooltip from "../components/GuideTooltip.vue"
 import { usePlayerStore } from '../stores/player'
 import { useAuthStore } from '../stores/auth'
 import { ref, onMounted, computed, watch } from 'vue'
@@ -320,6 +323,8 @@ import { Help, HeartOutline, SettingsOutline } from '@vicons/ionicons5'
 import sfx from '../plugins/sfx'
 import GameGuide from '../components/GameGuide.vue'
 
+const showGuide = ref(!hasSeenGuide("gacha"))
+const dismissGuide = () => { markGuideSeen("gacha"); showGuide.value = false }
 const playerStore = usePlayerStore()
 const authStore = useAuthStore()
 const message = useMessage()

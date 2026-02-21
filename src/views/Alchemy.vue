@@ -41,7 +41,8 @@
             </n-card>
           </n-grid-item>
         </n-grid>
-      </template>
+        <GuideTooltip v-if="showGuide" v-bind="guideTexts.alchemy || {}" @dismiss="dismissGuide" />
+</template>
       <n-space vertical v-else>
         <n-empty description="暂未掌握任何焰方" />
       </n-space>
@@ -106,6 +107,8 @@
 </template>
 
 <script setup>
+import { hasSeenGuide, markGuideSeen, guideTexts } from "../utils/guide.js"
+import GuideTooltip from "../components/GuideTooltip.vue"
   import { ref, computed } from 'vue'
   import { usePlayerStore } from '../stores/player'
   import { useAuthStore } from '../stores/auth'
@@ -114,7 +117,9 @@
   import LogPanel from '../components/LogPanel.vue'
   import GameGuide from '../components/GameGuide.vue'
 
-  const playerStore = usePlayerStore()
+  const showGuide = ref(!hasSeenGuide("alchemy"))
+const dismissGuide = () => { markGuideSeen("alchemy"); showGuide.value = false }
+const playerStore = usePlayerStore()
   const authStore = useAuthStore()
   const logRef = ref(null)
 

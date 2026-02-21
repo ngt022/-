@@ -93,10 +93,13 @@
     </n-space>
     <log-panel ref="logRef" title="探索日志" />
   </div>
+  <GuideTooltip v-if="showGuide" v-bind="guideTexts.exploration || {}" @dismiss="dismissGuide" />
 </template>
 
 <script setup>
 import img from '../utils/img.js'
+import { hasSeenGuide, markGuideSeen, guideTexts } from '../utils/guide.js'
+import GuideTooltip from '../components/GuideTooltip.vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import { useAuthStore } from '../stores/auth'
@@ -107,6 +110,8 @@ import LogPanel from '../components/LogPanel.vue'
 import GameGuide from '../components/GameGuide.vue'
 
 const logRef = ref(null)
+const showGuide = ref(!hasSeenGuide("exploration"))
+const dismissGuide = () => { markGuideSeen("exploration"); showGuide.value = false }
 const playerStore = usePlayerStore()
 const authStore = useAuthStore()
 const selectedLocation = ref(null)

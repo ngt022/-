@@ -28,7 +28,8 @@
             <n-card title="📜 焰盟列表" class="gold-card">
               <template #header-extra>
                 <n-input v-model:value="searchKey" placeholder="搜索焰盟" size="small" style="width:160px" clearable @update:value="loadSectList" />
-              </template>
+                <GuideTooltip v-if="showGuide" v-bind="guideTexts.sect || {}" @dismiss="dismissGuide" />
+</template>
               <n-data-table :columns="listColumns" :data="sectList" :bordered="false" size="small" :loading="listLoading" />
             </n-card>
           </n-space>
@@ -146,12 +147,16 @@
 </template>
 
 <script setup>
+import { hasSeenGuide, markGuideSeen, guideTexts } from "../utils/guide.js"
+import GuideTooltip from "../components/GuideTooltip.vue"
 import { ref, computed, onMounted, h } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { usePlayerStore } from '../stores/player'
 import { NButton, NTag, createDiscreteApi } from 'naive-ui'
 import GameGuide from '../components/GameGuide.vue'
 
+const showGuide = ref(!hasSeenGuide("sect"))
+const dismissGuide = () => { markGuideSeen("sect"); showGuide.value = false }
 const authStore = useAuthStore()
 const playerStore = usePlayerStore()
 const { message } = createDiscreteApi(['message'])

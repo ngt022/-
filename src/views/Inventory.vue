@@ -236,7 +236,8 @@
                 <n-button size="small" @click="cancelReleasePet">取消</n-button>
                 <n-button size="small" type="error" @click="releasePet">确认放生</n-button>
               </n-space>
-            </template>
+              <GuideTooltip v-if="showGuide" v-bind="guideTexts.inventory || {}" @dismiss="dismissGuide" />
+</template>
           </n-modal>
         </n-space>
       </n-space>
@@ -348,6 +349,8 @@
 
 <script setup>
 import img from '../utils/img.js'
+import { hasSeenGuide, markGuideSeen, guideTexts } from '../utils/guide.js'
+import GuideTooltip from '../components/GuideTooltip.vue'
   import { usePlayerStore } from '../stores/player'
   import { useAuthStore } from '../stores/auth'
   import { ref, computed, onMounted } from 'vue'
@@ -470,7 +473,9 @@ import img from '../utils/img.js'
   }
   const getFormulaImage = (name) => formulaImageMap[name] || null
 
-  const playerStore = usePlayerStore()
+  const showGuide = ref(!hasSeenGuide("inventory"))
+const dismissGuide = () => { markGuideSeen("inventory"); showGuide.value = false }
+const playerStore = usePlayerStore()
   const authStore = useAuthStore()
   const message = useMessage()
 
