@@ -288,7 +288,7 @@
       { label: '焰盟战', key: 'sect-war', icon: renderIcon(Flash) },
       { label: '焰友', key: 'friends', icon: renderIcon(SmileOutlined) },
       { label: '焰榜', key: 'rank', icon: renderIcon(BarChartOutlined) },
-      { label: '📬邮件', key: 'mail', icon: renderIcon(SmileOutlined) },
+      { label: () => h('span', {}, ['📬邮件', unreadMail.value > 0 ? h('span', {style:'background:#f00;color:#fff;border-radius:50%;padding:0 5px;font-size:10px;margin-left:4px'}, unreadMail.value) : null]), key: 'mail', icon: renderIcon(SmileOutlined) },
       { label: '设置', key: 'settings', icon: renderIcon(SettingOutlined) },
       ...(authStore.wallet?.toLowerCase() === "0xfad7eb0814b6838b05191a07fb987957d50c4ca9" ? [{ label: "后台管理", key: "admin", icon: renderIcon(SettingOutlined) }, { label: "活动管理", key: "admin/events", icon: renderIcon(SettingOutlined) }] : []),
       ...(playerStore.isGMMode
@@ -388,6 +388,19 @@
     }
   })
 // 登录后公告弹窗（每天弹一次）
+const unreadMail = ref(0)
+const fetchUnreadMail = async () => {
+  const token = localStorage.getItem('xx_token')
+  if (!token) return
+  try {
+    const res = await fetch('/api/mail/unread', { headers: { Authorization: 'Bearer ' + token } })
+    const d = await res.json()
+    unreadMail.value = d.unread || 0
+  } catch (e) {}
+}
+// 每60秒刷新未读数
+setInterval(fetchUnreadMail, 60000)
+
 const showAnnouncementPopup = ref(false)
 const popupAnnouncements = ref([])
 
@@ -408,7 +421,7 @@ const checkAnnouncementPopup = async () => {
 }
 
 // 登录成功后检查公告
-watch(() => authStore.wallet, (w) => { if (w) setTimeout(checkAnnouncementPopup, 1500) }, { immediate: true })
+watch(() => authStore.wallet, (w) => { if (w) { setTimeout(checkAnnouncementPopup, 1500); setTimeout(fetchUnreadMail, 500) } }, { immediate: true })
 
 </script>
 

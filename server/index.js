@@ -4063,6 +4063,13 @@ app.get('/api/stats/server', auth, async (req, res) => {
 
 // === 邮件系统 ===
 // 获取邮件列表
+app.get('/api/mail/unread', auth, async (req, res) => {
+  try {
+    const r = await pool.query('SELECT COUNT(*) as c FROM player_mail WHERE to_wallet=$1 AND is_read=false AND (expires_at IS NULL OR expires_at > NOW())', [req.user.wallet]);
+    res.json({ unread: +r.rows[0].c });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
 app.get('/api/mail/list', auth, async (req, res) => {
   try {
     const w = req.user.wallet;
