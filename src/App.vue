@@ -77,7 +77,13 @@
       </n-dialog-provider>
     </n-message-provider>
   </n-config-provider>
-</template>
+  <n-modal v-model:show="showAnnouncementPopup" preset="card" title="📢 今日公告" style="max-width:400px">
+      <div v-for="a in popupAnnouncements" :key="a.id" style="padding:8px 0;border-bottom:1px solid #333">
+        <n-tag :type="a.type==='event'?'warning':a.type==='promo'?'success':'info'" size="small" style="margin-right:8px">{{ a.type==='event'?'活动':a.type==='promo'?'促销':'公告' }}</n-tag>
+        {{ a.content }}
+      </div>
+    </n-modal>
+  </template>
 
 <script setup>
   import { useRouter, useRoute } from 'vue-router'
@@ -381,6 +387,29 @@
       e.returnValue = '你有未保存的游戏数据，确定要离开吗？'
     }
   })
+// 登录后公告弹窗（每天弹一次）
+const showAnnouncementPopup = ref(false)
+const popupAnnouncements = ref([])
+
+const checkAnnouncementPopup = async () => {
+  const today = new Date().toISOString().split('T')[0]
+  const lastShown = localStorage.getItem('xx_announce_date')
+  if (lastShown === today) return
+  try {
+    const res = await fetch('/api/announcements')
+    const data = await res.json()
+    const list = Array.isArray(data) ? data : (data?.announcements || data?.data || [])
+    if (list.length > 0) {
+      popupAnnouncements.value = list.slice(0, 5)
+      showAnnouncementPopup.value = true
+      localStorage.setItem('xx_announce_date', today)
+    }
+  } catch (e) {}
+}
+
+// 登录成功后检查公告
+watch(() => authStore.wallet, (w) => { if (w) setTimeout(checkAnnouncementPopup, 1500) }, { immediate: true })
+
 </script>
 
 <style>
