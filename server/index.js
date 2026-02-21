@@ -755,22 +755,22 @@ app.get('/api/announcements', async (req, res) => {
 });
 
 
-// === 宗门系统 ===
+// === 焰盟系统 ===
 const SECT_LEVEL_EXP = [0, 1000, 3000, 8000, 20000, 50000, 100000, 200000, 500000, 1000000];
 const SECT_TASK_POOL = {
   daily: [
     { title: '焰气采集', description: '采集天地焰气，为焰盟积蓄力量', reward_contribution: 10, reward_stones: 200 },
-    { title: '巡山护法', description: '巡视宗门山门，驱逐妖兽', reward_contribution: 15, reward_stones: 300 },
-    { title: '阵法维护', description: '维护宗门护山大阵', reward_contribution: 12, reward_stones: 250 },
-    { title: '丹药炼制', description: '为宗门炼制基础丹药', reward_contribution: 20, reward_stones: 400 },
+    { title: '巡山护法', description: '巡视焰盟山门，驱逐妖兽', reward_contribution: 15, reward_stones: 300 },
+    { title: '阵法维护', description: '维护焰盟护山大阵', reward_contribution: 12, reward_stones: 250 },
+    { title: '丹药炼制', description: '为焰盟炼制基础焰丹', reward_contribution: 20, reward_stones: 400 },
     { title: '弟子指导', description: '指导新入门弟子修炼', reward_contribution: 8, reward_stones: 150 },
-    { title: '灵田耕种', description: '打理宗门灵田', reward_contribution: 10, reward_stones: 200 },
+    { title: '焰田耕种', description: '打理焰盟焰田', reward_contribution: 10, reward_stones: 200 },
   ],
   weekly: [
-    { title: '秘境探索', description: '探索宗门秘境，寻找珍稀资源', reward_contribution: 50, reward_stones: 1500 },
-    { title: '宗门大比', description: '参加宗门内部切磋大比', reward_contribution: 80, reward_stones: 2000 },
-    { title: '妖兽讨伐', description: '讨伐威胁宗门的强大妖兽', reward_contribution: 60, reward_stones: 1800 },
-    { title: '资源运送', description: '护送珍贵资源回宗门', reward_contribution: 70, reward_stones: 2500 },
+    { title: '秘境探索', description: '探索焰盟秘境，寻找珍稀资源', reward_contribution: 50, reward_stones: 1500 },
+    { title: '焰盟大比', description: '参加焰盟内部切磋大比', reward_contribution: 80, reward_stones: 2000 },
+    { title: '妖兽讨伐', description: '讨伐威胁焰盟的强大妖兽', reward_contribution: 60, reward_stones: 1800 },
+    { title: '资源运送', description: '护送珍贵资源回焰盟', reward_contribution: 70, reward_stones: 2500 },
   ]
 };
 
@@ -829,9 +829,9 @@ async function checkSectLevelUp(sectId) {
 app.post('/api/sect/create', auth, async (req, res) => {
   try {
     const { name, description } = req.body;
-    if (!name || name.length < 2 || name.length > 20) return res.status(400).json({ error: '宗门名称2-20字' });
+    if (!name || name.length < 2 || name.length > 20) return res.status(400).json({ error: '焰盟名称2-20字' });
     const existing = await pool.query('SELECT id FROM sect_members WHERE wallet=$1', [req.user.wallet]);
-    if (existing.rows.length > 0) return res.status(400).json({ error: '你已加入宗门' });
+    if (existing.rows.length > 0) return res.status(400).json({ error: '你已加入焰盟' });
     const player = await pool.query('SELECT spirit_stones, game_data FROM players WHERE wallet=$1', [req.user.wallet]);
     if (!player.rows.length) return res.status(400).json({ error: '玩家不存在' });
     const gameData = typeof player.rows[0].game_data === 'string' ? JSON.parse(player.rows[0].game_data) : player.rows[0].game_data;
@@ -851,7 +851,7 @@ app.post('/api/sect/create', auth, async (req, res) => {
     );
     res.json({ ok: true, sect: sect.rows[0] });
   } catch (e) {
-    if (e.code === '23505') return res.status(400).json({ error: '宗门名称已存在' });
+    if (e.code === '23505') return res.status(400).json({ error: '焰盟名称已存在' });
     res.status(500).json({ error: e.message });
   }
 });
@@ -891,13 +891,13 @@ app.get('/api/sect/list', auth, async (req, res) => {
 app.post('/api/sect/join', auth, async (req, res) => {
   try {
     const { sectId } = req.body;
-    if (!sectId || isNaN(parseInt(sectId))) return res.status(400).json({ error: '无效的宗门ID' });
+    if (!sectId || isNaN(parseInt(sectId))) return res.status(400).json({ error: '无效的焰盟ID' });
     const existing = await pool.query('SELECT id FROM sect_members WHERE wallet=$1', [req.user.wallet]);
-    if (existing.rows.length > 0) return res.status(400).json({ error: '你已加入宗门' });
+    if (existing.rows.length > 0) return res.status(400).json({ error: '你已加入焰盟' });
     const sect = await pool.query('SELECT * FROM sects WHERE id=$1', [sectId]);
-    if (!sect.rows.length) return res.status(400).json({ error: '宗门不存在' });
+    if (!sect.rows.length) return res.status(400).json({ error: '焰盟不存在' });
     const count = await pool.query('SELECT COUNT(*) FROM sect_members WHERE sect_id=$1', [sectId]);
-    if (parseInt(count.rows[0].count) >= sect.rows[0].max_members) return res.status(400).json({ error: '宗门已满' });
+    if (parseInt(count.rows[0].count) >= sect.rows[0].max_members) return res.status(400).json({ error: '焰盟已满' });
     await pool.query('INSERT INTO sect_members (sect_id, wallet, role) VALUES ($1,$2,$3)', [sectId, req.user.wallet, 'member']);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -907,7 +907,7 @@ app.post('/api/sect/join', auth, async (req, res) => {
 app.post('/api/sect/leave', auth, async (req, res) => {
   try {
     const mem = await pool.query('SELECT * FROM sect_members WHERE wallet=$1', [req.user.wallet]);
-    if (!mem.rows.length) return res.status(400).json({ error: '你未加入宗门' });
+    if (!mem.rows.length) return res.status(400).json({ error: '你未加入焰盟' });
     if (mem.rows[0].role === 'leader') return res.status(400).json({ error: '掌门不能退出，请先转让掌门' });
     await pool.query('DELETE FROM sect_members WHERE wallet=$1', [req.user.wallet]);
     res.json({ ok: true });
@@ -921,7 +921,7 @@ app.post('/api/sect/kick', auth, async (req, res) => {
     const me = await pool.query('SELECT * FROM sect_members WHERE wallet=$1', [req.user.wallet]);
     if (!me.rows.length || (me.rows[0].role !== 'leader' && me.rows[0].role !== 'elder')) return res.status(403).json({ error: '权限不足' });
     const target = await pool.query('SELECT * FROM sect_members WHERE wallet=$1 AND sect_id=$2', [wallet, me.rows[0].sect_id]);
-    if (!target.rows.length) return res.status(400).json({ error: '该玩家不在宗门中' });
+    if (!target.rows.length) return res.status(400).json({ error: '该玩家不在焰盟中' });
     if (target.rows[0].role === 'leader') return res.status(400).json({ error: '不能踢掌门' });
     if (me.rows[0].role === 'elder' && target.rows[0].role === 'elder') return res.status(400).json({ error: '长老不能踢长老' });
     await pool.query('DELETE FROM sect_members WHERE wallet=$1', [wallet]);
@@ -936,7 +936,7 @@ app.post('/api/sect/promote', auth, async (req, res) => {
     const me = await pool.query('SELECT * FROM sect_members WHERE wallet=$1', [req.user.wallet]);
     if (!me.rows.length || me.rows[0].role !== 'leader') return res.status(403).json({ error: '只有掌门可以升职' });
     const target = await pool.query('SELECT * FROM sect_members WHERE wallet=$1 AND sect_id=$2', [wallet, me.rows[0].sect_id]);
-    if (!target.rows.length) return res.status(400).json({ error: '该玩家不在宗门中' });
+    if (!target.rows.length) return res.status(400).json({ error: '该玩家不在焰盟中' });
     if (target.rows[0].role === 'leader') return res.status(400).json({ error: '已是掌门' });
     if (target.rows[0].role === 'elder') return res.status(400).json({ error: '已是长老' });
     await pool.query('UPDATE sect_members SET role=$1 WHERE wallet=$2', ['elder', wallet]);
@@ -951,7 +951,7 @@ app.post('/api/sect/demote', auth, async (req, res) => {
     const me = await pool.query('SELECT * FROM sect_members WHERE wallet=$1', [req.user.wallet]);
     if (!me.rows.length || me.rows[0].role !== 'leader') return res.status(403).json({ error: '只有掌门可以降职' });
     const target = await pool.query('SELECT * FROM sect_members WHERE wallet=$1 AND sect_id=$2', [wallet, me.rows[0].sect_id]);
-    if (!target.rows.length) return res.status(400).json({ error: '该玩家不在宗门中' });
+    if (!target.rows.length) return res.status(400).json({ error: '该玩家不在焰盟中' });
     if (target.rows[0].role !== 'elder') return res.status(400).json({ error: '只能降职长老' });
     await pool.query('UPDATE sect_members SET role=$1 WHERE wallet=$2', ['member', wallet]);
     res.json({ ok: true });
@@ -974,7 +974,7 @@ app.post('/api/sect/announcement', auth, async (req, res) => {
 app.get('/api/sect/tasks', auth, async (req, res) => {
   try {
     const mem = await pool.query('SELECT * FROM sect_members WHERE wallet=$1', [req.user.wallet]);
-    if (!mem.rows.length) return res.status(400).json({ error: '你未加入宗门' });
+    if (!mem.rows.length) return res.status(400).json({ error: '你未加入焰盟' });
     await ensureSectTasks(mem.rows[0].sect_id);
     const tasks = await pool.query('SELECT * FROM sect_tasks WHERE sect_id=$1 ORDER BY type, id', [mem.rows[0].sect_id]);
     res.json({ tasks: tasks.rows });
@@ -986,7 +986,7 @@ app.post('/api/sect/tasks/:id/complete', auth, async (req, res) => {
   try {
     const taskId = req.params.id;
     const mem = await pool.query('SELECT * FROM sect_members WHERE wallet=$1', [req.user.wallet]);
-    if (!mem.rows.length) return res.status(400).json({ error: '你未加入宗门' });
+    if (!mem.rows.length) return res.status(400).json({ error: '你未加入焰盟' });
     const task = await pool.query('SELECT * FROM sect_tasks WHERE id=$1 AND sect_id=$2', [taskId, mem.rows[0].sect_id]);
     if (!task.rows.length) return res.status(400).json({ error: '任务不存在' });
     const completedBy = task.rows[0].completed_by || [];
@@ -1011,7 +1011,7 @@ app.post('/api/sect/donate', auth, async (req, res) => {
     const { amount } = req.body;
     if (!amount || amount < 100) return res.status(400).json({ error: '最少捐献100焰晶' });
     const mem = await pool.query('SELECT * FROM sect_members WHERE wallet=$1', [req.user.wallet]);
-    if (!mem.rows.length) return res.status(400).json({ error: '你未加入宗门' });
+    if (!mem.rows.length) return res.status(400).json({ error: '你未加入焰盟' });
     const player = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [req.user.wallet]);
     const gameData = typeof player.rows[0].game_data === 'string' ? JSON.parse(player.rows[0].game_data) : player.rows[0].game_data;
     const stones = gameData?.spiritStones ?? 0;
@@ -1032,7 +1032,7 @@ app.get('/api/sect/members', auth, async (req, res) => {
   try {
     const { sectId } = req.query;
     const id = sectId || (await pool.query('SELECT sect_id FROM sect_members WHERE wallet=$1', [req.user.wallet])).rows[0]?.sect_id;
-    if (!id) return res.status(400).json({ error: '未指定宗门' });
+    if (!id) return res.status(400).json({ error: '未指定焰盟' });
     const members = await pool.query(
       `SELECT sm.wallet, sm.role, sm.contribution, sm.joined_at, p.name, p.level, p.realm, p.combat_power
        FROM sect_members sm LEFT JOIN players p ON sm.wallet = p.wallet WHERE sm.sect_id=$1 ORDER BY sm.role='leader' DESC, sm.role='elder' DESC, sm.contribution DESC`,
@@ -2019,9 +2019,9 @@ app.post("/api/friend/add", auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ============ 宗门战系统 ============
+// ============ 焰盟战系统 ============
 
-// POST /api/sect-war/challenge - 发起宗门战
+// POST /api/sect-war/challenge - 发起焰盟战
 app.post('/api/sect-war/challenge', auth, async (req, res) => {
   try {
     const { defender_sect_id } = req.body;
@@ -2030,19 +2030,19 @@ app.post('/api/sect-war/challenge', auth, async (req, res) => {
 
     // 检查身份：掌门或长老
     const mem = await pool.query('SELECT sect_id, role FROM sect_members WHERE wallet=$1', [w]);
-    if (!mem.rows.length) return res.status(400).json({ error: '你还没有加入宗门' });
+    if (!mem.rows.length) return res.status(400).json({ error: '你还没有加入焰盟' });
     const { sect_id, role } = mem.rows[0];
-    if (role !== 'leader' && role !== 'elder') return res.status(400).json({ error: '只有掌门或长老才能发起宗门战' });
+    if (role !== 'leader' && role !== 'elder') return res.status(400).json({ error: '只有掌门或长老才能发起焰盟战' });
 
-    if (sect_id === defender_sect_id) return res.status(400).json({ error: '不能挑战自己的宗门' });
+    if (sect_id === defender_sect_id) return res.status(400).json({ error: '不能挑战自己的焰盟' });
 
-    // 对方宗门至少3人
+    // 对方焰盟至少3人
     const defCount = await pool.query('SELECT COUNT(*) FROM sect_members WHERE sect_id=$1', [defender_sect_id]);
-    if (parseInt(defCount.rows[0].count) < 3) return res.status(400).json({ error: '对方宗门人数不足3人，无法挑战' });
+    if (parseInt(defCount.rows[0].count) < 3) return res.status(400).json({ error: '对方焰盟人数不足3人，无法挑战' });
 
-    // 己方宗门至少3人
+    // 己方焰盟至少3人
     const myCount = await pool.query('SELECT COUNT(*) FROM sect_members WHERE sect_id=$1', [sect_id]);
-    if (parseInt(myCount.rows[0].count) < 3) return res.status(400).json({ error: '本宗门人数不足3人，无法发起挑战' });
+    if (parseInt(myCount.rows[0].count) < 3) return res.status(400).json({ error: '本焰盟人数不足3人，无法发起挑战' });
 
     // 每天最多3次
     const today = new Date(); today.setHours(0,0,0,0);
@@ -2052,18 +2052,18 @@ app.post('/api/sect-war/challenge', auth, async (req, res) => {
     );
     if (parseInt(dailyCount.rows[0].count) >= 3) return res.status(400).json({ error: '今日挑战次数已用完(3/3)' });
 
-    // 检查是否有进行中的宗门战
+    // 检查是否有进行中的焰盟战
     const ongoing = await pool.query(
       "SELECT id FROM sect_wars WHERE (challenger_sect_id=$1 OR defender_sect_id=$1) AND status IN ('pending','in_progress')",
       [sect_id]
     );
-    if (ongoing.rows.length > 0) return res.status(400).json({ error: '你的宗门已有进行中的宗门战' });
+    if (ongoing.rows.length > 0) return res.status(400).json({ error: '你的焰盟已有进行中的焰盟战' });
 
     const defOngoing = await pool.query(
       "SELECT id FROM sect_wars WHERE (challenger_sect_id=$1 OR defender_sect_id=$1) AND status IN ('pending','in_progress')",
       [defender_sect_id]
     );
-    if (defOngoing.rows.length > 0) return res.status(400).json({ error: '对方宗门已有进行中的宗门战' });
+    if (defOngoing.rows.length > 0) return res.status(400).json({ error: '对方焰盟已有进行中的焰盟战' });
 
     const war = await pool.query(
       'INSERT INTO sect_wars (challenger_sect_id, defender_sect_id, status) VALUES ($1,$2,$3) RETURNING *',
@@ -2073,7 +2073,7 @@ app.post('/api/sect-war/challenge', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// GET /api/sect-war/pending - 收到的宗门战邀请
+// GET /api/sect-war/pending - 收到的焰盟战邀请
 app.get('/api/sect-war/pending', auth, async (req, res) => {
   try {
     const mem = await pool.query('SELECT sect_id, role FROM sect_members WHERE wallet=$1', [req.user.wallet]);
@@ -2093,38 +2093,38 @@ app.get('/api/sect-war/pending', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/sect-war/accept - 接受宗门战
+// POST /api/sect-war/accept - 接受焰盟战
 app.post('/api/sect-war/accept', auth, async (req, res) => {
   try {
     const { war_id } = req.body;
     const mem = await pool.query('SELECT sect_id, role FROM sect_members WHERE wallet=$1', [req.user.wallet]);
-    if (!mem.rows.length) return res.status(400).json({ error: '你还没有加入宗门' });
+    if (!mem.rows.length) return res.status(400).json({ error: '你还没有加入焰盟' });
     if (mem.rows[0].role !== 'leader' && mem.rows[0].role !== 'elder')
       return res.status(400).json({ error: '只有掌门或长老才能接受挑战' });
 
     const war = await pool.query('SELECT * FROM sect_wars WHERE id=$1 AND status=$2', [war_id, 'pending']);
-    if (!war.rows.length) return res.status(400).json({ error: '宗门战不存在或已处理' });
+    if (!war.rows.length) return res.status(400).json({ error: '焰盟战不存在或已处理' });
     if (war.rows[0].defender_sect_id !== mem.rows[0].sect_id)
-      return res.status(400).json({ error: '这不是你宗门收到的挑战' });
+      return res.status(400).json({ error: '这不是你焰盟收到的挑战' });
 
     await pool.query("UPDATE sect_wars SET status='in_progress', started_at=NOW() WHERE id=$1", [war_id]);
-    res.json({ ok: true, message: '已接受挑战，宗门战开始！' });
+    res.json({ ok: true, message: '已接受挑战，焰盟战开始！' });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/sect-war/decline - 拒绝宗门战
+// POST /api/sect-war/decline - 拒绝焰盟战
 app.post('/api/sect-war/decline', auth, async (req, res) => {
   try {
     const { war_id } = req.body;
     const mem = await pool.query('SELECT sect_id, role FROM sect_members WHERE wallet=$1', [req.user.wallet]);
-    if (!mem.rows.length) return res.status(400).json({ error: '你还没有加入宗门' });
+    if (!mem.rows.length) return res.status(400).json({ error: '你还没有加入焰盟' });
     if (mem.rows[0].role !== 'leader' && mem.rows[0].role !== 'elder')
       return res.status(400).json({ error: '只有掌门或长老才能拒绝挑战' });
 
     const war = await pool.query('SELECT * FROM sect_wars WHERE id=$1 AND status=$2', [war_id, 'pending']);
-    if (!war.rows.length) return res.status(400).json({ error: '宗门战不存在或已处理' });
+    if (!war.rows.length) return res.status(400).json({ error: '焰盟战不存在或已处理' });
     if (war.rows[0].defender_sect_id !== mem.rows[0].sect_id)
-      return res.status(400).json({ error: '这不是你宗门收到的挑战' });
+      return res.status(400).json({ error: '这不是你焰盟收到的挑战' });
 
     await pool.query("UPDATE sect_wars SET status='finished', finished_at=NOW() WHERE id=$1", [war_id]);
     res.json({ ok: true, message: '已拒绝挑战' });
@@ -2137,15 +2137,15 @@ app.post('/api/sect-war/join', auth, async (req, res) => {
     const { war_id } = req.body;
     const w = req.user.wallet;
     const mem = await pool.query('SELECT sect_id FROM sect_members WHERE wallet=$1', [w]);
-    if (!mem.rows.length) return res.status(400).json({ error: '你还没有加入宗门' });
+    if (!mem.rows.length) return res.status(400).json({ error: '你还没有加入焰盟' });
     const mySectId = mem.rows[0].sect_id;
 
     const war = await pool.query("SELECT * FROM sect_wars WHERE id=$1 AND status='in_progress'", [war_id]);
-    if (!war.rows.length) return res.status(400).json({ error: '宗门战不存在或未开始' });
+    if (!war.rows.length) return res.status(400).json({ error: '焰盟战不存在或未开始' });
 
     const warData = war.rows[0];
     if (mySectId !== warData.challenger_sect_id && mySectId !== warData.defender_sect_id)
-      return res.status(400).json({ error: '你的宗门不在这场宗门战中' });
+      return res.status(400).json({ error: '你的焰盟不在这场焰盟战中' });
 
     // 检查是否已报名
     const existing = await pool.query('SELECT id FROM sect_war_participants WHERE war_id=$1 AND wallet=$2', [war_id, w]);
@@ -2176,15 +2176,15 @@ app.post('/api/sect-war/start', auth, async (req, res) => {
     const { war_id } = req.body;
     const w = req.user.wallet;
     const mem = await pool.query('SELECT sect_id, role FROM sect_members WHERE wallet=$1', [w]);
-    if (!mem.rows.length) return res.status(400).json({ error: '你还没有加入宗门' });
+    if (!mem.rows.length) return res.status(400).json({ error: '你还没有加入焰盟' });
     if (mem.rows[0].role !== 'leader') return res.status(400).json({ error: '只有掌门才能开始战斗' });
 
     const war = await pool.query("SELECT * FROM sect_wars WHERE id=$1 AND status='in_progress'", [war_id]);
-    if (!war.rows.length) return res.status(400).json({ error: '宗门战不存在或状态不对' });
+    if (!war.rows.length) return res.status(400).json({ error: '焰盟战不存在或状态不对' });
     const warData = war.rows[0];
 
     if (warData.challenger_sect_id !== mem.rows[0].sect_id && warData.defender_sect_id !== mem.rows[0].sect_id)
-      return res.status(400).json({ error: '你不在这场宗门战中' });
+      return res.status(400).json({ error: '你不在这场焰盟战中' });
     if (warData.rounds_data) return res.status(400).json({ error: '战斗已经开始过了' });
 
     // 获取双方参战人员
@@ -2287,7 +2287,7 @@ app.post('/api/sect-war/start', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// GET /api/sect-war/current - 当前进行中的宗门战
+// GET /api/sect-war/current - 当前进行中的焰盟战
 app.get('/api/sect-war/current', auth, async (req, res) => {
   try {
     const mem = await pool.query('SELECT sect_id FROM sect_members WHERE wallet=$1', [req.user.wallet]);
@@ -2316,7 +2316,7 @@ app.get('/api/sect-war/current', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// GET /api/sect-war/history - 宗门战历史
+// GET /api/sect-war/history - 焰盟战历史
 app.get('/api/sect-war/history', auth, async (req, res) => {
   try {
     const mem = await pool.query('SELECT sect_id FROM sect_members WHERE wallet=$1', [req.user.wallet]);
@@ -2390,7 +2390,7 @@ app.post('/api/sect-war/rewards/claim', auth, async (req, res) => {
       [totalStones, w]
     );
 
-    // 更新宗门贡献
+    // 更新焰盟贡献
     const mem = await pool.query('SELECT sect_id FROM sect_members WHERE wallet=$1', [w]);
     if (mem.rows.length) {
       await pool.query('UPDATE sect_members SET contribution = contribution + $1 WHERE wallet=$2', [totalContrib, w]);
@@ -2400,7 +2400,7 @@ app.post('/api/sect-war/rewards/claim', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ============ 宗门战系统结束 ============
+// ============ 焰盟战系统结束 ============
 
 // ============ 拍卖行系统 ============
 
@@ -3260,7 +3260,7 @@ app.post('/api/title/check', auth, async (req, res) => {
       friendCount = parseInt(fc.rows[0]?.cnt || 0);
     } catch(e) { friendCount = gd.friendCount || 0; }
 
-    // 获取宗门贡献
+    // 获取焰盟贡献
     let contribution = 0;
     try {
       const sc = await pool.query('SELECT contribution FROM sect_members WHERE wallet = $1', [w]);
