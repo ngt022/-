@@ -345,6 +345,15 @@ app.post('/api/exploration/reward', auth, async (req, res) => {
     const { type, amount } = req.body;
     if (!type || !amount || amount <= 0) return res.status(400).json({ error: '参数无效' });
 
+    // 防作弊：探索奖励上限（基于等级）
+    const player = await pool.query('SELECT level FROM players WHERE wallet=$1', [w]);
+    const plv = player.rows[0]?.level || 1;
+    const maxStoneReward = Math.floor(plv * 50 + 200); // 最大焰晶奖励
+    if (type === 'spirit_stone' && amount > maxStoneReward) {
+      console.log('[AntiCheat] exploration reward capped for', w, 'tried:', amount, 'max:', maxStoneReward);
+      return res.status(400).json({ error: '奖励异常' });
+    }
+
     if (type === 'spirit_stone') {
       await pool.query(
         `UPDATE players SET spirit_stones = spirit_stones + $1,
