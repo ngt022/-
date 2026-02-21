@@ -935,14 +935,30 @@
 
   const handleEnhanceEquipment = async () => {
     if (!selectedEquipment.value) return
-    const result = enhanceEquipment(selectedEquipment.value, playerStore.reinforceStones)
-    if (result.success) {
-      playerStore.reinforceStones -= result.cost
-      selectedEquipment.value.stats = { ...result.newStats }
-      selectedEquipment.value.enhanceLevel = result.newLevel
-      message.success('淬火成功')
-      playerStore.saveData()
-    } else message.error(result.message || '淬火失败')
+    if (authStore.isLoggedIn) {
+      try {
+        const resp = await authStore.apiPost('/equipment/enhance', { equipmentId: selectedEquipment.value.id })
+        if (resp.enhanced) {
+          selectedEquipment.value.stats = { ...resp.newStats }
+          selectedEquipment.value.enhanceLevel = resp.newLevel
+          playerStore.reinforceStones = resp.reinforceStones
+          message.success('淬火成功')
+        } else {
+          playerStore.reinforceStones = resp.reinforceStones
+          message.warning(resp.message || '淬火失败，淬火石已消耗')
+        }
+        playerStore.saveData()
+      } catch (e) { message.error(e.message || '淬火失败') }
+    } else {
+      const result = enhanceEquipment(selectedEquipment.value, playerStore.reinforceStones)
+      if (result.success) {
+        playerStore.reinforceStones -= result.cost
+        selectedEquipment.value.stats = { ...result.newStats }
+        selectedEquipment.value.enhanceLevel = result.newLevel
+        message.success('淬火成功')
+        playerStore.saveData()
+      } else message.error(result.message || '淬火失败')
+    }
     showEnhanceConfirm.value = false
   }
 
@@ -951,31 +967,38 @@
 
   const handleReforgeEquipment = async () => {
     if (!selectedEquipment.value) return
-    const result = reforgeEquipment(selectedEquipment.value, playerStore.refinementStones, false)
-    if (result.success) {
-      playerStore.refinementStones -= result.cost
-      reforgeResult.value = result
-      showReforgeConfirm.value = true
-    } else message.error(result.message || '铭符失败')
+    if (authStore.isLoggedIn) {
+      try {
+        const resp = await authStore.apiPost('/equipment/reforge', { equipmentId: selectedEquipment.value.id })
+        playerStore.refinementStones = resp.refinementStones
+        reforgeResult.value = { success: true, oldStats: resp.oldStats, newStats: resp.newStats, cost: resp.cost }
+        showReforgeConfirm.value = true
+      } catch (e) { message.error(e.message || '铭符失败') }
+    } else {
+      const result = reforgeEquipment(selectedEquipment.value, playerStore.refinementStones, false)
+      if (result.success) {
+        playerStore.refinementStones -= result.cost
+        reforgeResult.value = result
+        showReforgeConfirm.value = true
+      } else message.error(result.message || '铭符失败')
+    }
   }
 
-  const confirmReforgeResult = async (confirm) => {
+  const confirmReforgeResult = async (keepNew) => {
     if (!reforgeResult.value) return
-    if (confirm) {
-      if (authStore.isLoggedIn) {
-        // 服务端铭符已经保存了新属性，刷新装备列表
-        await playerStore.loadEquipmentFromServer()
-        playerStore.recalcArtifactBonuses()
-        // 更新当前选中装备的显示
-        if (selectedEquipment.value) {
+    if (authStore.isLoggedIn) {
+      try {
+        await authStore.apiPost('/equipment/reforge-confirm', { confirm: keepNew })
+        if (keepNew && selectedEquipment.value) {
           selectedEquipment.value.stats = reforgeResult.value.newStats
         }
-      } else {
+        message.success(keepNew ? '已确认新属性' : '已保留原有属性')
+      } catch (e) { message.error(e.message || '确认失败') }
+    } else {
+      if (keepNew && selectedEquipment.value) {
         selectedEquipment.value.stats = reforgeResult.value.newStats
       }
-      message.success('已确认新属性')
-    } else {
-      message.info('已保留原有属性')
+      message.success(keepNew ? '已确认新属性' : '已保留原有属性')
     }
     showReforgeConfirm.value = false; reforgeResult.value = null; playerStore.saveData()
   }

@@ -3544,4 +3544,143 @@ app.post('/api/player/rename', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// ============ 装备淬火(enhance) 服务端验证 ============
+app.post('/api/equipment/enhance', auth, async (req, res) => {
+  try {
+    const wallet = req.user.wallet;
+    const { equipmentId } = req.body;
+    if (!equipmentId) return res.status(400).json({ error: '缺少装备ID' });
+    const r = await pool.query('SELECT game_data FROM players WHERE wallet = $1', [wallet]);
+    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = r.rows[0].game_data;
+    // 在已装备和背包中查找装备
+    let equip = null, location = null, slotKey = null;
+    const ea = gd.equippedArtifacts || {};
+    for (const [slot, item] of Object.entries(ea)) {
+      if (item && String(item.id) === String(equipmentId)) { equip = item; location = 'equipped'; slotKey = slot; break; }
+    }
+    if (!equip) {
+      const idx = (gd.items || []).findIndex(i => String(i.id) === String(equipmentId));
+      if (idx >= 0) { equip = gd.items[idx]; location = 'items'; slotKey = idx; }
+    }
+    if (!equip) return res.status(404).json({ error: '装备不存在' });
+    const currentLevel = equip.enhanceLevel || 0;
+    if (currentLevel >= 100) return res.status(400).json({ error: '已达最大淬火等级' });
+    const cost = 10 * (currentLevel + 1);
+    const stones = gd.reinforceStones || 0;
+    if (stones < cost) return res.status(400).json({ error: '淬火石不足', need: cost, have: stones });
+    // 成功率
+    const successRate = 1.0 - currentLevel * 0.05;
+    const isSuccess = Math.random() < successRate;
+    gd.reinforceStones = stones - cost;
+    if (isSuccess && equip.stats) {
+      const oldStats = { ...equip.stats };
+      const pctStats = ['critRate','critDamageBoost','dodgeRate','vampireRate','finalDamageBoost','finalDamageReduce'];
+      for (const key of Object.keys(equip.stats)) {
+        if (typeof equip.stats[key] === 'number') {
+          equip.stats[key] *= 1.1;
+          equip.stats[key] = pctStats.includes(key) ? Math.round(equip.stats[key] * 100) / 100 : Math.round(equip.stats[key]);
+        }
+      }
+      equip.enhanceLevel = currentLevel + 1;
+      if (location === 'equipped') gd.equippedArtifacts[slotKey] = equip;
+      else gd.items[slotKey] = equip;
+      await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gd), wallet]);
+      res.json({ success: true, enhanced: true, cost, newLevel: equip.enhanceLevel, newStats: equip.stats, oldStats, reinforceStones: gd.reinforceStones });
+    } else {
+      await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gd), wallet]);
+      res.json({ success: true, enhanced: false, cost, message: '淬火失败', reinforceStones: gd.reinforceStones });
+    }
+  } catch (e) { console.error('enhance error:', e); res.status(500).json({ error: e.message }); }
+});
+
+
+
+// ============ 装备铭符(reforge) 服务端验证 ============
+app.post('/api/equipment/reforge', auth, async (req, res) => {
+  try {
+    const wallet = req.user.wallet;
+    const { equipmentId } = req.body;
+    if (!equipmentId) return res.status(400).json({ error: '缺少装备ID' });
+    const r = await pool.query('SELECT game_data FROM players WHERE wallet = $1', [wallet]);
+    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = r.rows[0].game_data;
+    let equip = null, location = null, slotKey = null;
+    const ea = gd.equippedArtifacts || {};
+    for (const [slot, item] of Object.entries(ea)) {
+      if (item && String(item.id) === String(equipmentId)) { equip = item; location = 'equipped'; slotKey = slot; break; }
+    }
+    if (!equip) {
+      const idx = (gd.items || []).findIndex(i => String(i.id) === String(equipmentId));
+      if (idx >= 0) { equip = gd.items[idx]; location = 'items'; slotKey = idx; }
+    }
+    if (!equip || !equip.stats || !equip.type) return res.status(404).json({ error: '装备不存在或无效' });
+    const cost = 10;
+    const stones = gd.refinementStones || 0;
+    if (stones < cost) return res.status(400).json({ error: '符文石不足', need: cost, have: stones });
+    const reforgeableStats = {
+      weapon: ['attack','critRate','critDamageBoost'], head: ['defense','health','stunResist'],
+      body: ['defense','health','finalDamageReduce'], legs: ['defense','speed','dodgeRate'],
+      feet: ['defense','speed','dodgeRate'], shoulder: ['defense','health','counterRate'],
+      hands: ['attack','critRate','comboRate'], wrist: ['defense','counterRate','vampireRate'],
+      necklace: ['health','healBoost','spiritRate'], ring1: ['attack','critDamageBoost','finalDamageBoost'],
+      ring2: ['defense','critDamageReduce','resistanceBoost'], belt: ['health','defense','combatBoost'],
+      artifact: ['attack','critRate','comboRate']
+    };
+    const availableStats = reforgeableStats[equip.type] || [];
+    const oldStats = { ...equip.stats };
+    const tempStats = { ...equip.stats };
+    const originKeys = Object.keys(tempStats);
+    const pctStats = ['critRate','critDamageBoost','dodgeRate','vampireRate','finalDamageBoost','finalDamageReduce'];
+    const modCount = Math.floor(Math.random() * 3) + 1;
+    const indices = [...new Set(Array.from({length: modCount}, () => Math.floor(Math.random() * originKeys.length)))].slice(0, 3);
+    indices.forEach(idx => {
+      const origKey = originKeys[idx];
+      let curKey = origKey;
+      const baseVal = tempStats[origKey];
+      if (Math.random() < 0.3) {
+        const avail = availableStats.filter(s => !originKeys.includes(s) && s !== origKey);
+        if (avail.length > 0) { const nk = avail[Math.floor(Math.random() * avail.length)]; delete tempStats[origKey]; curKey = nk; }
+      }
+      const delta = Math.random() * 0.6 - 0.3;
+      let nv = baseVal * (1 + delta);
+      if (pctStats.includes(curKey)) { tempStats[curKey] = Math.min(Math.max(Number(nv.toFixed(2)), baseVal * 0.7), baseVal * 1.3); }
+      else { tempStats[curKey] = Math.min(Math.max(Math.round(nv), Math.round(baseVal * 0.7)), Math.round(baseVal * 1.3)); }
+    });
+    if (Object.keys(tempStats).length !== originKeys.length) return res.status(500).json({ error: '铭符异常' });
+    gd.refinementStones = stones - cost;
+    gd._pendingReforge = { equipmentId: String(equipmentId), location, slotKey, newStats: tempStats, oldStats };
+    await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gd), wallet]);
+    res.json({ success: true, cost, oldStats, newStats: tempStats, refinementStones: gd.refinementStones });
+  } catch (e) { console.error('reforge error:', e); res.status(500).json({ error: e.message }); }
+});
+
+// ============ 铭符确认/取消 ============
+app.post('/api/equipment/reforge-confirm', auth, async (req, res) => {
+  try {
+    const wallet = req.user.wallet;
+    const { confirm } = req.body;
+    const r = await pool.query('SELECT game_data FROM players WHERE wallet = $1', [wallet]);
+    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = r.rows[0].game_data;
+    const pending = gd._pendingReforge;
+    if (!pending) return res.status(400).json({ error: '没有待确认的铭符' });
+    if (confirm) {
+      let equip = null;
+      if (pending.location === 'equipped') { equip = (gd.equippedArtifacts || {})[pending.slotKey]; }
+      else { equip = (gd.items || [])[pending.slotKey]; }
+      if (equip && String(equip.id) === pending.equipmentId) {
+        equip.stats = pending.newStats;
+        if (pending.location === 'equipped') gd.equippedArtifacts[pending.slotKey] = equip;
+        else gd.items[pending.slotKey] = equip;
+      }
+    }
+    delete gd._pendingReforge;
+    await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gd), wallet]);
+    res.json({ success: true, confirmed: !!confirm });
+  } catch (e) { console.error('reforge-confirm error:', e); res.status(500).json({ error: e.message }); }
+});
+
+
 server.listen(PORT, () => console.log(`修仙后端启动 port ${PORT}`));
