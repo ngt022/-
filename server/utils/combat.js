@@ -332,6 +332,13 @@ function generateEnemy(level, type = CombatType.NORMAL, difficulty = 1) {
       enemyName = normalNames[level % normalNames.length]
   }
 
+  // 修复浮点精度
+  Object.keys(baseStats).forEach(key => {
+    if (typeof baseStats[key] === 'number' && key !== 'health' && key !== 'damage' && key !== 'defense' && key !== 'speed') {
+      baseStats[key] = Math.round(baseStats[key] * 10000) / 10000;
+    }
+  });
+
   return new CombatEntity(enemyName, level, baseStats, '燃火期一层')
 }
 
