@@ -2019,7 +2019,7 @@ app.post("/api/friend/search", auth, async (req, res) => {
     if (!keyword || keyword.trim().length < 1) return res.status(400).json({ error: "请输入搜索关键词" });
     const result = await pool.query(
       `SELECT wallet, name, level, realm, combat_power FROM players
-       WHERE name ILIKE $1 AND wallet != $2 LIMIT 20`,
+       WHERE (name ILIKE $1 OR wallet ILIKE $1) AND wallet != $2 LIMIT 20`,
       ["%" + keyword.trim() + "%", req.user.wallet]
     );
     const friendsRes = await pool.query(
