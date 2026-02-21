@@ -85,8 +85,12 @@ const SIGN_REWARDS = [
 
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: '*' }));
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '1mb' }));
 app.use(rateLimit({ windowMs: 60000, max: 120 }));
+
+// 敏感操作更严格的限流
+const strictLimit = rateLimit({ windowMs: 60000, max: 10, message: { error: '操作太频繁，请稍后再试' } });
+const authLimit = rateLimit({ windowMs: 300000, max: 5, message: { error: '登录尝试太频繁' } });
 
 // === 认证中间件 ===
 function auth(req, res, next) {
@@ -99,7 +103,7 @@ function auth(req, res, next) {
 }
 
 // === 钱包登录 ===
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimit, async (req, res) => {
   try {
     const { wallet, signature, message } = req.body;
     if (!wallet || !signature || !message) return res.status(400).json({ error: '参数缺失' });
@@ -291,7 +295,7 @@ app.post('/api/exploration/reward', auth, async (req, res) => {
 });
 
 // === 充值确认 ===
-app.post('/api/recharge/confirm', auth, async (req, res) => {
+app.post('/api/recharge/confirm', strictLimit, auth, async (req, res) => {
   try {
     const { txHash } = req.body;
     if (!txHash) return res.status(400).json({ error: '缺少txHash' });
@@ -1112,6 +1116,11 @@ async function getFriendWallets(wallet) {
 }
 
 wss.on('connection', (ws, req) => {
+  // 连接数限制
+  if (wss.clients.size > 200) {
+    ws.close(1013, 'Server too busy');
+    return;
+  }
   let userInfo = null;
 
   // 发送历史消息和动态

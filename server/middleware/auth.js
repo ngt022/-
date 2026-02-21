@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'xiuxian_jwt_secret_2026'
-const OLD_JWT_SECRET = 'xiuxian_secret_2026'
+const OLD_JWT_SECRET = process.env.JWT_SECRET || 'xiuxian_secret_2026'
 
 export function auth(req, res, next) {
   const header = req.headers.authorization

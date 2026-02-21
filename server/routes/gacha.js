@@ -504,7 +504,7 @@ function auth(req, res, next) {
   
   import('jsonwebtoken').then(jwt => {
     const JWT_SECRET = process.env.JWT_SECRET || 'xiuxian_jwt_secret_2026'
-    const OLD_JWT_SECRET = 'xiuxian_secret_2026'
+    const OLD_JWT_SECRET = process.env.JWT_SECRET || 'xiuxian_secret_2026'
     
     try {
       const decoded = jwt.default.verify(token, JWT_SECRET)
