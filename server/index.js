@@ -109,9 +109,15 @@ app.get('/api/health', async (req, res) => {
     await pool.query('SELECT 1');
     res.json({ status: 'ok', uptime: process.uptime(), memory: Math.round(process.memoryUsage().rss / 1024 / 1024) + 'MB', ws: wss.clients.size });
   } catch (e) {
-    res.status(503).json({ status: 'error', error: e.message });
+    res.status(503).json({ status: 'error', error: safeError(e) });
   }
 });
+
+// 生产环境不泄露内部错误细节
+function safeError(e) {
+  if (process.env.NODE_ENV === 'production') return '服务器内部错误';
+  return e.message;
+}
 
 const strictLimit = rateLimit({ windowMs: 60000, max: 10, message: { error: '操作太频繁，请稍后再试' } });
 const authLimit = rateLimit({ windowMs: 300000, max: 5, message: { error: '登录尝试太频繁' } });
@@ -152,7 +158,7 @@ app.post('/api/auth/login', authLimit, async (req, res) => {
 
     res.json({ token, player: sanitizePlayer(player) });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -204,7 +210,7 @@ app.post('/api/game/save', auth, async (req, res) => {
     // Return DB real values so frontend can sync
     res.json({ ok: true, spiritStones: dbSpiritStones, items: mergedData.items });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -252,7 +258,7 @@ app.post('/api/game/save-beacon', async (req, res) => {
     }
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -263,7 +269,7 @@ app.get('/api/game/load', auth, async (req, res) => {
     if (result.rows.length === 0) return res.status(404).json({ error: '玩家不存在' });
     res.json({ player: sanitizePlayer(result.rows[0]) });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -315,7 +321,7 @@ app.post('/api/exploration/reward', auth, async (req, res) => {
     } else {
       res.status(400).json({ error: '未知奖励类型' });
     }
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // === 充值确认 ===
@@ -392,7 +398,7 @@ app.post('/api/recharge/confirm', strictLimit, auth, async (req, res) => {
       app.locals.broadcastEvent(`✨ ${pName} 完成了首充，获得双倍焰晶！`, 'recharge');
     }
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -412,7 +418,7 @@ app.get('/api/vip/info', auth, async (req, res) => {
       allLevels: VIP_CONFIG
     });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -441,7 +447,7 @@ app.post('/api/sign/daily', auth, async (req, res) => {
 
     res.json({ ok: true, streak, reward });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -484,7 +490,7 @@ app.get('/api/leaderboard/:type', async (req, res) => {
     }));
     res.json({ type, data });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -497,7 +503,7 @@ app.get('/api/recharge/history', auth, async (req, res) => {
     );
     res.json({ records: result.rows });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -541,7 +547,7 @@ app.get('/api/monthly-card/status', auth, async (req, res) => {
       }
     });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -611,7 +617,7 @@ app.post('/api/monthly-card/buy', auth, async (req, res) => {
 
     res.json({ ok: true, expiresAt, dailyReward: MONTHLY_CARD_DAILY });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -642,7 +648,7 @@ app.post('/api/monthly-card/claim', auth, async (req, res) => {
 
     res.json({ ok: true, stones: MONTHLY_CARD_DAILY, daysClaimed: card.days_claimed + 1 });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -654,7 +660,7 @@ app.get('/api/events/active', async (req, res) => {
     );
     res.json({ events: result.rows });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -674,7 +680,7 @@ app.get('/api/events/effects', async (req, res) => {
     }
     res.json({ effects });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -713,7 +719,7 @@ app.post('/api/events/:id/claim', auth, async (req, res) => {
     }
     res.json({ ok: true, stones: stonesReward });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -734,7 +740,7 @@ app.get('/api/pk/history', auth, async (req, res) => {
     }));
     res.json({ records });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -752,7 +758,7 @@ app.get('/api/pk/stats', auth, async (req, res) => {
       totalReward: parseInt(totalReward.rows[0].total)
     });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -764,7 +770,7 @@ app.get('/api/announcements', async (req, res) => {
     );
     res.json({ announcements: result.rows });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -866,7 +872,7 @@ app.post('/api/sect/create', auth, async (req, res) => {
     res.json({ ok: true, sect: sect.rows[0] });
   } catch (e) {
     if (e.code === '23505') return res.status(400).json({ error: '焰盟名称已存在' });
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: safeError(e) });
   }
 });
 
@@ -882,7 +888,7 @@ app.get('/api/sect/my', auth, async (req, res) => {
       [mem.rows[0].sect_id]
     );
     res.json({ sect: sect.rows[0], myRole: mem.rows[0].role, myContribution: mem.rows[0].contribution, members: members.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/sect/list
@@ -898,7 +904,7 @@ app.get('/api/sect/list', auth, async (req, res) => {
     else q += ` ORDER BY s.created_at DESC`;
     const result = await pool.query(q, params);
     res.json({ sects: result.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/sect/join
@@ -914,7 +920,7 @@ app.post('/api/sect/join', auth, async (req, res) => {
     if (parseInt(count.rows[0].count) >= sect.rows[0].max_members) return res.status(400).json({ error: '焰盟已满' });
     await pool.query('INSERT INTO sect_members (sect_id, wallet, role) VALUES ($1,$2,$3)', [sectId, req.user.wallet, 'member']);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/sect/leave
@@ -925,7 +931,7 @@ app.post('/api/sect/leave', auth, async (req, res) => {
     if (mem.rows[0].role === 'leader') return res.status(400).json({ error: '掌门不能退出，请先转让掌门' });
     await pool.query('DELETE FROM sect_members WHERE wallet=$1', [req.user.wallet]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/sect/kick
@@ -940,7 +946,7 @@ app.post('/api/sect/kick', auth, async (req, res) => {
     if (me.rows[0].role === 'elder' && target.rows[0].role === 'elder') return res.status(400).json({ error: '长老不能踢长老' });
     await pool.query('DELETE FROM sect_members WHERE wallet=$1', [wallet]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/sect/promote
@@ -955,7 +961,7 @@ app.post('/api/sect/promote', auth, async (req, res) => {
     if (target.rows[0].role === 'elder') return res.status(400).json({ error: '已是长老' });
     await pool.query('UPDATE sect_members SET role=$1 WHERE wallet=$2', ['elder', wallet]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/sect/demote
@@ -969,7 +975,7 @@ app.post('/api/sect/demote', auth, async (req, res) => {
     if (target.rows[0].role !== 'elder') return res.status(400).json({ error: '只能降职长老' });
     await pool.query('UPDATE sect_members SET role=$1 WHERE wallet=$2', ['member', wallet]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/sect/announcement
@@ -981,7 +987,7 @@ app.post('/api/sect/announcement', auth, async (req, res) => {
     if (!me.rows.length || (me.rows[0].role !== 'leader' && me.rows[0].role !== 'elder')) return res.status(403).json({ error: '权限不足' });
     await pool.query('UPDATE sects SET announcement=$1 WHERE id=$2', [announcement, me.rows[0].sect_id]);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/sect/tasks
@@ -992,7 +998,7 @@ app.get('/api/sect/tasks', auth, async (req, res) => {
     await ensureSectTasks(mem.rows[0].sect_id);
     const tasks = await pool.query('SELECT * FROM sect_tasks WHERE sect_id=$1 ORDER BY type, id', [mem.rows[0].sect_id]);
     res.json({ tasks: tasks.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/sect/tasks/:id/complete
@@ -1016,7 +1022,7 @@ app.post('/api/sect/tasks/:id/complete', auth, async (req, res) => {
     await pool.query('UPDATE players SET game_data=$1, spirit_stones=$2 WHERE wallet=$3',
       [JSON.stringify(gameData), gameData.spiritStones, req.user.wallet]);
     res.json({ ok: true, reward_contribution: task.rows[0].reward_contribution, reward_stones: task.rows[0].reward_stones });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/sect/donate
@@ -1038,7 +1044,7 @@ app.post('/api/sect/donate', auth, async (req, res) => {
     await pool.query('UPDATE sects SET exp=exp+$1 WHERE id=$2', [amount, mem.rows[0].sect_id]);
     await checkSectLevelUp(mem.rows[0].sect_id);
     res.json({ ok: true, contribution, exp: amount });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/sect/members
@@ -1053,7 +1059,7 @@ app.get('/api/sect/members', auth, async (req, res) => {
       [id]
     );
     res.json({ members: members.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // === WebSocket 世界聊天 + 全服动态 ===
@@ -1442,7 +1448,7 @@ app.get('/api/friend/chat/:wallet', auth, async (req, res) => {
       [other, w]
     );
     res.json({ ok: true, messages: rows.rows.reverse() });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/friend/unread - 获取未读消息计数（按发送者分组）
@@ -1453,7 +1459,7 @@ app.get('/api/friend/unread', auth, async (req, res) => {
       [req.user.wallet]
     );
     res.json({ ok: true, unread: rows.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // === Admin 活动管理 ===
@@ -1469,7 +1475,7 @@ app.get("/api/admin/events", auth, adminAuth, async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM events ORDER BY created_at DESC");
     res.json({ events: result.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/admin/events - 创建活动
@@ -1482,7 +1488,7 @@ app.post("/api/admin/events", auth, adminAuth, async (req, res) => {
       [name, description || "", type, config || {}, starts_at, ends_at, rewards || [], active !== false]
     );
     res.json({ event: result.rows[0] });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // PUT /api/admin/events/:id - 编辑活动
@@ -1495,7 +1501,7 @@ app.put("/api/admin/events/:id", auth, adminAuth, async (req, res) => {
     );
     if (!result.rows.length) return res.status(404).json({ error: "活动不存在" });
     res.json({ event: result.rows[0] });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // DELETE /api/admin/events/:id - 删除活动
@@ -1505,7 +1511,7 @@ app.delete("/api/admin/events/:id", auth, adminAuth, async (req, res) => {
     const result = await pool.query("DELETE FROM events WHERE id=$1 RETURNING id", [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ error: "活动不存在" });
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/admin/events/:id/claims - 查看领取记录
@@ -1516,7 +1522,7 @@ app.get("/api/admin/events/:id/claims", auth, adminAuth, async (req, res) => {
       [req.params.id]
     );
     res.json({ claims: result.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/admin/stats - 活动统计
@@ -1530,7 +1536,7 @@ app.get("/api/admin/stats", auth, adminAuth, async (req, res) => {
       totalClaims: parseInt(totalClaims.rows[0].count),
       totalPlayers: parseInt(totalPlayers.rows[0].count)
     });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 app.locals.broadcastEvent = broadcastEvent;
@@ -1603,7 +1609,7 @@ app.get('/api/boss/current', auth, async (req, res) => {
       myRank: myDmg.rows[0] ? parseInt(myRank.rows[0].rank) : 0,
       totalPlayers: parseInt(totalPlayers.rows[0].count)
     });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/boss/attack
@@ -1689,7 +1695,7 @@ app.post('/api/boss/attack', auth, async (req, res) => {
       myTotalDamage: Number(myTotal.rows[0]?.damage || damage),
       spirit: gameData.spirit
     });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/boss/ranking
@@ -1712,7 +1718,7 @@ app.get('/api/boss/ranking', auth, async (req, res) => {
       attacks: r.attacks_count
     }));
     res.json({ ranking });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/boss/rewards
@@ -1728,7 +1734,7 @@ app.get('/api/boss/rewards', auth, async (req, res) => {
       rank: r.rank, stones: r.reward_stones, items: r.reward_items,
       claimed: r.claimed, createdAt: r.created_at
     })) });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/boss/rewards/claim
@@ -1749,7 +1755,7 @@ app.post('/api/boss/rewards/claim', auth, async (req, res) => {
     await pool.query('UPDATE players SET game_data = $1, spirit_stones = $2 WHERE wallet = $3',
       [JSON.stringify(gameData), gameData.spiritStones, req.user.wallet]);
     res.json({ ok: true, totalStones, newSpiritStones: gameData.spiritStones });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/boss/history
@@ -1763,7 +1769,7 @@ app.get('/api/boss/history', auth, async (req, res) => {
       attack: r.attack, defense: r.defense, status: r.status,
       spawnTime: r.spawn_time, deathTime: r.death_time
     })) });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/admin/boss/spawn
@@ -1781,7 +1787,7 @@ app.post('/api/admin/boss/spawn', auth, adminAuth, async (req, res) => {
     broadcast({ type: 'boss_spawn', data: { bossName: b.name, level: b.level, maxHp: Number(b.max_hp) } });
     broadcastEvent(`🐉 世界Boss【${b.name}】降临了！全体修士准备讨伐！`, 'boss');
     res.json({ ok: true, boss: b });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/admin/boss/list
@@ -1789,7 +1795,7 @@ app.get('/api/admin/boss/list', auth, adminAuth, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM world_bosses ORDER BY created_at DESC');
     res.json({ bosses: result.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/friend/accept - 接受好友申请
@@ -1803,7 +1809,7 @@ app.post("/api/friend/accept", auth, async (req, res) => {
     if (parseInt(countRes.rows[0].count) >= 50) return res.status(400).json({ error: "好友数量已达上限(50)" });
     await pool.query(`UPDATE friendships SET status=$1, updated_at=NOW() WHERE id=$2`, ["accepted", friendship_id]);
     res.json({ ok: true, message: "已接受好友申请" });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/friend/reject - 拒绝好友申请
@@ -1815,7 +1821,7 @@ app.post("/api/friend/reject", auth, async (req, res) => {
     if (!f.rows.length) return res.status(404).json({ error: "申请不存在" });
     await pool.query(`UPDATE friendships SET status=$1, updated_at=NOW() WHERE id=$2`, ["rejected", friendship_id]);
     res.json({ ok: true, message: "已拒绝好友申请" });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/friend/remove - 删除好友
@@ -1829,7 +1835,7 @@ app.post("/api/friend/remove", auth, async (req, res) => {
     );
     if (result.rowCount === 0) return res.status(404).json({ error: "好友关系不存在" });
     res.json({ ok: true, message: "已删除好友" });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/friend/profile/:wallet - 好友详情
@@ -1856,7 +1862,7 @@ app.get("/api/friend/profile/:wallet", auth, async (req, res) => {
       vipLevel: player.vip_level || 0, equippedArtifacts,
       sect: sect.rows.length ? { name: sect.rows[0].sect_name, role: sect.rows[0].role } : null
     }});
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 // POST /api/friend/gift - 送礼
 app.post("/api/friend/gift", auth, async (req, res) => {
@@ -1891,7 +1897,7 @@ app.post("/api/friend/gift", auth, async (req, res) => {
     );
     const remaining = 3 - parseInt(giftCount.rows[0].count) - 1;
     res.json({ ok: true, message: "礼物已送出", remaining });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/friend/gifts - 收到的礼物列表
@@ -1908,7 +1914,7 @@ app.get("/api/friend/gifts", auth, async (req, res) => {
       giftType: r.gift_type, giftValue: r.gift_value, message: r.message,
       claimed: r.claimed, createdAt: r.created_at
     })) });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/friend/gifts/:id/claim - 领取礼物
@@ -1928,7 +1934,7 @@ app.post("/api/friend/gifts/:id/claim", auth, async (req, res) => {
     }
     await pool.query(`UPDATE friend_gifts SET claimed=TRUE WHERE id=$1`, [giftId]);
     res.json({ ok: true, message: "礼物已领取", giftType: gift.gift_type, giftValue: gift.gift_value });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 // ============ 好友系统 API ============
 
@@ -1957,7 +1963,7 @@ app.get("/api/friend/list", auth, async (req, res) => {
       online: r.updated_at ? (now - new Date(r.updated_at).getTime() < 5 * 60 * 1000) : false
     }));
     res.json({ ok: true, friends, count: friends.length, max: 50 });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/friend/requests - 收到的好友申请
@@ -1974,7 +1980,7 @@ app.get("/api/friend/requests", auth, async (req, res) => {
       level: r.level || 1, realm: r.realm || "燃火期一层",
       combatPower: Number(r.combat_power || 0), createdAt: r.created_at
     })) });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/friend/search - 搜索玩家
@@ -1998,7 +2004,7 @@ app.post("/api/friend/search", auth, async (req, res) => {
       realm: r.realm || "燃火期一层", combatPower: Number(r.combat_power || 0),
       isFriend: friendSet.has(r.wallet)
     })) });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/friend/add - 发送好友申请
@@ -2030,7 +2036,7 @@ app.post("/api/friend/add", auth, async (req, res) => {
     }
     await pool.query(`INSERT INTO friendships (from_wallet, to_wallet, status) VALUES ($1,$2,$3)`, [w, to_wallet, "pending"]);
     res.json({ ok: true, message: "好友申请已发送" });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // ============ 焰盟战系统 ============
@@ -2084,7 +2090,7 @@ app.post('/api/sect-war/challenge', auth, async (req, res) => {
       [sect_id, defender_sect_id, 'pending']
     );
     res.json({ ok: true, war: war.rows[0] });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/sect-war/pending - 收到的焰盟战邀请
@@ -2104,7 +2110,7 @@ app.get('/api/sect-war/pending', auth, async (req, res) => {
       [sect_id]
     );
     res.json({ wars: wars.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/sect-war/accept - 接受焰盟战
@@ -2123,7 +2129,7 @@ app.post('/api/sect-war/accept', auth, async (req, res) => {
 
     await pool.query("UPDATE sect_wars SET status='in_progress', started_at=NOW() WHERE id=$1", [war_id]);
     res.json({ ok: true, message: '已接受挑战，焰盟战开始！' });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/sect-war/decline - 拒绝焰盟战
@@ -2142,7 +2148,7 @@ app.post('/api/sect-war/decline', auth, async (req, res) => {
 
     await pool.query("UPDATE sect_wars SET status='finished', finished_at=NOW() WHERE id=$1", [war_id]);
     res.json({ ok: true, message: '已拒绝挑战' });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/sect-war/join - 报名参战
@@ -2181,7 +2187,7 @@ app.post('/api/sect-war/join', auth, async (req, res) => {
       [war_id, mySectId, w, pName, cp]
     );
     res.json({ ok: true, message: '报名成功！' });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/sect-war/start - 开始战斗
@@ -2298,7 +2304,7 @@ app.post('/api/sect-war/start', auth, async (req, res) => {
     }
 
     res.json({ ok: true, rounds: roundsData, challenger_score: cScore, defender_score: dScore, winner_sect_id: winnerSectId });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/sect-war/current - 当前进行中的焰盟战
@@ -2327,7 +2333,7 @@ app.get('/api/sect-war/current', auth, async (req, res) => {
     );
 
     res.json({ war: war.rows[0], participants: participants.rows, mySectId: sid });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/sect-war/history - 焰盟战历史
@@ -2347,7 +2353,7 @@ app.get('/api/sect-war/history', auth, async (req, res) => {
       [sid]
     );
     res.json({ wars: wars.rows, mySectId: sid });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/sect-war/ranking - 排行榜
@@ -2361,7 +2367,7 @@ app.get('/api/sect-war/ranking', auth, async (req, res) => {
        ORDER BY swr.points DESC, swr.wins DESC LIMIT 50`
     );
     res.json({ rankings: rankings.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/sect-war/rewards - 我的奖励
@@ -2378,7 +2384,7 @@ app.get('/api/sect-war/rewards', auth, async (req, res) => {
       [req.user.wallet]
     );
     res.json({ rewards: rewards.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/sect-war/rewards/claim - 领取奖励
@@ -2411,7 +2417,7 @@ app.post('/api/sect-war/rewards/claim', auth, async (req, res) => {
     }
 
     res.json({ ok: true, stones: totalStones, contribution: totalContrib, message: `领取了 ${totalStones} 焰晶和 ${totalContrib} 贡献度` });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // ============ 焰盟战系统结束 ============
@@ -2506,7 +2512,7 @@ app.post('/api/auction/list', auth, async (req, res) => {
     );
 
     res.json({ ok: true, message: `${item.name} 已上架，扣除上架费 ${listingFee} 焰晶`, spiritStones: newStones });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/auction/browse - 浏览拍卖行
@@ -2535,7 +2541,7 @@ app.get('/api/auction/browse', auth, async (req, res) => {
       [...params, parseInt(limit), offset]
     );
     res.json({ listings: listings.rows, total, page: parseInt(page), limit: parseInt(limit) });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/auction/detail/:id - 拍卖详情
@@ -2547,7 +2553,7 @@ app.get('/api/auction/detail/:id', auth, async (req, res) => {
     if (!listing.rows.length) return res.status(404).json({ error: '拍卖不存在' });
     const bids = await pool.query('SELECT bidder_name, bid_amount, created_at FROM auction_bids WHERE listing_id=$1 ORDER BY bid_amount DESC LIMIT 20', [req.params.id]);
     res.json({ listing: listing.rows[0], bids: bids.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/auction/bid - 出价
@@ -2603,7 +2609,7 @@ app.post('/api/auction/bid', auth, async (req, res) => {
 
     await client.query('COMMIT');
     res.json({ ok: true, message: `出价 ${amount} 焰晶成功` });
-  } catch (e) { await client.query('ROLLBACK'); res.status(500).json({ error: e.message }); }
+  } catch (e) { await client.query('ROLLBACK'); res.status(500).json({ error: safeError(e) }); }
   finally { client.release(); }
 });
 
@@ -2853,7 +2859,7 @@ app.post('/api/auction/buyout', auth, async (req, res) => {
 
     await client.query('COMMIT');
     res.json({ ok: true, message: `成功购买 ${l.item_name}，花费 ${l.buyout_price} 焰晶` });
-  } catch (e) { await client.query('ROLLBACK'); res.status(500).json({ error: e.message }); }
+  } catch (e) { await client.query('ROLLBACK'); res.status(500).json({ error: safeError(e) }); }
   finally { client.release(); }
 });
 
@@ -2865,7 +2871,7 @@ app.get('/api/auction/my-listings', auth, async (req, res) => {
       [req.user.wallet]
     );
     res.json({ listings: listings.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/auction/cancel - 取消上架
@@ -2886,7 +2892,7 @@ app.post('/api/auction/cancel', auth, async (req, res) => {
     await pool.query("UPDATE auction_listings SET status='cancelled' WHERE id=$1", [listing_id]);
 
     res.json({ ok: true, message: `${l.item_name} 已取消上架并退回背包` });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/auction/my-bids - 我的出价记录
@@ -2899,7 +2905,7 @@ app.get('/api/auction/my-bids', auth, async (req, res) => {
       [req.user.wallet]
     );
     res.json({ bids: bids.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/auction/history - 最近成交记录
@@ -2913,7 +2919,7 @@ app.get('/api/auction/history', auth, async (req, res) => {
        ORDER BY ah.sold_at DESC LIMIT 50`
     );
     res.json({ history: history.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // ============ 拍卖行系统结束 ============
@@ -2953,7 +2959,7 @@ app.get("/api/dungeon-daily/list", auth, async (req, res) => {
     }));
 
     res.json({ dungeons: list, playerLevel: pLevel });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/dungeon-daily/enter - 进入副本
@@ -3080,7 +3086,7 @@ app.post("/api/dungeon-daily/enter", auth, async (req, res) => {
 
     const remaining = d.max_entries - used.rows[0].cnt - 1;
     res.json({ result, combatLog, rewards, remaining, dungeonName: d.name, enemy: d.enemy_config });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/dungeon-daily/history - 今日记录
@@ -3097,7 +3103,7 @@ app.get("/api/dungeon-daily/history", auth, async (req, res) => {
       [w, today]
     );
     res.json({ history: rows.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // ============ 每日副本系统结束 ============
@@ -3112,7 +3118,7 @@ app.get('/api/mount/list', auth, async (req, res) => {
     const ownedIds = owned.rows.map(r => r.mount_id);
     const list = mounts.rows.map(m => ({ ...m, owned: ownedIds.includes(m.id) }));
     res.json({ mounts: list });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/mount/my - 我的坐骑列表
@@ -3125,7 +3131,7 @@ app.get('/api/mount/my', auth, async (req, res) => {
        FROM player_mounts pm JOIN mounts m ON pm.mount_id = m.id
        WHERE pm.wallet = $1 ORDER BY m.quality DESC, pm.id`, [w]);
     res.json({ mounts: rows.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/mount/buy - 购买坐骑
@@ -3167,7 +3173,7 @@ app.post('/api/mount/buy', auth, async (req, res) => {
 
     await pool.query('INSERT INTO player_mounts (wallet, mount_id) VALUES ($1, $2)', [w, mount_id]);
     res.json({ success: true, message: `成功获得坐骑: ${m.name}`, cost });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/mount/activate - 激活坐骑
@@ -3185,7 +3191,7 @@ app.post('/api/mount/activate', auth, async (req, res) => {
     // 激活选中的
     await pool.query('UPDATE player_mounts SET is_active = true WHERE id = $1', [player_mount_id]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/mount/deactivate - 取消激活
@@ -3194,7 +3200,7 @@ app.post('/api/mount/deactivate', auth, async (req, res) => {
     const w = req.user.wallet;
     await pool.query('UPDATE player_mounts SET is_active = false WHERE wallet = $1', [w]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/mount/active - 当前激活的坐骑
@@ -3207,7 +3213,7 @@ app.get('/api/mount/active', auth, async (req, res) => {
        FROM player_mounts pm JOIN mounts m ON pm.mount_id = m.id
        WHERE pm.wallet = $1 AND pm.is_active = true`, [w]);
     res.json({ mount: row.rows[0] || null });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // ============ 坐骑系统结束 ============
@@ -3243,7 +3249,7 @@ app.get('/api/title/list', auth, async (req, res) => {
       return { ...t, unlocked: unlockedIds.includes(t.id), progress, current };
     });
     res.json({ titles: list });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/title/my - 我已解锁的称号
@@ -3256,7 +3262,7 @@ app.get('/api/title/my', auth, async (req, res) => {
        FROM player_titles pt JOIN titles t ON pt.title_id = t.id
        WHERE pt.wallet = $1 ORDER BY t.quality DESC, pt.id`, [w]);
     res.json({ titles: rows.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/title/check - 检查并解锁新称号
@@ -3304,7 +3310,7 @@ app.post('/api/title/check', auth, async (req, res) => {
       }
     }
     res.json({ newlyUnlocked, count: newlyUnlocked.length });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/title/activate - 佩戴称号
@@ -3320,7 +3326,7 @@ app.post('/api/title/activate', auth, async (req, res) => {
     await pool.query('UPDATE player_titles SET is_active = false WHERE wallet = $1', [w]);
     await pool.query('UPDATE player_titles SET is_active = true WHERE id = $1', [player_title_id]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/title/deactivate - 取消佩戴
@@ -3329,7 +3335,7 @@ app.post('/api/title/deactivate', auth, async (req, res) => {
     const w = req.user.wallet;
     await pool.query('UPDATE player_titles SET is_active = false WHERE wallet = $1', [w]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // ============ 称号系统结束 ============
@@ -3371,7 +3377,7 @@ app.get('/api/ascension/info', auth, async (req, res) => {
       nextPerk,
       history: history.rows
     });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // POST /api/ascension/ascend - 执行飞升
@@ -3460,7 +3466,7 @@ app.post('/api/ascension/ascend', auth, async (req, res) => {
         spiritStones: retainedStones + rewardStones
       }
     });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/ascension/perks - 所有飞升加成列表
@@ -3478,7 +3484,7 @@ app.get('/api/ascension/perks', auth, async (req, res) => {
     }));
 
     res.json({ perks: result, currentAscension: ascensionCount });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // GET /api/ascension/ranking - 飞升排行榜
@@ -3489,7 +3495,7 @@ app.get('/api/ascension/ranking', auth, async (req, res) => {
     );
 
     res.json({ ranking: result.rows.map((r, i) => ({ rank: i + 1, ...r })) });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // ============ 飞升系统结束 ============
@@ -3515,7 +3521,7 @@ app.get('/api/storage/info', auth, async (req, res) => {
       info[cat] = { level, limit: cfg.base + cfg.perLevel * level, maxLevel: cfg.maxLevel, nextCost: level < cfg.maxLevel ? cfg.basePrice * (level + 1) : null };
     }
     res.json({ success: true, info });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 app.post('/api/storage/expand', auth, async (req, res) => {
@@ -3538,7 +3544,7 @@ app.post('/api/storage/expand', auth, async (req, res) => {
     const newLimit = cfg.base + cfg.perLevel * (currentLevel + 1);
     await pool.query('UPDATE players SET game_data=$1, spirit_stones=$2 WHERE wallet=$3', [JSON.stringify(gd), remaining, req.user.wallet]);
     res.json({ success: true, newLimit, cost, remaining, level: currentLevel + 1 });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 // ============ 背包扩容系统结束 ============
 
@@ -3565,7 +3571,7 @@ app.post('/api/gift/newplayer', auth, async (req, res) => {
     await pool.query('UPDATE players SET game_data = $1, spirit_stones = $2 WHERE wallet = $3',
       [JSON.stringify(gd), gd.spiritStones, wallet]);
     res.json({ success: true, spiritStones: gd.spiritStones });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 // === 改名（服务端扣费）===
@@ -3586,7 +3592,7 @@ app.post('/api/player/rename', auth, async (req, res) => {
     await pool.query('UPDATE players SET game_data = $1, spirit_stones = $2, name = $3 WHERE wallet = $4',
       [JSON.stringify(gd), gd.spiritStones, newName, wallet]);
     res.json({ success: true, spiritStones: gd.spiritStones, nameChangeCount: gd.nameChangeCount });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
 
@@ -3637,7 +3643,7 @@ app.post('/api/equipment/enhance', auth, async (req, res) => {
       await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gd), wallet]);
       res.json({ success: true, enhanced: false, cost, message: '淬火失败', reinforceStones: gd.reinforceStones });
     }
-  } catch (e) { console.error('enhance error:', e); res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error('enhance error:', e); res.status(500).json({ error: safeError(e) }); }
 });
 
 
@@ -3698,7 +3704,7 @@ app.post('/api/equipment/reforge', auth, async (req, res) => {
     gd._pendingReforge = { equipmentId: String(equipmentId), location, slotKey, newStats: tempStats, oldStats };
     await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gd), wallet]);
     res.json({ success: true, cost, oldStats, newStats: tempStats, refinementStones: gd.refinementStones });
-  } catch (e) { console.error('reforge error:', e); res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error('reforge error:', e); res.status(500).json({ error: safeError(e) }); }
 });
 
 // ============ 铭符确认/取消 ============
@@ -3724,7 +3730,7 @@ app.post('/api/equipment/reforge-confirm', auth, async (req, res) => {
     delete gd._pendingReforge;
     await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gd), wallet]);
     res.json({ success: true, confirmed: !!confirm });
-  } catch (e) { console.error('reforge-confirm error:', e); res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error('reforge-confirm error:', e); res.status(500).json({ error: safeError(e) }); }
 });
 
 
@@ -3756,7 +3762,7 @@ app.post('/api/equipment/sell', auth, async (req, res) => {
     gd.reinforceStones = (gd.reinforceStones || 0) + stones;
     await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gd), wallet]);
     res.json({ success: true, stones, reinforceStones: gd.reinforceStones, itemCount: gd.items.length });
-  } catch (e) { console.error('sell error:', e); res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error('sell error:', e); res.status(500).json({ error: safeError(e) }); }
 });
 
 app.post('/api/equipment/batch-sell', auth, async (req, res) => {
@@ -3783,7 +3789,7 @@ app.post('/api/equipment/batch-sell', auth, async (req, res) => {
     gd.reinforceStones = (gd.reinforceStones || 0) + totalStones;
     await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gd), wallet]);
     res.json({ success: true, totalStones, count, reinforceStones: gd.reinforceStones, itemCount: gd.items.length });
-  } catch (e) { console.error('batch-sell error:', e); res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error('batch-sell error:', e); res.status(500).json({ error: safeError(e) }); }
 });
 
 
