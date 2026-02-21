@@ -29,6 +29,7 @@ const DailyDungeon = () => import("../views/DailyDungeon.vue")
 const MountTitle = () => import("../views/MountTitle.vue")
 const Ascension = () => import("../views/Ascension.vue")
 const Profile = () => import("../views/Profile.vue")
+const Mail = () => import("../views/Mail.vue")
 
 const routes = [
   { path: "/", name: "Home", component: Home },
@@ -64,6 +65,7 @@ const routes = [
   { path: "/mount-title", name: "MountTitle", component: MountTitle },
   { path: "/ascension", name: "Ascension", component: Ascension },
   { path: "/profile", name: "Profile", component: Profile },
+  { path: "/mail", name: "Mail", component: Mail },
   { path: "/:pathMatch(.*)*", name: "NotFound", redirect: "/" },
 ]
 
