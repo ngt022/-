@@ -66,7 +66,7 @@
             <span class="ov-row-val" :class="'vip-lv-' + authStore.vipLevel">VIP{{ authStore.vipLevel }}</span>
           </div>
           <div class="ov-row">
-            <span class="ov-row-label">🏛️ 宗门</span>
+            <span class="ov-row-label">🏛️ 焰盟</span>
             <span class="ov-row-val">{{ serverInfo.sectName || '未加入' }}</span>
           </div>
           <div class="ov-row">

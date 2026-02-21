@@ -3798,7 +3798,7 @@ async function settleExpiredAuctions() {
   try {
     await client.query('BEGIN');
     const expired = await client.query(
-      "SELECT * FROM auction_listings WHERE status='active' AND ends_at < NOW()"
+      "SELECT * FROM auction_listings WHERE status='active' AND expires_at < NOW()"
     );
     for (const listing of expired.rows) {
       const bids = await client.query(
