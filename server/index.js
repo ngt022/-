@@ -4213,6 +4213,22 @@ server.listen(PORT, '127.0.0.1', () => console.log(`焰修后端启动 127.0.0.1
 
 
 
+// === 自动清理过期数据（每6小时） ===
+setInterval(async () => {
+  try {
+    // 清理30天前的PK记录
+    const pk = await pool.query("DELETE FROM pk_records WHERE created_at < NOW() - INTERVAL '30 days'");
+    // 清理过期月卡记录
+    const mc = await pool.query("DELETE FROM monthly_cards WHERE expires_at < NOW() - INTERVAL '7 days'");
+    // 清理已读且已领取的30天前邮件
+    const mail = await pool.query("DELETE FROM player_mail WHERE is_read=true AND is_claimed=true AND created_at < NOW() - INTERVAL '30 days'");
+    // 清理过期拍卖历史（60天前）
+    const ah = await pool.query("DELETE FROM auction_history WHERE created_at < NOW() - INTERVAL '60 days'");
+    const total = (pk.rowCount||0) + (mc.rowCount||0) + (mail.rowCount||0) + (ah.rowCount||0);
+    if (total > 0) console.log('[Cleanup]', total, 'expired records removed');
+  } catch (e) { console.error('[Cleanup error]', e.message); }
+}, 6 * 3600000);
+
 // Graceful shutdown
 function gracefulShutdown(signal) {
   console.log('[Server] Received', signal, '- shutting down gracefully...');
