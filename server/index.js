@@ -1093,6 +1093,18 @@ function broadcastEvent(text, type = 'info') {
   broadcast(evt);
 }
 
+
+// 获取好友钱包列表（用于在线状态通知）
+async function getFriendWallets(wallet) {
+  try {
+    const result = await pool.query(
+      "SELECT from_wallet, to_wallet FROM friendships WHERE (from_wallet=$1 OR to_wallet=$1) AND status='accepted'",
+      [wallet]
+    );
+    return result.rows.map(r => r.from_wallet === wallet ? r.to_wallet : r.from_wallet);
+  } catch { return []; }
+}
+
 wss.on('connection', (ws, req) => {
   let userInfo = null;
 
@@ -1117,6 +1129,14 @@ wss.on('connection', (ws, req) => {
           onlineClients.set(ws, userInfo);
           broadcast({ type: 'online', count: wss.clients.size });
           broadcastEvent(`${userInfo.name} 进入了修仙界`, 'join');
+          // 通知好友上线
+          const friends = await getFriendWallets(userInfo.wallet);
+          for (const fw of friends) {
+            const fwWs = getWsByWallet(fw);
+            if (fwWs) {
+              fwWs.send(JSON.stringify({ type: 'friend_online', wallet: userInfo.wallet }));
+            }
+          }
         } catch { ws.send(JSON.stringify({ type: 'error', msg: '认证失败' })); }
         return;
       }
@@ -1290,6 +1310,42 @@ wss.on('connection', (ws, req) => {
         ws.send(JSON.stringify(battleResult));
       }
 
+      
+      // 私聊消息
+      if (data.type === 'private_chat') {
+        if (!userInfo) return;
+        const text = (data.text || '').trim().slice(0, 500);
+        if (!text || !data.toWallet) return;
+
+        // 存DB
+        await pool.query(
+          'INSERT INTO private_messages (from_wallet, to_wallet, content) VALUES ($1, $2, $3)',
+          [userInfo.wallet, data.toWallet, text]
+        );
+
+        // 实时推送给对方（如果在线）
+        const targetWs = getWsByWallet(data.toWallet);
+        const msgData = {
+          type: 'private_chat',
+          from: userInfo.wallet,
+          fromName: userInfo.name,
+          text,
+          time: Date.now()
+        };
+        if (targetWs) targetWs.send(JSON.stringify(msgData));
+        // 也回发给自己确认
+        ws.send(JSON.stringify({ ...msgData, self: true }));
+      }
+
+      // 标记已读
+      if (data.type === 'mark_read') {
+        if (!userInfo || !data.fromWallet) return;
+        await pool.query(
+          'UPDATE private_messages SET is_read = true WHERE from_wallet = $1 AND to_wallet = $2 AND is_read = false',
+          [data.fromWallet, userInfo.wallet]
+        );
+      }
+
       // 拒绝挑战
       if (data.type === 'pk_decline') {
         const challenge = pkChallenges.get(data.challengeId);
@@ -1302,15 +1358,53 @@ wss.on('connection', (ws, req) => {
     } catch {}
   });
 
-  ws.on('close', () => {
+  ws.on('close', async () => {
     if (userInfo) {
       onlineClients.delete(ws);
       broadcast({ type: 'online', count: wss.clients.size });
+      // 通知好友离线
+      const friends = await getFriendWallets(userInfo.wallet);
+      for (const fw of friends) {
+        const fwWs = getWsByWallet(fw);
+        if (fwWs) {
+          fwWs.send(JSON.stringify({ type: 'friend_offline', wallet: userInfo.wallet }));
+        }
+      }
     }
   });
 });
 
 // 暴露 broadcastEvent 给路由使用
+
+// GET /api/friend/chat/:wallet - 获取与某好友的聊天记录
+app.get('/api/friend/chat/:wallet', auth, async (req, res) => {
+  try {
+    const w = req.user.wallet;
+    const other = req.params.wallet;
+    const rows = await pool.query(
+      `SELECT * FROM private_messages WHERE (from_wallet=$1 AND to_wallet=$2) OR (from_wallet=$2 AND to_wallet=$1) ORDER BY created_at DESC LIMIT 100`,
+      [w, other]
+    );
+    // 标记为已读
+    await pool.query(
+      'UPDATE private_messages SET is_read=true WHERE from_wallet=$1 AND to_wallet=$2 AND is_read=false',
+      [other, w]
+    );
+    res.json({ ok: true, messages: rows.rows.reverse() });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/friend/unread - 获取未读消息计数（按发送者分组）
+app.get('/api/friend/unread', auth, async (req, res) => {
+  try {
+    const rows = await pool.query(
+      `SELECT from_wallet, COUNT(*)::int as count FROM private_messages WHERE to_wallet=$1 AND is_read=false GROUP BY from_wallet`,
+      [req.user.wallet]
+    );
+    res.json({ ok: true, unread: rows.rows });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // === Admin 活动管理 ===
 const adminAuth = async (req, res, next) => {
   if (!req.user) return res.status(401).json({ error: "未登录" });

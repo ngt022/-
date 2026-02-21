@@ -91,6 +91,26 @@
           </div>
         </div>
       </n-tab-pane>
+
+      <n-tab-pane name="chat" :tab="chatTabLabel">
+        <div v-if="friends.length === 0" class="empty-tip">暂无焰友，快去添加吧~</div>
+        <div v-else class="friend-grid">
+          <div v-for="f in friends" :key="f.wallet" class="friend-card chat-friend-card" @click="openChatModal(f)">
+            <div class="friend-info">
+              <div class="friend-name">
+                <span class="online-dot" :class="{ online: f.online }"></span>
+                {{ f.name }}
+                <span v-if="unreadCounts[f.wallet]" class="unread-badge">{{ unreadCounts[f.wallet] > 99 ? '99+' : unreadCounts[f.wallet] }}</span>
+              </div>
+              <div class="friend-detail">Lv.{{ f.level }} · {{ f.realm }}</div>
+              <div class="friend-detail">{{ f.online ? '🟢 在线' : '⚫ 离线' }}</div>
+            </div>
+            <div class="friend-actions">
+              <n-button size="tiny" type="primary" quaternary>💬 私聊</n-button>
+            </div>
+          </div>
+        </div>
+      </n-tab-pane>
     </n-tabs>
   </n-card>
 
@@ -133,6 +153,25 @@
       <n-button type="warning" block @click="sendGift" :loading="giftSending" :disabled="giftRemaining<=0">确认送出</n-button>
     </n-form>
   </n-modal>
+
+  <!-- 私聊弹窗 -->
+  <n-modal v-model:show="showChat" preset="card" :title="chatTitle" style="max-width:480px" :bordered="false" @update:show="onChatModalClose">
+    <div class="chat-modal">
+      <div class="chat-messages" ref="chatMessagesBox">
+        <div v-if="chatMessages.length === 0" class="empty-tip">开始和 {{ chatTarget?.name }} 聊天吧~</div>
+        <div v-for="(msg, idx) in chatMessages" :key="idx" class="chat-msg-row" :class="{ self: msg.isSelf }">
+          <div class="chat-bubble">
+            <div class="chat-text">{{ msg.content }}</div>
+            <div class="chat-time">{{ formatTime(msg.created_at) }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-row">
+        <n-input v-model:value="chatInput" placeholder="输入消息..." maxlength="500" @keyup.enter="sendChatMessage" />
+        <n-button type="primary" @click="sendChatMessage" :loading="chatSending">发送</n-button>
+      </div>
+    </div>
+  </n-modal>
 </div>
 </template>
 
@@ -161,9 +200,28 @@ const giftSending = ref(false)
 const giftRemaining = ref(3)
 const giftForm = ref({ gift_type: "spirit_stones", gift_value: 100, message: "" })
 
+// Chat related refs
+const showChat = ref(false)
+const chatTarget = ref(null)
+const chatMessages = ref([])
+const chatInput = ref('')
+const chatSending = ref(false)
+const unreadCounts = ref({})
+const chatMessagesBox = ref(null)
+const wsMessageHandler = ref(null)
+
 const giftTypeOptions = [{ label: "焰晶", value: "spirit_stones" }]
 
 const requestTabLabel = computed(() => requests.value.length ? `申请(${requests.value.length})` : "申请")
+const chatTabLabel = computed(() => {
+  const total = Object.values(unreadCounts.value).reduce((a, b) => a + b, 0)
+  return total > 0 ? `私聊(${total})` : "私聊"
+})
+const chatTitle = computed(() => {
+  if (!chatTarget.value) return '私聊'
+  const onlineStatus = chatTarget.value.online ? '🟢 在线' : '⚫ 离线'
+  return `${chatTarget.value.name} ${onlineStatus}`
+})
 const giftTabLabel = computed(() => {
   const unclaimed = gifts.value.filter(g => !g.claimed).length
   return unclaimed ? `礼物(${unclaimed})` : "礼物"
@@ -271,9 +329,181 @@ function formatNum(n) { return n >= 10000 ? (n/10000).toFixed(1) + "万" : Strin
 function giftTypeLabel(t) { return t === "spirit_stones" ? "焰晶" : t }
 function roleLabel(r) { return { leader: "盟主", elder: "焰长", member: "成员" }[r] || r }
 
+// Chat functions
+function getWs() {
+  return window.__gameWs
+}
+
+async function fetchUnreadCounts() {
+  try {
+    const r = await fetch(API + "/unread", { headers: headers() })
+    const d = await r.json()
+    if (d.ok) {
+      const counts = {}
+      for (const item of d.unread) {
+        counts[item.from_wallet] = item.count
+      }
+      unreadCounts.value = counts
+    }
+  } catch {}
+}
+
+async function openChatModal(friend) {
+  chatTarget.value = friend
+  showChat.value = true
+  chatMessages.value = []
+  chatInput.value = ''
+
+  // Load chat history
+  try {
+    const r = await fetch(API + "/chat/" + friend.wallet, { headers: headers() })
+    const d = await r.json()
+    if (d.ok) {
+      chatMessages.value = d.messages.map(m => ({
+        ...m,
+        isSelf: m.from_wallet === authStore.user?.wallet
+      }))
+      scrollChatToBottom()
+    }
+  } catch {}
+
+  // Clear unread count for this friend
+  if (unreadCounts.value[friend.wallet]) {
+    delete unreadCounts.value[friend.wallet]
+    unreadCounts.value = { ...unreadCounts.value }
+  }
+
+  // Mark as read via WebSocket
+  const ws = getWs()
+  if (ws && ws.readyState === 1) {
+    ws.send(JSON.stringify({ type: 'mark_read', fromWallet: friend.wallet }))
+  }
+
+  // Set up WebSocket message handler
+  setupWsHandler()
+}
+
+function setupWsHandler() {
+  // Remove old handler if exists
+  if (wsMessageHandler.value) {
+    window.removeEventListener('private_chat', wsMessageHandler.value)
+  }
+
+  wsMessageHandler.value = (e) => {
+    const data = e.detail
+    if (!data) return
+
+    if (data.type === 'private_chat') {
+      // Check if this message is for current chat
+      if (chatTarget.value && (data.from === chatTarget.value.wallet || data.self)) {
+        chatMessages.value.push({
+          from_wallet: data.self ? authStore.user?.wallet : data.from,
+          content: data.text,
+          created_at: new Date(data.time).toISOString(),
+          isSelf: data.self
+        })
+        scrollChatToBottom()
+
+        // Mark as read if from friend
+        if (!data.self && chatTarget.value) {
+          const ws = getWs()
+          if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: 'mark_read', fromWallet: data.from }))
+          }
+        }
+      } else if (!data.self) {
+        // Update unread count for other friend
+        const from = data.from
+        unreadCounts.value = {
+          ...unreadCounts.value,
+          [from]: (unreadCounts.value[from] || 0) + 1
+        }
+      }
+    }
+  }
+
+  window.addEventListener('private_chat', wsMessageHandler.value)
+}
+
+function onChatModalClose() {
+  if (wsMessageHandler.value) {
+    window.removeEventListener('private_chat', wsMessageHandler.value)
+    wsMessageHandler.value = null
+  }
+  chatTarget.value = null
+}
+
+async function sendChatMessage() {
+  const text = chatInput.value.trim()
+  if (!text || !chatTarget.value) return
+
+  const ws = getWs()
+  if (!ws || ws.readyState !== 1) {
+    msg.error('连接断开，请刷新页面重试')
+    return
+  }
+
+  chatSending.value = true
+  ws.send(JSON.stringify({
+    type: 'private_chat',
+    toWallet: chatTarget.value.wallet,
+    text
+  }))
+  chatInput.value = ''
+  chatSending.value = false
+}
+
+function scrollChatToBottom() {
+  nextTick(() => {
+    if (chatMessagesBox.value) {
+      chatMessagesBox.value.scrollTop = chatMessagesBox.value.scrollHeight
+    }
+  })
+}
+
+function formatTime(ts) {
+  if (!ts) return ''
+  const d = new Date(ts)
+  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
+}
+
+// Update friend online status
+function updateFriendOnline(wallet, online) {
+  const f = friends.value.find(x => x.wallet === wallet)
+  if (f) f.online = online
+}
+
 onMounted(() => {
-  if (authStore.isLoggedIn) { fetchFriends(); fetchRequests(); fetchGifts() }
+  if (authStore.isLoggedIn) {
+    fetchFriends()
+    fetchRequests()
+    fetchGifts()
+    fetchUnreadCounts()
+    setupGlobalWsHandler()
+  }
 })
+
+onUnmounted(() => {
+  if (wsMessageHandler.value) {
+    window.removeEventListener('private_chat', wsMessageHandler.value)
+  }
+  window.removeEventListener('friend_online', handleFriendOnline)
+  window.removeEventListener('friend_offline', handleFriendOffline)
+})
+
+function handleFriendOnline(e) {
+  updateFriendOnline(e.detail.wallet, true)
+}
+
+function handleFriendOffline(e) {
+  updateFriendOnline(e.detail.wallet, false)
+}
+
+function setupGlobalWsHandler() {
+  // Listen for friend online/offline events
+  window.addEventListener('friend_online', handleFriendOnline)
+  window.addEventListener('friend_offline', handleFriendOffline)
+}
 </script>
 
 <style scoped>
@@ -300,6 +530,73 @@ onMounted(() => {
 .equip-slot { color: #888; }
 .equip-name { font-weight: 600; }
 .gift-remaining { text-align: center; color: #d4a843; font-size: 13px; margin-bottom: 12px; }
+
+/* Chat styles */
+.chat-friend-card { cursor: pointer; transition: all 0.2s; }
+.chat-friend-card:hover { background: rgba(212,168,67,0.1); }
+.unread-badge {
+  background: #e74c3c;
+  color: #fff;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+  font-weight: bold;
+}
+.chat-modal {
+  display: flex;
+  flex-direction: column;
+  height: 400px;
+}
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+.chat-msg-row {
+  display: flex;
+  margin-bottom: 10px;
+}
+.chat-msg-row.self {
+  justify-content: flex-end;
+}
+.chat-bubble {
+  max-width: 70%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.chat-msg-row.self .chat-bubble {
+  background: rgba(212,168,67,0.15);
+  border-color: rgba(212,168,67,0.3);
+}
+.chat-text {
+  color: #e8e0d0;
+  font-size: 14px;
+  line-height: 1.4;
+  word-break: break-all;
+}
+.chat-msg-row.self .chat-text {
+  color: #f0d68a;
+}
+.chat-time {
+  font-size: 11px;
+  color: #666;
+  margin-top: 4px;
+  text-align: right;
+}
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+}
+.chat-input-row :deep(.n-input) {
+  flex: 1;
+}
+
 :deep(.n-tabs-tab) { color: #888 !important; }
 :deep(.n-tabs-tab--active) { color: #d4a843 !important; }
 :deep(.n-tabs-bar) { background: #d4a843 !important; }

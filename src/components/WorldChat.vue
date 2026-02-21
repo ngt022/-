@@ -96,6 +96,8 @@ const connect = () => {
     ws.onopen = () => {
       clearTimeout(connectionTimeout)
       isConnected.value = true
+      // 暴露到全局供其他组件使用
+      window.__gameWs = ws
       // 心跳保活
       if (ws._heartbeat) clearInterval(ws._heartbeat)
       ws._heartbeat = setInterval(() => {
@@ -138,6 +140,19 @@ const connect = () => {
 
         if (data.type === 'online') {
           onlineCount.value = data.count
+        }
+
+        // Dispatch private chat events for Friends.vue
+        if (data.type === 'private_chat') {
+          window.dispatchEvent(new CustomEvent('private_chat', { detail: data }))
+        }
+
+        // Dispatch friend online/offline events
+        if (data.type === 'friend_online') {
+          window.dispatchEvent(new CustomEvent('friend_online', { detail: data }))
+        }
+        if (data.type === 'friend_offline') {
+          window.dispatchEvent(new CustomEvent('friend_offline', { detail: data }))
         }
       } catch {}
     }

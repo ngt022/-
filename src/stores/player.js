@@ -156,6 +156,8 @@ export const usePlayerStore = defineStore('player', {
     dungeonTotalKills: 0, // 总击杀数
     dungeonDeathCount: 0, // 死亡次数
     dungeonTotalRewards: 0, // 获得奖励次数
+    // 离线收益
+    lastOnlineTime: 0,
     // 坐骑加成（百分比）
     activeMountBonus: { attack_bonus: 0, defense_bonus: 0, health_bonus: 0, speed_bonus: 0 },
     // 称号加成（百分比）
@@ -248,6 +250,8 @@ export const usePlayerStore = defineStore('player', {
         resistanceBoost: combatBonus
       }
     },
+  },
+  actions: {
     // 获取合并后的总属性（base + 装备 + buff）
     getTotalStats() {
       const ab = this.artifactBonuses || {}
@@ -311,6 +315,45 @@ export const usePlayerStore = defineStore('player', {
         resistanceBoost: (this.specialAttributes.resistanceBoost || 0) + (ab.resistanceBoost || 0),
       }
     },
+    // 计算离线收益
+    calculateOfflineReward() {
+      if (!this.lastOnlineTime || this.lastOnlineTime <= 0) {
+        this.lastOnlineTime = Date.now()
+        this.saveData()
+        return null
+      }
+      const now = Date.now()
+      const offlineMs = now - this.lastOnlineTime
+      const offlineMin = Math.floor(offlineMs / 60000)
+      if (offlineMin < 5) return null
+      const cappedMin = Math.min(offlineMin, 720)
+      const baseCultPerMin = Math.floor(Math.pow(1.2, this.level - 1) * 0.5)
+      const baseStonesPerMin = Math.floor(this.level * 2 + 5)
+      const baseSpiritPerMin = Math.floor(this.level * 3 + 10)
+      let vipBoost = 1
+      try {
+        const pinia = window.__pinia
+        if (pinia) {
+          const authState = pinia.state.value.auth
+          if (authState) {
+            const boosts = [1, 1.2, 1.5, 1.8, 2.0, 2.5]
+            vipBoost = boosts[authState.vipLevel] || 1
+          }
+        }
+      } catch {}
+      const cultivation = Math.floor(baseCultPerMin * cappedMin * vipBoost)
+      const stones = Math.floor(baseStonesPerMin * cappedMin * vipBoost)
+      const spirit = Math.floor(baseSpiritPerMin * cappedMin * vipBoost)
+      this.cultivation += cultivation
+      this.spiritStones += stones
+      this.spirit += spirit
+      if (this.cultivation >= this.maxCultivation) {
+        this.tryBreakthrough()
+      }
+      this.lastOnlineTime = now
+      this.saveData()
+      return { offlineMin: cappedMin, cultivation, stones, spirit, vipBoost }
+    },
     // 计算战力
     getCombatPower() {
       const s = this.getTotalStats()
@@ -320,8 +363,6 @@ export const usePlayerStore = defineStore('player', {
       const levelBonus = this.level * 100
       return Math.floor(base + combat + special + levelBonus)
     },
-  },
-  actions: {
     // 更新HTML暗黑模式类
     updateHtmlDarkMode(isDarkMode) {
       const htmlEl = document.documentElement
