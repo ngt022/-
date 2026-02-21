@@ -63,6 +63,12 @@ const pool = new pg.Pool({
   connectionTimeoutMillis: 5000,
 });
 
+
+// DB 连接池错误处理
+pool.on('error', (err) => {
+  console.error('[DB] Pool error:', err.message);
+});
+
 const provider = new ethers.JsonRpcProvider(ROON_RPC);
 
 // VIP 等级配置
@@ -85,6 +91,15 @@ const SIGN_REWARDS = [
   { day: 6, stones: 3000, items: '洗练石x10' },
   { day: 7, stones: 5000, items: '神品碎片x1' },
 ];
+
+// 请求响应时间 header
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    res.set('X-Response-Time', (Date.now() - start) + 'ms');
+  });
+  next();
+});
 
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
