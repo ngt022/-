@@ -16,6 +16,8 @@ module.exports = {
     error_file: '/root/.pm2/logs/xiuxian-server-error.log',
     out_file: '/root/.pm2/logs/xiuxian-server-out.log',
     log_date_format: 'YYYY-MM-DD HH:mm:ss',
-    merge_logs: true
+    merge_logs: true,
+    kill_timeout: 10000,
+    listen_timeout: 8000
   }]
 }
