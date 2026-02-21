@@ -3882,6 +3882,36 @@ app.post('/api/equipment/batch-sell', auth, async (req, res) => {
 
 
 
+// === 在线统计 ===
+app.get('/api/stats/online', (req, res) => {
+  const players = [];
+  for (const [ws, info] of onlineClients) {
+    if (info.wallet) players.push({ name: info.name, wallet: info.wallet.slice(0,6) + '...' + info.wallet.slice(-4) });
+  }
+  res.json({ online: wss.clients.size, players });
+});
+
+app.get('/api/stats/server', auth, async (req, res) => {
+  try {
+    if (req.user.wallet.toLowerCase() !== (process.env.ADMIN_WALLET || '0xfad7eb0814b6838b05191a07fb987957d50c4ca9').toLowerCase()) {
+      return res.status(403).json({ error: '无权限' });
+    }
+    const totalPlayers = await pool.query('SELECT COUNT(*) FROM players');
+    const activePlayers = await pool.query("SELECT COUNT(*) FROM players WHERE updated_at > NOW() - INTERVAL '7 days'");
+    const totalMails = await pool.query('SELECT COUNT(*) FROM player_mail');
+    const mem = process.memoryUsage();
+    res.json({
+      uptime: Math.floor(process.uptime()),
+      memory: { rss: Math.round(mem.rss/1024/1024), heap: Math.round(mem.heapUsed/1024/1024) },
+      wsConnections: wss.clients.size,
+      authenticatedPlayers: onlineClients.size,
+      totalPlayers: parseInt(totalPlayers.rows[0].count),
+      activePlayers7d: parseInt(activePlayers.rows[0].count),
+      totalMails: parseInt(totalMails.rows[0].count)
+    });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
 // === 邮件系统 ===
 // 获取邮件列表
 app.get('/api/mail/list', auth, async (req, res) => {
