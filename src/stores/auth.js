@@ -73,6 +73,7 @@ export const useAuthStore = defineStore('auth', {
       const res = await fetch(`${API_BASE}${path}`, {
         headers: { 'Authorization': `Bearer ${this.token}` }
       })
+      if (res.status === 401) { this.logout(); throw new Error('登录已过期，请重新连接钱包') }
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       return data
@@ -84,6 +85,7 @@ export const useAuthStore = defineStore('auth', {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
         body: JSON.stringify(body)
       })
+      if (res.status === 401) { this.logout(); throw new Error('登录已过期，请重新连接钱包') }
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       return data
