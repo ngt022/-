@@ -269,7 +269,7 @@
       { label: '焰友', key: 'friends', icon: renderIcon(SmileOutlined) },
       { label: '焰榜', key: 'rank', icon: renderIcon(BarChartOutlined) },
       { label: '设置', key: 'settings', icon: renderIcon(SettingOutlined) },
-      ...(authStore.wallet?.toLowerCase() === "0xfad7eb0814b6838b05191a07fb987957d50c4ca9" ? [{ label: "活动管理", key: "admin/events", icon: renderIcon(SettingOutlined) }] : []),
+      ...(authStore.wallet?.toLowerCase() === "0xfad7eb0814b6838b05191a07fb987957d50c4ca9" ? [{ label: "后台管理", key: "admin", icon: renderIcon(SettingOutlined) }, { label: "活动管理", key: "admin/events", icon: renderIcon(SettingOutlined) }] : []),
       ...(playerStore.isGMMode
         ? [{ label: 'GM调试', key: 'gm', icon: renderIcon(SmileOutlined) }]
         : [])
@@ -318,7 +318,7 @@
     friends: '焰友', auction: '焰市', shop: '焰晶商铺', events: '活动',
     'mount-title': '焰骑焰号', ascension: '涅槃飞升', recharge: '充值',
     vip: '焰阶', achievements: '焰功', rank: '焰榜', settings: '设置',
-    'admin/events': '活动管理', gm: 'GM调试', profile: '角色信息'
+    'admin': '后台管理', 'admin/events': '活动管理', gm: 'GM调试', profile: '角色信息'
   }
 
   const currentPageTitle = computed(() => {

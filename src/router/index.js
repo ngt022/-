@@ -20,6 +20,7 @@ const Events = () => import("../views/Events.vue")
 const PK = () => import("../views/PK.vue")
 const Sect = () => import("../views/Sect.vue")
 const AdminEvents = () => import("../views/AdminEvents.vue")
+const Admin = () => import("../views/Admin.vue")
 const WorldBoss = () => import("../views/WorldBoss.vue")
 const Friends = () => import("../views/Friends.vue")
 const SectWar = () => import("../views/SectWar.vue")
@@ -54,6 +55,7 @@ const routes = [
   { path: "/pk", name: "PK", component: PK },
   { path: "/sect", name: "Sect", component: Sect },
   { path: "/admin/events", name: "AdminEvents", component: AdminEvents },
+  { path: "/admin", name: "Admin", component: Admin },
   { path: "/boss", name: "WorldBoss", component: WorldBoss },
   { path: "/friends", name: "Friends", component: Friends },
   { path: "/sect-war", name: "SectWar", component: SectWar },
@@ -62,6 +64,7 @@ const routes = [
   { path: "/mount-title", name: "MountTitle", component: MountTitle },
   { path: "/ascension", name: "Ascension", component: Ascension },
   { path: "/profile", name: "Profile", component: Profile },
+  { path: "/:pathMatch(.*)*", name: "NotFound", redirect: "/" },
 ]
 
 const router = createRouter({

@@ -6,6 +6,7 @@ import pg from 'pg';
 import jwt from 'jsonwebtoken';
 import { ethers } from 'ethers';
 import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 
@@ -82,6 +83,7 @@ const SIGN_REWARDS = [
   { day: 7, stones: 5000, items: '神品碎片x1' },
 ];
 
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '5mb' }));
 app.use(rateLimit({ windowMs: 60000, max: 120 }));
@@ -3682,5 +3684,20 @@ app.post('/api/equipment/reforge-confirm', auth, async (req, res) => {
   } catch (e) { console.error('reforge-confirm error:', e); res.status(500).json({ error: e.message }); }
 });
 
+
+
+// ============ 404 catch-all ============
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'API not found' });
+});
+
+
+// ============ 全局错误处理 ============
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] uncaughtException:', err.message, err.stack);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[WARN] unhandledRejection:', reason);
+});
 
 server.listen(PORT, () => console.log(`修仙后端启动 port ${PORT}`));
