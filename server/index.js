@@ -3504,4 +3504,44 @@ await registerAdminRoutes(app, pool, auth, adminAuth);
 
 // === 焚天塔副本系统 ===
 registerDungeonRoutes(app, pool, auth);
+
+
+// === 新手礼包（防重复领取）===
+app.post('/api/gift/newplayer', auth, async (req, res) => {
+  try {
+    const wallet = req.user.wallet;
+    const r = await pool.query('SELECT game_data FROM players WHERE wallet = $1', [wallet]);
+    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = typeof r.rows[0].game_data === 'string' ? JSON.parse(r.rows[0].game_data) : (r.rows[0].game_data || {});
+    if (gd.newPlayerGiftClaimed) return res.status(400).json({ error: '新手礼包已领取' });
+    gd.spiritStones = (gd.spiritStones || 0) + 20000;
+    gd.newPlayerGiftClaimed = true;
+    gd.isNewPlayer = false;
+    await pool.query('UPDATE players SET game_data = $1, spirit_stones = $2 WHERE wallet = $3',
+      [JSON.stringify(gd), gd.spiritStones, wallet]);
+    res.json({ success: true, spiritStones: gd.spiritStones });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// === 改名（服务端扣费）===
+app.post('/api/player/rename', auth, async (req, res) => {
+  try {
+    const { newName } = req.body;
+    const wallet = req.user.wallet;
+    if (!newName || newName.length < 1 || newName.length > 12) return res.status(400).json({ error: '名字长度1-12字' });
+    const r = await pool.query('SELECT game_data FROM players WHERE wallet = $1', [wallet]);
+    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = typeof r.rows[0].game_data === 'string' ? JSON.parse(r.rows[0].game_data) : (r.rows[0].game_data || {});
+    const count = gd.nameChangeCount || 0;
+    const cost = count === 0 ? 0 : Math.pow(2, count) * 100;
+    if ((gd.spiritStones || 0) < cost) return res.status(400).json({ error: '焰晶不足，需要' + cost });
+    gd.spiritStones = (gd.spiritStones || 0) - cost;
+    gd.name = newName;
+    gd.nameChangeCount = count + 1;
+    await pool.query('UPDATE players SET game_data = $1, spirit_stones = $2, name = $3 WHERE wallet = $4',
+      [JSON.stringify(gd), gd.spiritStones, newName, wallet]);
+    res.json({ success: true, spiritStones: gd.spiritStones, nameChangeCount: gd.nameChangeCount });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 server.listen(PORT, () => console.log(`修仙后端启动 port ${PORT}`));

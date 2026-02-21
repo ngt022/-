@@ -307,10 +307,22 @@ const petRarityMap = {
 const petColor = (r) => (petRarityMap[r] || petRarityMap.mortal).color
 const petRarityName = (r) => (petRarityMap[r] || petRarityMap.mortal).name
 
-const receiveNewPlayerGift = () => {
-  playerStore.spiritStones += 20000
-  playerStore.isNewPlayer = false
-  message.success('获得20000焰晶，新手礼包领取成功！')
+const receiveNewPlayerGift = async () => {
+  try {
+    const res = await fetch('/api/gift/newplayer', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('xx_token')
+      }
+    })
+    const data = await res.json()
+    if (data.success) {
+      playerStore.spiritStones = data.spiritStones
+      playerStore.isNewPlayer = false
+      message.success('获得20000焰晶，新手礼包领取成功！')
+    } else { message.error(data.error || '领取失败') }
+  } catch (e) { message.error('领取失败') }
 }
 
 const particleStyle = (i) => ({

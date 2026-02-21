@@ -106,8 +106,8 @@
     })
   }
 
-  // 修改焰名
-  const handleChangeName = () => {
+  // 修改焰名（服务端验证）
+  const handleChangeName = async () => {
     if (!newName.value.trim()) {
       message.warning('焰名不能为空！')
       return
@@ -116,23 +116,30 @@
       message.warning(`焰名长度不能超过${maxLength}个字符！`)
       return
     }
-    // 计算修改焰名所需焰晶
-    const spiritStoneCost = playerStore.nameChangeCount === 0 ? 0 : Math.pow(2, playerStore.nameChangeCount) * 100
-    // 第一次修改免费，之后需要消耗焰晶
-    if (playerStore.nameChangeCount > 0) {
-      if (playerStore.spiritStones < spiritStoneCost) {
-        message.error(`焰晶不足！修改焰名需要${spiritStoneCost}颗焰晶`)
-        return
+    try {
+      const res = await fetch('/api/player/rename', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + localStorage.getItem('xx_token')
+        },
+        body: JSON.stringify({ newName: newName.value.trim() })
+      })
+      const data = await res.json()
+      if (data.success) {
+        playerStore.spiritStones = data.spiritStones
+        playerStore.name = newName.value.trim()
+        playerStore.nameChangeCount = data.nameChangeCount
+        message.success(
+          data.nameChangeCount === 1 ? '焰名修改成功！首次修改免费' : `焰名修改成功！`
+        )
+        newName.value = ''
+      } else {
+        message.error(data.error || '修改失败')
       }
-      playerStore.spiritStones -= spiritStoneCost
+    } catch (e) {
+      message.error('修改失败')
     }
-    playerStore.name = newName.value.trim()
-    playerStore.nameChangeCount++
-    playerStore.saveData()
-    message.success(
-      playerStore.nameChangeCount === 1 ? '焰名修改成功！首次修改免费' : `焰名修改成功！消耗${spiritStoneCost}颗焰晶`
-    )
-    newName.value = ''
   }
 </script>
 
