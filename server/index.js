@@ -3887,6 +3887,100 @@ app.post('/api/equipment/batch-sell', auth, async (req, res) => {
 
 
 
+// === API 文档 ===
+app.get('/api/docs', (req, res) => {
+  res.json({
+    name: '火之文明 API',
+    version: '1.0.0',
+    endpoints: {
+      auth: { 'POST /api/auth/login': '钱包登录(wallet,signature,message)' },
+      game: {
+        'POST /api/game/save': '保存游戏数据(auth)',
+        'GET /api/game/load': '加载游戏数据(auth)',
+        'POST /api/game/save-beacon': '离线保存(sendBeacon)'
+      },
+      player: {
+        'POST /api/player/rename': '修改焰名(auth,newName)',
+        'POST /api/gift/newplayer': '领取新手礼包(auth)',
+        'POST /api/sign/daily': '每日签到(auth)'
+      },
+      mail: {
+        'GET /api/mail/list': '邮件列表(auth)',
+        'POST /api/mail/read': '标记已读(auth,mailId)',
+        'POST /api/mail/claim': '领取附件(auth,mailId)',
+        'POST /api/mail/delete': '删除邮件(auth,mailId)'
+      },
+      shop: {
+        'GET /api/shop/list': '商品列表',
+        'POST /api/shop/buy-equip': '购买装备(auth)',
+        'POST /api/shop/buy-pill': '购买丹药(auth)',
+        'POST /api/shop/buy-material': '购买材料(auth)',
+        'POST /api/shop/buy-pack': '购买礼包(auth)',
+        'POST /api/shop/buy-buff': '购买增益(auth)',
+        'POST /api/shop/buy-herb': '购买焰草(auth)',
+        'POST /api/shop/buy-formula': '购买丹方(auth)'
+      },
+      equipment: {
+        'POST /api/equipment/enhance': '强化装备(auth,equipmentId)',
+        'POST /api/equipment/reforge': '洗练装备(auth,equipmentId)'
+      },
+      dungeon: {
+        'POST /api/dungeon/start': '开始焚天塔(auth,difficulty)',
+        'POST /api/dungeon/fight': '战斗(auth)',
+        'POST /api/dungeon/claim': '领取奖励(auth,floor,result,difficulty)'
+      },
+      exploration: {
+        'GET /api/exploration/locations': '探索地点列表',
+        'POST /api/exploration/explore': '探索(auth,locationId)',
+        'POST /api/exploration/reward': '领取探索奖励(auth)'
+      },
+      gacha: {
+        'POST /api/gacha/draw': '抽卡(auth,count)',
+        'GET /api/gacha/probabilities': '概率公示'
+      },
+      boss: {
+        'GET /api/boss/current': '当前Boss(auth)',
+        'POST /api/boss/attack': '攻击Boss(auth)',
+        'GET /api/boss/ranking': 'Boss伤害排行(auth)',
+        'GET /api/boss/rewards': 'Boss奖励(auth)',
+        'POST /api/boss/claim': '领取Boss奖励(auth)'
+      },
+      sect: {
+        'GET /api/sect/list': '焰盟列表',
+        'POST /api/sect/create': '创建焰盟(auth)',
+        'POST /api/sect/join': '加入焰盟(auth)',
+        'POST /api/sect/donate': '捐献(auth,amount)',
+        'GET /api/sect/members': '成员列表(auth)'
+      },
+      social: {
+        'GET /api/friend/list': '好友列表(auth)',
+        'POST /api/friend/search': '搜索玩家(auth,keyword)',
+        'POST /api/friend/add': '添加好友(auth)',
+        'POST /api/friend/gift': '送礼(auth)'
+      },
+      auction: {
+        'GET /api/auction/browse': '拍卖列表',
+        'POST /api/auction/list': '上架(auth)',
+        'POST /api/auction/bid': '竞拍(auth)',
+        'POST /api/auction/buyout': '一口价(auth)'
+      },
+      leaderboard: {
+        'GET /api/leaderboard/:type': '排行榜(power/level/recharge)'
+      },
+      vip: { 'GET /api/vip/info': 'VIP信息(auth)' },
+      recharge: { 'POST /api/recharge/confirm': '充值确认(auth,txHash)' },
+      stats: {
+        'GET /api/stats/online': '在线玩家',
+        'GET /api/stats/server': '服务器统计(admin)'
+      },
+      admin: {
+        'POST /api/admin/mail/send': '群发邮件(admin,title,content,rewards,target)'
+      },
+      system: { 'GET /api/health': '健康检查' }
+    }
+  });
+});
+
 // === 在线统计 ===
 app.get('/api/stats/online', (req, res) => {
   const players = [];
