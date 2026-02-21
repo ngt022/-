@@ -152,7 +152,45 @@ function getWeekStart() {
 
 export default function(pool, auth) {
 
-  router.post('/buy-equip', auth, async (req, res) => {
+  // GET /list - 商品列表
+  router.get('/list', (req, res) => {
+    const config = getConfig();
+    const materialPrices = config?.shop_material_prices || DEFAULT_MATERIAL_PRICES;
+    
+    const items = {
+      equipment: Object.entries(EQUIP_PRICES).map(([q, p]) => ({
+        category: 'equipment', id: 'equip_' + q, name: q + '品质随机装备',
+        quality: q, price: p, description: '随机生成一件' + q + '品质装备'
+      })),
+      pills: Object.entries(PILL_ITEMS).map(([id, item]) => ({
+        category: 'pill', id, name: item.name, price: item.price,
+        effect: item.effect, description: item.name
+      })),
+      materials: Object.entries(MATERIAL_ITEMS).map(([id, item]) => ({
+        category: 'material', id, name: item.name,
+        price: materialPrices[id] || DEFAULT_MATERIAL_PRICES[id] || 1000,
+        description: item.name
+      })),
+      packs: Object.entries(PACK_ITEMS).map(([id, item]) => ({
+        category: 'pack', id, name: item.name, price: item.price,
+        description: item.name
+      })),
+      buffs: Object.entries(BUFF_ITEMS).map(([id, item]) => ({
+        category: 'buff', id, name: item.name, price: item.price,
+        duration: item.duration, description: item.name
+      })),
+      herbs: Object.entries(HERB_ITEMS).map(([id, item]) => ({
+        category: 'herb', id, name: item.name, baseValue: item.baseValue
+      })),
+      formulas: Object.entries(FORMULA_ITEMS).map(([id, item]) => ({
+        category: 'formula', id, name: item.name, price: item.price,
+        grade: item.grade
+      }))
+    };
+    res.json({ ok: true, items });
+  });
+
+    router.post('/buy-equip', auth, async (req, res) => {
     try {
       const { quality, equipType } = req.body;
       const wallet = req.user.wallet;
