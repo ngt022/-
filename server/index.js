@@ -53,7 +53,7 @@ const PORT = process.env.PORT || 3007;
 const JWT_SECRET = process.env.JWT_SECRET || 'xiuxian_secret_2026';
 const VAULT_ADDRESS = process.env.VAULT_ADDRESS || '0xBce51d77b325C1A42d2aF8359f9744699102698e';
 const ROON_RPC = process.env.ROON_RPC || 'https://rpc.roonchain.com/';
-const RATE_PER_ROON = 10000; // 1 ROON = 10000 灵石
+const RATE_PER_ROON = 10000; // 1 ROON = 10000 焰晶
 const FIRST_RECHARGE_BONUS = 2; // 首充双倍
 
 const pool = new pg.Pool({
@@ -361,7 +361,7 @@ app.post('/api/recharge/confirm', auth, async (req, res) => {
       app.locals.broadcastEvent(`🎉 ${pName} 晋升为 VIP${newVipLevel}！`, 'vip');
     }
     if (!player.rows[0].first_recharge) {
-      app.locals.broadcastEvent(`✨ ${pName} 完成了首充，获得双倍灵石！`, 'recharge');
+      app.locals.broadcastEvent(`✨ ${pName} 完成了首充，获得双倍焰晶！`, 'recharge');
     }
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -473,7 +473,7 @@ function sanitizePlayer(p) {
 
 // === 月卡系统 ===
 const MONTHLY_CARD_PRICE = 10; // 10 ROON
-const MONTHLY_CARD_DAILY = 5000; // 每日5000灵石
+const MONTHLY_CARD_DAILY = 5000; // 每日5000焰晶
 const MONTHLY_CARD_DAYS = 30;
 
 // 查询月卡状态
@@ -575,7 +575,7 @@ app.post('/api/monthly-card/buy', auth, async (req, res) => {
   }
 });
 
-// 领取月卡每日灵石
+// 领取月卡每日焰晶
 app.post('/api/monthly-card/claim', auth, async (req, res) => {
   try {
     const result = await pool.query(
@@ -662,7 +662,7 @@ app.post('/api/events/:id/claim', auth, async (req, res) => {
     }
     // 记录领取
     await pool.query('INSERT INTO event_claims (event_id, wallet) VALUES ($1, $2)', [eventId, wallet]);
-    // 发放灵石
+    // 发放焰晶
     if (stonesReward > 0) {
       await pool.query(
         `UPDATE players SET spirit_stones = spirit_stones + $1,
@@ -810,7 +810,7 @@ app.post('/api/sect/create', auth, async (req, res) => {
     if (!player.rows.length) return res.status(400).json({ error: '玩家不存在' });
     const gameData = typeof player.rows[0].game_data === 'string' ? JSON.parse(player.rows[0].game_data) : player.rows[0].game_data;
     const stones = gameData?.spiritStones ?? player.rows[0].spirit_stones ?? 0;
-    if (stones < 50000) return res.status(400).json({ error: '灵石不足，需要50000灵石' });
+    if (stones < 50000) return res.status(400).json({ error: '焰晶不足，需要50000焰晶' });
     // Deduct stones
     gameData.spiritStones = (gameData.spiritStones || 0) - 50000;
     await pool.query('UPDATE players SET game_data=$1, spirit_stones=$2 WHERE wallet=$3',
@@ -983,13 +983,13 @@ app.post('/api/sect/tasks/:id/complete', auth, async (req, res) => {
 app.post('/api/sect/donate', auth, async (req, res) => {
   try {
     const { amount } = req.body;
-    if (!amount || amount < 100) return res.status(400).json({ error: '最少捐献100灵石' });
+    if (!amount || amount < 100) return res.status(400).json({ error: '最少捐献100焰晶' });
     const mem = await pool.query('SELECT * FROM sect_members WHERE wallet=$1', [req.user.wallet]);
     if (!mem.rows.length) return res.status(400).json({ error: '你未加入宗门' });
     const player = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [req.user.wallet]);
     const gameData = typeof player.rows[0].game_data === 'string' ? JSON.parse(player.rows[0].game_data) : player.rows[0].game_data;
     const stones = gameData?.spiritStones ?? 0;
-    if (stones < amount) return res.status(400).json({ error: '灵石不足' });
+    if (stones < amount) return res.status(400).json({ error: '焰晶不足' });
     gameData.spiritStones = stones - amount;
     await pool.query('UPDATE players SET game_data=$1, spirit_stones=$2 WHERE wallet=$3',
       [JSON.stringify(gameData), gameData.spiritStones, req.user.wallet]);
@@ -1032,7 +1032,7 @@ const lastChatTime = new Map(); // wallet -> timestamp
 const pkChallenges = new Map(); // challengeId -> { from, to, fromStats, timestamp }
 const pkCooldown = new Map(); // wallet -> timestamp
 const PK_COOLDOWN_MS = 30000; // PK 冷却 30秒
-const PK_REWARD = 500; // 胜者奖励灵石
+const PK_REWARD = 500; // 胜者奖励焰晶
 let pkIdCounter = 0;
 
 function getWsByWallet(wallet) {
@@ -1134,7 +1134,7 @@ wss.on('connection', (ws, req) => {
           userInfo = { wallet: decoded.wallet, name: data.name || '无名修士' };
           onlineClients.set(ws, userInfo);
           broadcast({ type: 'online', count: wss.clients.size });
-          broadcastEvent(`${userInfo.name} 进入了修仙界`, 'join');
+          broadcastEvent(`${userInfo.name} 进入了焰域`, 'join');
           // 通知好友上线
           const friends = await getFriendWallets(userInfo.wallet);
           for (const fw of friends) {
@@ -1835,7 +1835,7 @@ app.post("/api/friend/gift", auth, async (req, res) => {
       if (!player.rows.length) return res.status(404).json({ error: "玩家不存在" });
       const gd = typeof player.rows[0].game_data === "string" ? JSON.parse(player.rows[0].game_data) : (player.rows[0].game_data || {});
       const stones = gd.spiritStones ?? player.rows[0].spirit_stones ?? 0;
-      if (stones < gift_value) return res.status(400).json({ error: "灵石不足" });
+      if (stones < gift_value) return res.status(400).json({ error: "焰晶不足" });
       gd.spiritStones = (gd.spiritStones || 0) - gift_value;
       await pool.query(`UPDATE players SET game_data=$1, spirit_stones=$2 WHERE wallet=$3`,
         [JSON.stringify(gd), gd.spiritStones, w]);
@@ -2444,7 +2444,7 @@ app.post('/api/auction/list', auth, async (req, res) => {
     // 上架费 5%
     const listingFee = Math.max(1, Math.floor(starting_price * 0.05));
     const stones = parseInt(gd.spiritStones) || 0;
-    if (stones < listingFee) return res.status(400).json({ error: `灵石不足，上架费需要 ${listingFee} 灵石` });
+    if (stones < listingFee) return res.status(400).json({ error: `焰晶不足，上架费需要 ${listingFee} 灵石` });
 
     // 扣灵石 + 移除物品
     items.splice(itemIndex, 1);
@@ -2525,7 +2525,7 @@ app.post('/api/auction/bid', auth, async (req, res) => {
     const player = await client.query('SELECT game_data FROM players WHERE wallet=$1 FOR UPDATE', [w]);
     const gd = player.rows[0].game_data;
     const stones = parseInt(gd.spiritStones) || 0;
-    if (stones < amount) { await client.query('ROLLBACK'); return res.status(400).json({ error: '灵石不足' }); }
+    if (stones < amount) { await client.query('ROLLBACK'); return res.status(400).json({ error: '焰晶不足' }); }
 
     const playerNameRes = await client.query('SELECT name FROM players WHERE wallet=$1', [w]);
     const bidderName = playerNameRes.rows[0]?.name || '无名修士';
@@ -2766,7 +2766,7 @@ app.post('/api/auction/buyout', auth, async (req, res) => {
     const player = await client.query('SELECT game_data FROM players WHERE wallet=$1 FOR UPDATE', [w]);
     const gd = player.rows[0].game_data;
     const stones = parseInt(gd.spiritStones) || 0;
-    if (stones < l.buyout_price) { await client.query('ROLLBACK'); return res.status(400).json({ error: '灵石不足' }); }
+    if (stones < l.buyout_price) { await client.query('ROLLBACK'); return res.status(400).json({ error: '焰晶不足' }); }
 
     // 退还之前的出价者
     if (l.current_bidder && l.current_bid > 0) {
@@ -2999,7 +2999,7 @@ app.post("/api/dungeon-daily/enter", auth, async (req, res) => {
       if (rc.petEssence) rewards.petEssence = rc.petEssence;
       if (rc.refinementStones) rewards.refinementStones = rc.refinementStones;
 
-      // 发放灵石、修为、焰兽精华、符文石
+      // 发放焰晶、修为、焰兽精华、符文石
       const curStones = Number(gameData.spiritStones) || 0;
       const curCult = Number(gameData.cultivation) || 0;
       const curPE = Number(gameData.petEssence) || 0;
@@ -3111,7 +3111,7 @@ app.post('/api/mount/buy', auth, async (req, res) => {
     if (cost > 0) {
       const player = await pool.query('SELECT spirit_stones FROM players WHERE wallet = $1', [w]);
       const stones = player.rows[0]?.spirit_stones || 0;
-      if (stones < cost) return res.status(400).json({ error: `灵石不足，需要${cost}灵石` });
+      if (stones < cost) return res.status(400).json({ error: `焰晶不足，需要${cost}灵石` });
       await pool.query(
         `UPDATE players SET spirit_stones = spirit_stones - $1,
          game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb(GREATEST(0, (COALESCE((game_data->>'spiritStones')::bigint, 0) - $1)::bigint)))
@@ -3758,4 +3758,4 @@ process.on('unhandledRejection', (reason) => {
 });
 
 
-server.listen(PORT, () => console.log(`修仙后端启动 port ${PORT}`));
+server.listen(PORT, () => console.log(`焰修后端启动 port ${PORT}`));
