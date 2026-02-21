@@ -149,7 +149,7 @@
 </template>
 
 <script setup>
-import img from '@/utils/img.js'
+import img from '../utils/img.js'
 import { computed, ref, onMounted } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import { useAuthStore } from '../stores/auth'

@@ -136,7 +136,7 @@
 </template>
 
 <script setup>
-import img from '@/utils/img.js'
+import img from '../utils/img.js'
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import { useMessage } from 'naive-ui'
