@@ -178,7 +178,26 @@
         </div>
       </div>
       <!-- 系统设置 -->
-      <div v-if="activeTab === 'settings'" class="tab-content">
+      <!-- 邮件管理 -->
+      <div v-if="activeTab === 'mail'" class="tab-content">
+        <div class="toolbar">
+          <input v-model="mailTitle" class="search-input" placeholder="邮件标题" style="flex:1" />
+          <select v-model="mailTarget" class="search-input" style="width:120px">
+            <option value="all">全服发送</option>
+            <option value="custom">指定玩家</option>
+          </select>
+        </div>
+        <input v-if="mailTarget==='custom'" v-model="mailTargetWallet" class="search-input" placeholder="目标钱包地址" style="width:100%;margin:8px 0" />
+        <textarea v-model="mailContent" class="search-input" placeholder="邮件内容" rows="3" style="width:100%;margin:8px 0;resize:vertical"></textarea>
+        <div class="toolbar" style="gap:8px">
+          <input v-model.number="mailRewardStones" class="search-input" placeholder="焰晶奖励" type="number" style="width:100px" />
+          <input v-model.number="mailRewardReinforce" class="search-input" placeholder="淬火石" type="number" style="width:100px" />
+          <input v-model.number="mailRewardEssence" class="search-input" placeholder="精华" type="number" style="width:100px" />
+          <button class="gold-btn" @click="sendMail" :disabled="!mailTitle||!mailContent">发送邮件</button>
+        </div>
+        <div v-if="mailResult" class="stat-card" style="margin-top:12px">{{ mailResult }}</div>
+      </div>
+            <div v-if="activeTab === 'settings'" class="tab-content">
         <div class="settings-section">
           <h3 class="section-title">VIP 配置</h3>
           <div class="table-wrap">
@@ -284,6 +303,31 @@ const token = () => localStorage.getItem('xx_token') || ''
 const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` })
 
 const accessDenied = ref(false)
+const mailTitle = ref('')
+const mailContent = ref('')
+const mailTarget = ref('all')
+const mailTargetWallet = ref('')
+const mailRewardStones = ref(0)
+const mailRewardReinforce = ref(0)
+const mailRewardEssence = ref(0)
+const mailResult = ref('')
+
+const sendMail = async () => {
+  try {
+    const rewards = {}
+    if (mailRewardStones.value > 0) rewards.spiritStones = mailRewardStones.value
+    if (mailRewardReinforce.value > 0) rewards.reinforceStones = mailRewardReinforce.value
+    if (mailRewardEssence.value > 0) rewards.petEssence = mailRewardEssence.value
+    const target = mailTarget.value === 'all' ? 'all' : mailTargetWallet.value
+    const data = await authStore.apiPost('/admin/mail/send', {
+      title: mailTitle.value, content: mailContent.value, rewards, target
+    })
+    mailResult.value = '✅ 发送成功！共发送 ' + data.sent + ' 封'
+    mailTitle.value = ''; mailContent.value = ''
+    mailRewardStones.value = 0; mailRewardReinforce.value = 0; mailRewardEssence.value = 0
+  } catch (e) { mailResult.value = '❌ ' + e.message }
+}
+
 const activeTab = ref('dashboard')
 const tabs = [
   { key: 'dashboard', label: '仪表盘' },
@@ -293,6 +337,7 @@ const tabs = [
   { key: 'sects', label: '焰盟管理' },
   { key: 'events', label: '活动管理' },
   { key: 'boss', label: 'Boss管理' },
+  { key: 'mail', label: '邮件管理' },
   { key: 'settings', label: '系统设置' },
 ]
 
