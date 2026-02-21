@@ -132,7 +132,6 @@ app.post('/api/auth/login', async (req, res) => {
 app.post('/api/game/save', auth, async (req, res) => {
   try {
     const { gameData, combatPower, level, realm, name } = req.body;
-console.log("[SAVE DEBUG]", req.user.wallet.slice(-4), "level:", level, "realm:", realm, "cult:", gameData?.cultivation, "spirit:", gameData?.spirit, "stones:", gameData?.spiritStones);
 
     // Read DB current data - protect server-managed fields from frontend overwrite
     const current = await pool.query('SELECT game_data, level, realm, name, spirit_stones FROM players WHERE wallet = $1', [req.user.wallet]);
@@ -190,7 +189,6 @@ app.post('/api/game/save-beacon', async (req, res) => {
     try { user = jwt.verify(token, JWT_SECRET); } catch { return res.status(401).json({ error: 'token无效' }); }
 
     const { gameData, combatPower, level, realm, name } = req.body;
-console.log("[SAVE DEBUG]", req.user.wallet.slice(-4), "level:", level, "realm:", realm, "cult:", gameData?.cultivation, "spirit:", gameData?.spirit, "stones:", gameData?.spiritStones);
     const current = await pool.query('SELECT game_data, level, realm, name, spirit_stones FROM players WHERE wallet = $1', [user.wallet]);
     if (!current.rows.length) return res.status(404).json({ error: '玩家不存在' });
     
