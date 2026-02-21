@@ -567,7 +567,7 @@ const handleVictory = async () => {
       playerStore.refinementStones = data.newTotal.refinementStones
       
       // 显示奖励
-      message.success(`获得了 ${data.rewards.spiritStones} 灵石！`)
+      message.success(`获得了 ${data.rewards.spiritStones} 焰晶！`)
       if (data.rewards.refinementStones > 0) {
         message.success(`获得了 ${data.rewards.refinementStones} 颗洗练石！`)
       }

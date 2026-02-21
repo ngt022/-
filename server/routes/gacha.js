@@ -596,10 +596,10 @@ router.post('/draw', auth, async (req, res) => {
     const vipDiscount = VIP_DISCOUNTS[Math.min(vipLevel, 5)]
     const cost = Math.floor(baseCost * vipDiscount)
     
-    // 检查灵石
+    // 检查焰晶
     const currentStones = gameData.spiritStones || 0
     if (currentStones < cost) {
-      return res.status(400).json({ error: '灵石不足' })
+      return res.status(400).json({ error: '焰晶不足' })
     }
     
     // 检查背包容量
@@ -711,7 +711,7 @@ router.post('/draw', auth, async (req, res) => {
       results.push(item)
     }
     
-    // 扣除灵石并更新数据
+    // 扣除焰晶并更新数据
     const newStones = currentStones - cost
     gameData.spiritStones = newStones
     gameData.petEssence = (gameData.petEssence || 0) + petEssenceGained

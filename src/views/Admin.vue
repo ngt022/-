@@ -1,7 +1,7 @@
 <template>
   <div class="admin-page" v-if="!accessDenied">
     <div class="admin-header">
-      <h1 class="admin-title">⚙ 修仙后台管理</h1>
+      <h1 class="admin-title">⚙ 焰修后台管理</h1>
       <div class="tab-bar">
         <button v-for="tab in tabs" :key="tab.key" :class="['tab-btn', { active: activeTab === tab.key }]" @click="activeTab = tab.key">{{ tab.label }}</button>
       </div>

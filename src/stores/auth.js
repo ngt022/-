@@ -32,7 +32,7 @@ export const useAuthStore = defineStore('auth', {
         const accounts = await provider.send('eth_requestAccounts', [])
         const wallet = accounts[0]
         const signer = await provider.getSigner()
-        const message = `修仙放置登录\n钱包: ${wallet}\n时间: ${Date.now()}`
+        const message = `火之文明登录\n钱包: ${wallet}\n时间: ${Date.now()}`
         const signature = await signer.signMessage(message)
 
         const res = await fetch(`${API_BASE}/auth/login`, {

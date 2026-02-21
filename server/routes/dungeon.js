@@ -337,7 +337,7 @@ function registerDungeonRoutes(app, pool, auth) {
       const isEliteFloor = floor % 5 === 0
       const diffMult = DIFFICULTY_MULTIPLIERS[difficulty].multiplier
       
-      // 灵石奖励公式：10 * floor * difficulty
+      // 焰晶奖励公式：10 * floor * difficulty
       let spiritStones = (10 * floor) * diffMult
       if (isBossFloor) spiritStones = Math.floor(spiritStones * 2)
       else if (isEliteFloor) spiritStones = Math.floor(spiritStones * 1.5)
