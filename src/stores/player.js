@@ -28,7 +28,7 @@ export const usePlayerStore = defineStore('player', {
     name: '无名修士',
     nameChangeCount: 0, // 道号修改次数
     level: 1, // 境界等级
-    realm: '练气期一层', // 当前境界名称
+    realm: '燃火期一层', // 当前境界名称
     cultivation: 0, // 当前修为值
     maxCultivation: 100, // 当前境界最大修为值
     spirit: 0, // 灵力值
@@ -170,7 +170,7 @@ export const usePlayerStore = defineStore('player', {
     selectedWishEquipQuality: null,
     selectedWishPetRarity: null,
     // 成就与解锁项
-    unlockedRealms: ['练气一层'], // 已解锁境界
+    unlockedRealms: ['燃火一层'], // 已解锁境界
     unlockedLocations: ['新手村'], // 已解锁地点
     unlockedSkills: [], // 已解锁功法
     completedAchievements: [] // 已完成成就
@@ -470,7 +470,7 @@ export const usePlayerStore = defineStore('player', {
         const nextRealm = getRealmName(this.level)
         // 更新境界信息
         this.level += 1
-        this.realm = nextRealm.name // 使用完整的境界名称（如：练气一层）
+        this.realm = nextRealm.name // 使用完整的境界名称（如：燃火一重）
         this.maxCultivation = nextRealm.maxCultivation
         this.cultivation = 0 // 重置修为值
         this.breakthroughCount += 1 // 增加突破次数

@@ -15,5 +15,8 @@
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.11.3",
     "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "wscat": "^6.1.0"
   }
 }

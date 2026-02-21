@@ -187,7 +187,7 @@ app.post('/api/game/save', auth, async (req, res) => {
     if (!current.rows.length) return res.status(404).json({ error: '玩家不存在' });
     
     const oldLevel = current.rows[0]?.level || 1;
-    const playerName = name || current.rows[0]?.name || '无名修士';
+    const playerName = name || current.rows[0]?.name || '无名焰修';
     const dbGameData = typeof current.rows[0].game_data === 'string' 
       ? JSON.parse(current.rows[0].game_data) 
       : (current.rows[0].game_data || {});
@@ -242,7 +242,7 @@ app.post('/api/game/save-beacon', async (req, res) => {
     if (!current.rows.length) return res.status(404).json({ error: '玩家不存在' });
     
     const oldLevel = current.rows[0]?.level || 1;
-    const playerName = name || current.rows[0]?.name || '无名修士';
+    const playerName = name || current.rows[0]?.name || '无名焰修';
     const dbGameData = typeof current.rows[0].game_data === 'string'
       ? JSON.parse(current.rows[0].game_data)
       : (current.rows[0].game_data || {});
@@ -405,7 +405,7 @@ app.post('/api/recharge/confirm', strictLimit, auth, async (req, res) => {
     });
 
     // 全服广播充值
-    const pName = (await pool.query('SELECT name FROM players WHERE wallet=$1', [req.user.wallet])).rows[0]?.name || '无名修士';
+    const pName = (await pool.query('SELECT name FROM players WHERE wallet=$1', [req.user.wallet])).rows[0]?.name || '无名焰修';
     if (newVipLevel > player.rows[0].vip_level) {
       app.locals.broadcastEvent(`🎉 ${pName} 晋升为 VIP${newVipLevel}！`, 'vip');
     }
@@ -479,7 +479,11 @@ app.get('/api/leaderboard/:type', async (req, res) => {
     if (cached.rows.length > 0 && cached.rows[0].data?.length > 0) {
       const data = cached.rows[0].data.map(r => ({
         ...r,
-        wallet: r.wallet ? r.wallet.slice(0, 6) + '...' + r.wallet.slice(-4) : ''
+        wallet: r.wallet ? r.wallet.slice(0, 6) + '...' + r.wallet.slice(-4) : '',
+        // 兼容前端字段名
+        combat_power: Number(r.score) || 0,
+        total_recharge: r.score,
+        vip_level: r.vip_level || 0
       }));
       return res.json({ type, data });
     }
@@ -625,7 +629,7 @@ app.post('/api/monthly-card/buy', auth, async (req, res) => {
     );
 
     // 全服广播
-    const pName = (await pool.query('SELECT name FROM players WHERE wallet=$1', [req.user.wallet])).rows[0]?.name || '无名修士';
+    const pName = (await pool.query('SELECT name FROM players WHERE wallet=$1', [req.user.wallet])).rows[0]?.name || '无名焰修';
     if (app.locals.broadcastEvent) {
       app.locals.broadcastEvent(`💳 ${pName} 开通了月卡！`, 'monthlycard');
     }
@@ -1197,7 +1201,7 @@ wss.on('connection', (ws, req) => {
       if (data.type === 'auth') {
         try {
           const decoded = jwt.verify(data.token, JWT_SECRET);
-          userInfo = { wallet: decoded.wallet, name: data.name || '无名修士' };
+          userInfo = { wallet: decoded.wallet, name: data.name || '无名焰修' };
           onlineClients.set(ws, userInfo);
           broadcast({ type: 'online', count: wss.clients.size });
           broadcastEvent(`${userInfo.name} 进入了焰域`, 'join');
@@ -1245,7 +1249,7 @@ wss.on('connection', (ws, req) => {
         if (!userInfo) return;
         userInfo.stats = data.stats || {};
         userInfo.level = data.level || 1;
-        userInfo.realm = data.realm || '练气一层';
+        userInfo.realm = data.realm || '燃火一层';
         userInfo.combatPower = data.combatPower || 0;
         onlineClients.set(ws, userInfo);
       }
@@ -1261,7 +1265,7 @@ wss.on('connection', (ws, req) => {
               fullWallet: info.wallet,
               name: info.name,
               level: info.level || 1,
-              realm: info.realm || '练气一层',
+              realm: info.realm || '燃火一层',
               combatPower: info.combatPower || 0
             });
           }
@@ -1283,7 +1287,7 @@ wss.on('connection', (ws, req) => {
         const challengeId = ++pkIdCounter;
         pkChallenges.set(challengeId, {
           from: userInfo.wallet, to: data.targetWallet,
-          fromName: userInfo.name, toName: onlineClients.get(targetWs)?.name || '无名修士',
+          fromName: userInfo.name, toName: onlineClients.get(targetWs)?.name || '无名焰修',
           fromStats: userInfo.stats || {}, timestamp: now
         });
         // 30秒后自动过期
@@ -1388,6 +1392,16 @@ wss.on('connection', (ws, req) => {
         if (!userInfo) return;
         const text = (data.text || '').trim().slice(0, 500);
         if (!text || !data.toWallet) return;
+
+        // 验证好友关系
+        const friendCheck = await pool.query(
+          "SELECT id FROM friendships WHERE status='accepted' AND ((from_wallet=$1 AND to_wallet=$2) OR (from_wallet=$2 AND to_wallet=$1))",
+          [userInfo.wallet, data.toWallet]
+        );
+        if (friendCheck.rows.length === 0) {
+          ws.send(JSON.stringify({ type: 'error', message: '只能给好友发送私聊消息' }));
+          return;
+        }
 
         // 存DB
         await pool.query(
@@ -1584,7 +1598,7 @@ async function settleBossRewards(bossId) {
     const topDamagers = rows.slice(0, 5).map((r, i) => ({
       rank: i + 1, name: r.player_name, damage: Number(r.damage)
     }));
-    const killerName = rows.length > 0 ? rows[0].player_name : '无名修士';
+    const killerName = rows.length > 0 ? rows[0].player_name : '无名焰修';
     broadcast({ type: 'boss_dead', data: { bossName: boss.rows[0]?.name, killerName, topDamagers } });
     broadcastEvent(`🐉 世界Boss ${boss.rows[0]?.name} 已被击杀！最大功臣: ${killerName}`, 'boss');
   } catch (e) {
@@ -1686,7 +1700,7 @@ app.post('/api/boss/attack', auth, async (req, res) => {
          attacks_count = boss_damage_log.attacks_count + 1,
          player_name = $3,
          last_attack_at = NOW()`,
-      [b.id, wallet, p.name || '无名修士', damage]
+      [b.id, wallet, p.name || '无名焰修', damage]
     );
     bossAttackCooldown.set(wallet, now);
     const myTotal = await pool.query(
@@ -1695,7 +1709,7 @@ app.post('/api/boss/attack', auth, async (req, res) => {
     broadcast({
       type: 'boss_hit',
       data: {
-        playerName: p.name || '无名修士',
+        playerName: p.name || '无名焰修',
         damage, isCrit,
         bossHp: newHp, bossMaxHp: Number(b.max_hp)
       }
@@ -1800,7 +1814,7 @@ app.post('/api/admin/boss/spawn', auth, adminAuth, async (req, res) => {
     );
     const b = result.rows[0];
     broadcast({ type: 'boss_spawn', data: { bossName: b.name, level: b.level, maxHp: Number(b.max_hp) } });
-    broadcastEvent(`🐉 世界Boss【${b.name}】降临了！全体修士准备讨伐！`, 'boss');
+    broadcastEvent(`🐉 世界Boss【${b.name}】降临了！全体焰修者准备讨伐！`, 'boss');
     res.json({ ok: true, boss: b });
   } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
@@ -1872,7 +1886,7 @@ app.get("/api/friend/profile/:wallet", auth, async (req, res) => {
       `SELECT s.name as sect_name, sm.role FROM sect_members sm JOIN sects s ON s.id=sm.sect_id WHERE sm.wallet=$1`, [tw]
     );
     res.json({ ok: true, profile: {
-      wallet: player.wallet, name: player.name || "无名修士", level: player.level || 1,
+      wallet: player.wallet, name: player.name || "无名焰修", level: player.level || 1,
       realm: player.realm || "燃火期一层", combatPower: Number(player.combat_power || 0),
       vipLevel: player.vip_level || 0, equippedArtifacts,
       sect: sect.rows.length ? { name: sect.rows[0].sect_name, role: sect.rows[0].role } : null
@@ -1925,7 +1939,7 @@ app.get("/api/friend/gifts", auth, async (req, res) => {
       [req.user.wallet]
     );
     res.json({ ok: true, gifts: result.rows.map(r => ({
-      id: r.id, fromWallet: r.from_wallet, fromName: r.name || "无名修士",
+      id: r.id, fromWallet: r.from_wallet, fromName: r.name || "无名焰修",
       giftType: r.gift_type, giftValue: r.gift_value, message: r.message,
       claimed: r.claimed, createdAt: r.created_at
     })) });
@@ -1971,7 +1985,7 @@ app.get("/api/friend/list", auth, async (req, res) => {
     const friends = result.rows.map(r => ({
       friendshipId: r.friendship_id,
       wallet: r.friend_wallet,
-      name: r.name || "无名修士",
+      name: r.name || "无名焰修",
       level: r.level || 1,
       realm: r.realm || "燃火期一层",
       combatPower: Number(r.combat_power || 0),
@@ -1991,7 +2005,7 @@ app.get("/api/friend/requests", auth, async (req, res) => {
       [req.user.wallet, "pending"]
     );
     res.json({ ok: true, requests: result.rows.map(r => ({
-      id: r.id, wallet: r.from_wallet, name: r.name || "无名修士",
+      id: r.id, wallet: r.from_wallet, name: r.name || "无名焰修",
       level: r.level || 1, realm: r.realm || "燃火期一层",
       combatPower: Number(r.combat_power || 0), createdAt: r.created_at
     })) });
@@ -2015,7 +2029,7 @@ app.post("/api/friend/search", auth, async (req, res) => {
     );
     const friendSet = new Set(friendsRes.rows.map(r => r.fw));
     res.json({ ok: true, players: result.rows.map(r => ({
-      wallet: r.wallet, name: r.name || "无名修士", level: r.level || 1,
+      wallet: r.wallet, name: r.name || "无名焰修", level: r.level || 1,
       realm: r.realm || "燃火期一层", combatPower: Number(r.combat_power || 0),
       isFriend: friendSet.has(r.wallet)
     })) });
@@ -2194,7 +2208,7 @@ app.post('/api/sect-war/join', auth, async (req, res) => {
     if (warData.rounds_data) return res.status(400).json({ error: '战斗已经开始，无法报名' });
 
     const player = await pool.query('SELECT name, combat_power FROM players WHERE wallet=$1', [w]);
-    const pName = player.rows[0]?.name || '无名修士';
+    const pName = player.rows[0]?.name || '无名焰修';
     const cp = parseInt(player.rows[0]?.combat_power || 0);
 
     await pool.query(
@@ -2495,7 +2509,7 @@ app.post('/api/auction/list', auth, async (req, res) => {
     const player = await pool.query('SELECT game_data, name FROM players WHERE wallet=$1', [w]);
     if (!player.rows.length) return res.status(404).json({ error: '玩家不存在' });
     const gd = player.rows[0].game_data;
-    const playerName = player.rows[0].name || '无名修士';
+    const playerName = player.rows[0].name || '无名焰修';
     const items = gd.items || [];
     const itemIndex = items.findIndex(i => i.id === item_id);
     if (itemIndex === -1) return res.status(400).json({ error: '物品不存在' });
@@ -2594,7 +2608,7 @@ app.post('/api/auction/bid', auth, async (req, res) => {
     if (stones < amount) { await client.query('ROLLBACK'); return res.status(400).json({ error: '焰晶不足' }); }
 
     const playerNameRes = await client.query('SELECT name FROM players WHERE wallet=$1', [w]);
-    const bidderName = playerNameRes.rows[0]?.name || '无名修士';
+    const bidderName = playerNameRes.rows[0]?.name || '无名焰修';
 
     // 退还上一个出价者
     if (l.current_bidder && l.current_bid > 0) {
@@ -3096,7 +3110,7 @@ app.post("/api/dungeon-daily/enter", auth, async (req, res) => {
     // 记录挑战
     await pool.query(
       "INSERT INTO daily_dungeon_entries (dungeon_id, wallet, player_name, result, rewards_earned, entry_date) VALUES ($1,$2,$3,$4,$5,$6)",
-      [dungeon_id, w, p.name || "无名修士", result, JSON.stringify(rewards), today]
+      [dungeon_id, w, p.name || "无名焰修", result, JSON.stringify(rewards), today]
     );
 
     const remaining = d.max_entries - used.rows[0].cnt - 1;

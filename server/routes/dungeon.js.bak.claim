@@ -138,33 +138,30 @@ function buildPlayerCombatStats(gameData) {
     }
   }
 
-  // clamp 概率值到 [0, 1]
-  const clamp01 = v => Math.min(1, Math.max(0, v))
-  
   return {
     health: (base.health || 100) + equipBonus.health + (petBonus.health || 0),
     damage: (base.attack || 10) + equipBonus.attack + (petBonus.attack || 0),
     defense: (base.defense || 5) + equipBonus.defense + (petBonus.defense || 0),
     speed: (base.speed || 10) + equipBonus.speed + (petBonus.speed || 0),
-    critRate: clamp01((combat.critRate || 0) + equipBonus.critRate + (petBonus.critRate || 0)),
-    comboRate: clamp01((combat.comboRate || 0) + equipBonus.comboRate + (petBonus.comboRate || 0)),
-    counterRate: clamp01((combat.counterRate || 0) + equipBonus.counterRate + (petBonus.counterRate || 0)),
-    stunRate: clamp01((combat.stunRate || 0) + equipBonus.stunRate + (petBonus.stunRate || 0)),
-    dodgeRate: clamp01((combat.dodgeRate || 0) + equipBonus.dodgeRate + (petBonus.dodgeRate || 0)),
-    vampireRate: clamp01((combat.vampireRate || 0) + equipBonus.vampireRate + (petBonus.vampireRate || 0)),
-    critResist: clamp01((resist.critResist || 0) + equipBonus.critResist + (petBonus.critResist || 0)),
-    comboResist: clamp01((resist.comboResist || 0) + equipBonus.comboResist + (petBonus.comboResist || 0)),
-    counterResist: clamp01((resist.counterResist || 0) + equipBonus.counterResist + (petBonus.counterResist || 0)),
-    stunResist: clamp01((resist.stunResist || 0) + equipBonus.stunResist + (petBonus.stunResist || 0)),
-    dodgeResist: clamp01((resist.dodgeResist || 0) + equipBonus.dodgeResist + (petBonus.dodgeResist || 0)),
-    vampireResist: clamp01((resist.vampireResist || 0) + equipBonus.vampireResist + (petBonus.vampireResist || 0)),
-    healBoost: clamp01((special.healBoost || 0) + equipBonus.healBoost + (petBonus.healBoost || 0)),
+    critRate: (combat.critRate || 0) + equipBonus.critRate + (petBonus.critRate || 0),
+    comboRate: (combat.comboRate || 0) + equipBonus.comboRate + (petBonus.comboRate || 0),
+    counterRate: (combat.counterRate || 0) + equipBonus.counterRate + (petBonus.counterRate || 0),
+    stunRate: (combat.stunRate || 0) + equipBonus.stunRate + (petBonus.stunRate || 0),
+    dodgeRate: (combat.dodgeRate || 0) + equipBonus.dodgeRate + (petBonus.dodgeRate || 0),
+    vampireRate: (combat.vampireRate || 0) + equipBonus.vampireRate + (petBonus.vampireRate || 0),
+    critResist: (resist.critResist || 0) + equipBonus.critResist + (petBonus.critResist || 0),
+    comboResist: (resist.comboResist || 0) + equipBonus.comboResist + (petBonus.comboResist || 0),
+    counterResist: (resist.counterResist || 0) + equipBonus.counterResist + (petBonus.counterResist || 0),
+    stunResist: (resist.stunResist || 0) + equipBonus.stunResist + (petBonus.stunResist || 0),
+    dodgeResist: (resist.dodgeResist || 0) + equipBonus.dodgeResist + (petBonus.dodgeResist || 0),
+    vampireResist: (resist.vampireResist || 0) + equipBonus.vampireResist + (petBonus.vampireResist || 0),
+    healBoost: (special.healBoost || 0) + equipBonus.healBoost + (petBonus.healBoost || 0),
     critDamageBoost: (special.critDamageBoost || 0.5) + equipBonus.critDamageBoost + (petBonus.critDamageBoost || 0),
-    critDamageReduce: clamp01((special.critDamageReduce || 0) + equipBonus.critDamageReduce + (petBonus.critDamageReduce || 0)),
-    finalDamageBoost: clamp01((special.finalDamageBoost || 0) + equipBonus.finalDamageBoost + (petBonus.finalDamageBoost || 0)),
-    finalDamageReduce: clamp01((special.finalDamageReduce || 0) + equipBonus.finalDamageReduce + (petBonus.finalDamageReduce || 0)),
-    combatBoost: clamp01((special.combatBoost || 0) + equipBonus.combatBoost + (petBonus.combatBoost || 0)),
-    resistanceBoost: clamp01((special.resistanceBoost || 0) + equipBonus.resistanceBoost + (petBonus.resistanceBoost || 0))
+    critDamageReduce: (special.critDamageReduce || 0) + equipBonus.critDamageReduce + (petBonus.critDamageReduce || 0),
+    finalDamageBoost: (special.finalDamageBoost || 0) + equipBonus.finalDamageBoost + (petBonus.finalDamageBoost || 0),
+    finalDamageReduce: (special.finalDamageReduce || 0) + equipBonus.finalDamageReduce + (petBonus.finalDamageReduce || 0),
+    combatBoost: (special.combatBoost || 0) + equipBonus.combatBoost + (petBonus.combatBoost || 0),
+    resistanceBoost: (special.resistanceBoost || 0) + equipBonus.resistanceBoost + (petBonus.resistanceBoost || 0)
   }
 }
 
@@ -334,26 +331,6 @@ function registerDungeonRoutes(app, pool, auth) {
       if (!DIFFICULTY_MULTIPLIERS[difficulty]) {
         return res.status(400).json({ error: '无效的难度' })
       }
-      
-      // 防作弊：必须有活跃的焚天塔会话，且 floor 匹配
-      const dungeon = activeDungeons.get(wallet)
-      if (!dungeon) {
-        return res.status(400).json({ error: '没有进行中的焚天塔挑战' })
-      }
-      if (dungeon.difficulty !== difficulty) {
-        return res.status(400).json({ error: '难度不匹配' })
-      }
-      // 只能领取当前正在挑战的层
-      if (floor !== dungeon.floor) {
-        return res.status(400).json({ error: '只能领取当前层(' + dungeon.floor + ')的奖励' })
-      }
-      // 防重复领取：记录已领取的层
-      if (!dungeon._claimedFloors) dungeon._claimedFloors = new Set()
-      const claimKey = floor + '_' + difficulty
-      if (dungeon._claimedFloors.has(claimKey)) {
-        return res.status(400).json({ error: '该层奖励已领取' })
-      }
-      dungeon._claimedFloors.add(claimKey)
       
       // 服务端重新计算奖励（防止前端作弊）
       const isBossFloor = floor % 10 === 0
