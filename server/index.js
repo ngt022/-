@@ -207,6 +207,27 @@ app.post('/api/game/save', auth, async (req, res) => {
       }
     }
     
+    // 离线收益上限校验：防止前端篡改 cultivation/spirit
+    const dbCult = Number(dbGameData.cultivation) || 0;
+    const dbSpirit = Number(dbGameData.spirit) || 0;
+    const newCult = Number(mergedData.cultivation) || 0;
+    const newSpirit = Number(mergedData.spirit) || 0;
+    const playerLevel = level || 1;
+    // 最大离线12小时(720分钟)，VIP5最高2.5倍
+    const maxCultPerMin = Math.floor(Math.pow(1.2, playerLevel - 1) * 0.5) * 2.5;
+    const maxSpiritPerMin = Math.floor(playerLevel * 3 + 10) * 2.5;
+    const maxOfflineMin = 720;
+    const maxCultGain = maxCultPerMin * maxOfflineMin + 10000; // 加缓冲
+    const maxSpiritGain = maxSpiritPerMin * maxOfflineMin + 5000;
+    if (newCult - dbCult > maxCultGain) {
+      mergedData.cultivation = dbCult + maxCultGain;
+      console.log('[AntiCheat] cultivation capped for', req.user.wallet, 'tried:', newCult - dbCult, 'max:', maxCultGain);
+    }
+    if (newSpirit - dbSpirit > maxSpiritGain) {
+      mergedData.spirit = dbSpirit + maxSpiritGain;
+      console.log('[AntiCheat] spirit capped for', req.user.wallet, 'tried:', newSpirit - dbSpirit, 'max:', maxSpiritGain);
+    }
+
     // spirit_stones column also uses DB value
     const dbSpiritStones = current.rows[0].spirit_stones ?? mergedData.spiritStones ?? 0;
 
