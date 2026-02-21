@@ -733,7 +733,7 @@ app.get('/api/announcements', async (req, res) => {
 const SECT_LEVEL_EXP = [0, 1000, 3000, 8000, 20000, 50000, 100000, 200000, 500000, 1000000];
 const SECT_TASK_POOL = {
   daily: [
-    { title: '灵气采集', description: '采集天地灵气，为宗门积蓄力量', reward_contribution: 10, reward_stones: 200 },
+    { title: '焰气采集', description: '采集天地焰气，为焰盟积蓄力量', reward_contribution: 10, reward_stones: 200 },
     { title: '巡山护法', description: '巡视宗门山门，驱逐妖兽', reward_contribution: 15, reward_stones: 300 },
     { title: '阵法维护', description: '维护宗门护山大阵', reward_contribution: 12, reward_stones: 250 },
     { title: '丹药炼制', description: '为宗门炼制基础丹药', reward_contribution: 20, reward_stones: 400 },
@@ -1289,7 +1289,7 @@ wss.on('connection', (ws, req) => {
               [PK_REWARD, winnerWallet]
             );
           } catch {}
-          broadcastEvent(`${winnerName} 在切磋中击败了 ${result.winner === 'A' ? challenge.toName : challenge.fromName}，获得 ${PK_REWARD} 灵石！`, 'pk');
+          broadcastEvent(`${winnerName} 在切磋中击败了 ${result.winner === 'A' ? challenge.toName : challenge.fromName}，获得 ${PK_REWARD} 焰晶！`, 'pk');
         }
 
         // 持久化 PK 记录
@@ -2365,7 +2365,7 @@ app.post('/api/sect-war/rewards/claim', auth, async (req, res) => {
       await pool.query('UPDATE sect_members SET contribution = contribution + $1 WHERE wallet=$2', [totalContrib, w]);
     }
 
-    res.json({ ok: true, stones: totalStones, contribution: totalContrib, message: `领取了 ${totalStones} 灵石和 ${totalContrib} 贡献度` });
+    res.json({ ok: true, stones: totalStones, contribution: totalContrib, message: `领取了 ${totalStones} 焰晶和 ${totalContrib} 贡献度` });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -2381,7 +2381,7 @@ async function processExpiredAuctions() {
     );
     for (const listing of expired.rows) {
       if (listing.current_bid > 0 && listing.current_bidder) {
-        // 有出价：物品给最高出价者，灵石给卖家（扣5%手续费）
+        // 有出价：物品给最高出价者，焰晶给卖家（扣5%手续费）
         const fee = Math.floor(listing.current_bid * 0.05);
         const sellerGets = listing.current_bid - fee;
         // 物品给买家
@@ -2389,7 +2389,7 @@ async function processExpiredAuctions() {
           `UPDATE players SET game_data = jsonb_set(game_data, '{items}', COALESCE(game_data->'items', '[]'::jsonb) || $1::jsonb) WHERE wallet = $2`,
           [JSON.stringify([listing.item_data]), listing.current_bidder]
         );
-        // 灵石给卖家
+        // 焰晶给卖家
         await pool.query(
           `UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb(GREATEST(0, (COALESCE(game_data->>'spiritStones','0'))::int + $1))),
            spirit_stones = spirit_stones + $1 WHERE wallet = $2`,
@@ -2444,9 +2444,9 @@ app.post('/api/auction/list', auth, async (req, res) => {
     // 上架费 5%
     const listingFee = Math.max(1, Math.floor(starting_price * 0.05));
     const stones = parseInt(gd.spiritStones) || 0;
-    if (stones < listingFee) return res.status(400).json({ error: `焰晶不足，上架费需要 ${listingFee} 灵石` });
+    if (stones < listingFee) return res.status(400).json({ error: `焰晶不足，上架费需要 ${listingFee} 焰晶` });
 
-    // 扣灵石 + 移除物品
+    // 扣焰晶 + 移除物品
     items.splice(itemIndex, 1);
     const newStones = stones - listingFee;
     const newGd = { ...gd, items, spiritStones: newStones };
@@ -2460,7 +2460,7 @@ app.post('/api/auction/list', auth, async (req, res) => {
       [w, playerName, JSON.stringify(item), item.name, item.type, quality, starting_price, buyout_price || null, duration_hours, expiresAt]
     );
 
-    res.json({ ok: true, message: `${item.name} 已上架，扣除上架费 ${listingFee} 灵石`, spiritStones: newStones });
+    res.json({ ok: true, message: `${item.name} 已上架，扣除上架费 ${listingFee} 焰晶`, spiritStones: newStones });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -2520,7 +2520,7 @@ app.post('/api/auction/bid', auth, async (req, res) => {
     if (l.seller_wallet === w) { await client.query('ROLLBACK'); return res.status(400).json({ error: '不能对自己的物品出价' }); }
 
     const minBid = l.current_bid > 0 ? Math.ceil(l.current_bid * 1.1) : l.starting_price;
-    if (amount < minBid) { await client.query('ROLLBACK'); return res.status(400).json({ error: `出价至少为 ${minBid} 灵石` }); }
+    if (amount < minBid) { await client.query('ROLLBACK'); return res.status(400).json({ error: `出价至少为 ${minBid} 焰晶` }); }
 
     const player = await client.query('SELECT game_data FROM players WHERE wallet=$1 FOR UPDATE', [w]);
     const gd = player.rows[0].game_data;
@@ -2539,7 +2539,7 @@ app.post('/api/auction/bid', auth, async (req, res) => {
       );
     }
 
-    // 扣除出价者灵石
+    // 扣除出价者焰晶
     await client.query(
       `UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb(GREATEST(0, (COALESCE(game_data->>'spiritStones','0'))::int - $1))),
        spirit_stones = spirit_stones - $1 WHERE wallet = $2`,
@@ -2557,7 +2557,7 @@ app.post('/api/auction/bid', auth, async (req, res) => {
     );
 
     await client.query('COMMIT');
-    res.json({ ok: true, message: `出价 ${amount} 灵石成功` });
+    res.json({ ok: true, message: `出价 ${amount} 焰晶成功` });
   } catch (e) { await client.query('ROLLBACK'); res.status(500).json({ error: e.message }); }
   finally { client.release(); }
 });
@@ -2777,7 +2777,7 @@ app.post('/api/auction/buyout', auth, async (req, res) => {
       );
     }
 
-    // 扣除买家灵石
+    // 扣除买家焰晶
     await client.query(
       `UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb(GREATEST(0, (COALESCE(game_data->>'spiritStones','0'))::int - $1))),
        spirit_stones = spirit_stones - $1 WHERE wallet = $2`,
@@ -2790,7 +2790,7 @@ app.post('/api/auction/buyout', auth, async (req, res) => {
       [JSON.stringify([l.item_data]), w]
     );
 
-    // 灵石给卖家（扣5%手续费）
+    // 焰晶给卖家（扣5%手续费）
     const fee = Math.floor(l.buyout_price * 0.05);
     const sellerGets = l.buyout_price - fee;
     await client.query(
@@ -2807,7 +2807,7 @@ app.post('/api/auction/buyout', auth, async (req, res) => {
     );
 
     await client.query('COMMIT');
-    res.json({ ok: true, message: `成功购买 ${l.item_name}，花费 ${l.buyout_price} 灵石` });
+    res.json({ ok: true, message: `成功购买 ${l.item_name}，花费 ${l.buyout_price} 焰晶` });
   } catch (e) { await client.query('ROLLBACK'); res.status(500).json({ error: e.message }); }
   finally { client.release(); }
 });
@@ -3098,7 +3098,7 @@ app.post('/api/mount/buy', auth, async (req, res) => {
     const exists = await pool.query('SELECT id FROM player_mounts WHERE wallet = $1 AND mount_id = $2', [w, mount_id]);
     if (exists.rows.length) return res.status(400).json({ error: '已拥有该坐骑' });
 
-    // 白鹤免费，赤焰马10000灵石，其他不可购买
+    // 白鹤免费，赤焰马10000焰晶，其他不可购买
     let cost = 0;
     if (m.name === '白鹤') {
       cost = 0;
@@ -3111,7 +3111,7 @@ app.post('/api/mount/buy', auth, async (req, res) => {
     if (cost > 0) {
       const player = await pool.query('SELECT spirit_stones FROM players WHERE wallet = $1', [w]);
       const stones = player.rows[0]?.spirit_stones || 0;
-      if (stones < cost) return res.status(400).json({ error: `焰晶不足，需要${cost}灵石` });
+      if (stones < cost) return res.status(400).json({ error: `焰晶不足，需要${cost}焰晶` });
       await pool.query(
         `UPDATE players SET spirit_stones = spirit_stones - $1,
          game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb(GREATEST(0, (COALESCE((game_data->>'spiritStones')::bigint, 0) - $1)::bigint)))
@@ -3361,7 +3361,7 @@ app.post('/api/ascension/ascend', auth, async (req, res) => {
       cultivationSpeed: perk.cultivation_speed_bonus
     };
 
-    // 保留10%灵石
+    // 保留10%焰晶
     const currentStones = p.spirit_stones || gd.spiritStones || 0;
     const retainedStones = Math.floor(currentStones * 0.1);
     const rewardStones = 10000 * newAscensionCount;

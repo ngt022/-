@@ -44,7 +44,7 @@ const DEFAULTS = {
   
   // 探索收益倍率
   exploration_reward_multiplier: {
-    spirit_stone: 0.65,  // 灵石收益降到65%
+    spirit_stone: 0.65,  // 焰晶收益降到65%
     herb: 1.0,
     cultivation: 1.0,
     pill_fragment: 1.0

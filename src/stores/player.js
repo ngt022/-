@@ -12,9 +12,9 @@ export const usePlayerStore = defineStore('player', {
     isGMMode: false,
     // 主题设置
     isDarkMode: localStorage.getItem('darkMode') === 'true',
-    // 灵宠系统
-    activePet: null, // 当前出战的灵宠
-    petEssence: 0, // 灵宠精华
+    // 焰兽系统
+    activePet: null, // 当前出战的焰兽
+    petEssence: 0, // 焰兽精华
     petConfig: {
       rarityMap: {
         divine: { name: '神品', color: '#FF0000', probability: 0.02, essenceBonus: 50 },
@@ -80,7 +80,7 @@ export const usePlayerStore = defineStore('player', {
       resistanceBoost: 0 // 战斗抗性提升
     },
     // 资源
-    spiritStones: 0, // 灵石数量
+    spiritStones: 0, // 焰晶数量
     reinforceStones: 0, // 强化石数量
     refinementStones: 0, // 洗练石数量
     herbs: [], // 灵草库存
@@ -164,7 +164,7 @@ export const usePlayerStore = defineStore('player', {
     activeTitleBonus: { attack_bonus: 0, defense_bonus: 0, health_bonus: 0, speed_bonus: 0 },
     // 自动出售相关设置
     autoSellQualities: [], // 选中的装备品质
-    autoReleaseRarities: [], // 选中的灵宠品质
+    autoReleaseRarities: [], // 选中的焰兽品质
     // 心愿单相关设置
     wishlistEnabled: false, // 心愿单开关
     selectedWishEquipQuality: null,
@@ -176,7 +176,7 @@ export const usePlayerStore = defineStore('player', {
     completedAchievements: [] // 已完成成就
   }),
   getters: {
-    // 获取灵宠的属性加成
+    // 获取焰兽的属性加成
     getPetBonus() {
       if (!this.activePet)
         return {
@@ -492,7 +492,7 @@ export const usePlayerStore = defineStore('player', {
       this.itemsFound++ // 增加获得物品统计
       this.saveData()
     },
-    // 使用物品（丹药或灵宠）
+    // 使用物品（焰丹或焰兽）
     useItem(item) {
       if (item.type === 'pill') {
         return this.usePill(item)
@@ -624,21 +624,21 @@ export const usePlayerStore = defineStore('player', {
       }
       return result
     },
-    // 使用灵宠（出战/召回）
+    // 使用焰兽（出战/召回）
     usePet(pet) {
-      // 如果当前没有出战灵宠，直接出战新灵宠
+      // 如果当前没有出战焰兽，直接出战新焰兽
       if (!this.activePet) {
         return this.deployPet(pet)
       }
-      // 如果点击的是当前出战灵宠，则召回
+      // 如果点击的是当前出战焰兽，则召回
       if (this.activePet.id === pet.id) {
         return this.recallPet()
       }
-      // 如果点击的是其他灵宠，先召回当前灵宠，再出战新灵宠
+      // 如果点击的是其他焰兽，先召回当前焰兽，再出战新焰兽
       this.recallPet()
       return this.deployPet(pet)
     },
-    // 召回灵宠
+    // 召回焰兽
     recallPet() {
       if (!this.activePet) {
         return { success: false, message: '当前没有出战的焰兽' }
@@ -649,20 +649,20 @@ export const usePlayerStore = defineStore('player', {
       this.saveData()
       return { success: true, message: '召回成功' }
     },
-    // 出战灵宠
+    // 出战焰兽
     deployPet(pet) {
-      // 如果已有灵宠出战，先召回
+      // 如果已有焰兽出战，先召回
       if (this.activePet) {
         this.recallPet()
       }
-      // 出战新灵宠
+      // 出战新焰兽
       this.activePet = pet
-      // 应用灵宠属性加成
+      // 应用焰兽属性加成
       this.applyPetBonuses()
       this.saveData()
       return { success: true, message: '出战成功' }
     },
-    // 重置灵宠属性加成
+    // 重置焰兽属性加成
     resetPetBonuses() {
       const petBonus = this.activePet.combatAttributes
       // 保存原始属性值
@@ -688,7 +688,7 @@ export const usePlayerStore = defineStore('player', {
         this.specialAttributes[key] = originalSpecialAttributes[key] - (petBonus[key] || 0)
       })
     },
-    // 应用灵宠属性加成
+    // 应用焰兽属性加成
     applyPetBonuses() {
       if (!this.activePet) return
       const petBonus = this.activePet.combatAttributes
@@ -874,7 +874,7 @@ export const usePlayerStore = defineStore('player', {
       this.items.push(equipment)
       this.saveData()
     },
-    // 升级灵宠
+    // 升级焰兽
     upgradePet(pet, essenceCount) {
       if (this.petEssence < essenceCount) {
         return { success: false, message: '焰兽精华不足' }
@@ -923,7 +923,7 @@ export const usePlayerStore = defineStore('player', {
           combatBoost: currentPet.combatAttributes.combatBoost + 0.01 * qualityMultiplier,
           resistanceBoost: currentPet.combatAttributes.resistanceBoost + 0.01 * qualityMultiplier
         }
-        // 如果是当前出战的灵宠，重新应用属性加成
+        // 如果是当前出战的焰兽，重新应用属性加成
         if (this.activePet && this.activePet.id === pet.id) {
           this.applyPetBonuses()
         }
@@ -931,21 +931,21 @@ export const usePlayerStore = defineStore('player', {
       this.saveData()
       return { success: true, message: '升级成功' }
     },
-    // 升星灵宠
+    // 升星焰兽
     evolvePet(pet, foodPet) {
-      // 检查是否是相同品质和名字的灵宠
+      // 检查是否是相同品质和名字的焰兽
       if (pet.rarity != foodPet.rarity || pet.name != foodPet.name) {
         return { success: false, message: '只能使用相同品质和名字的焰兽进行升星' }
       }
       const petIndex = this.items.findIndex(item => item.id === pet.id)
       const foodPetIndex = this.items.findIndex(item => item.id === foodPet.id)
       if (petIndex > -1 && foodPetIndex > -1) {
-        // 返还作为升星材料的灵宠已消耗的精华
+        // 返还作为升星材料的焰兽已消耗的精华
         const returnEssence = (foodPet.level - 1) * 10 // 假设每级消耗10精华
         this.petEssence += returnEssence
-        // 移除作为材料的灵宠
+        // 移除作为材料的焰兽
         this.items.splice(foodPetIndex, 1)
-        // 提升目标灵宠星级
+        // 提升目标焰兽星级
         this.items[petIndex].star = (this.items[petIndex].star || 0) + 1
         this.saveData()
         return { success: true, message: '升星成功' }
