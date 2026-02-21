@@ -192,7 +192,7 @@ export default async function registerAdminRoutes(app, pool, auth, adminAuth) {
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  // ========== 5. 焰盟(宗门)管理 ==========
+  // ========== 5. 焰盟管理 ==========
   app.get('/api/admin/sects', auth, adminAuth, async (req, res) => {
     try {
       const result = await pool.query(

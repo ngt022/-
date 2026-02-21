@@ -57,7 +57,10 @@ const RATE_PER_ROON = 10000; // 1 ROON = 10000 焰晶
 const FIRST_RECHARGE_BONUS = 2; // 首充双倍
 
 const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://roon_user:changeme@localhost:5432/xiuxian'
+  connectionString: process.env.DATABASE_URL || 'postgresql://roon_user:changeme@localhost:5432/xiuxian',
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
 });
 
 const provider = new ethers.JsonRpcProvider(ROON_RPC);
@@ -99,6 +102,17 @@ app.use(express.json({ limit: '1mb' }));
 app.use(rateLimit({ windowMs: 60000, max: 120 }));
 
 // 敏感操作更严格的限流
+
+// Health check (不需要认证)
+app.get('/api/health', async (req, res) => {
+  try {
+    await pool.query('SELECT 1');
+    res.json({ status: 'ok', uptime: process.uptime(), memory: Math.round(process.memoryUsage().rss / 1024 / 1024) + 'MB', ws: wss.clients.size });
+  } catch (e) {
+    res.status(503).json({ status: 'error', error: e.message });
+  }
+});
+
 const strictLimit = rateLimit({ windowMs: 60000, max: 10, message: { error: '操作太频繁，请稍后再试' } });
 const authLimit = rateLimit({ windowMs: 300000, max: 5, message: { error: '登录尝试太频繁' } });
 
