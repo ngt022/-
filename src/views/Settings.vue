@@ -16,6 +16,12 @@
             <n-button>导入存档</n-button>
           </n-upload>
         </n-space>
+        <n-divider />
+        <n-space>
+          <n-button @click="toggleDarkMode">{{ playerStore.isDarkMode ? '☀️ 亮色模式' : '🌙 暗色模式' }}</n-button>
+          <n-button @click="resetGuides" type="info">🔄 重置新手引导</n-button>
+          <n-button @click="clearCache" type="warning">🗑️ 清理缓存</n-button>
+        </n-space>
       </n-space>
     </n-card>
   </div>
@@ -140,6 +146,40 @@
     } catch (e) {
       message.error('修改失败')
     }
+  }
+  // 暗色模式切换
+  const toggleDarkMode = () => {
+    playerStore.toggle()
+    message.success(playerStore.isDarkMode ? '已切换到暗色模式' : '已切换到亮色模式')
+  }
+
+  // 重置新手引导
+  const resetGuides = () => {
+    localStorage.removeItem('xx_guide_seen')
+    message.success('新手引导已重置，下次进入各页面会重新显示')
+  }
+
+  // 清理缓存
+  const clearCache = () => {
+    dialog.warning({
+      title: '清理缓存',
+      content: '将清理 Service Worker 缓存和浏览器缓存，不会影响游戏数据。',
+      positiveText: '确定',
+      negativeText: '取消',
+      onPositiveClick: async () => {
+        try {
+          if ('caches' in window) {
+            const keys = await caches.keys()
+            await Promise.all(keys.map(k => caches.delete(k)))
+          }
+          if ('serviceWorker' in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations()
+            await Promise.all(regs.map(r => r.unregister()))
+          }
+          message.success('缓存已清理！')
+        } catch (e) { message.error('清理失败') }
+      }
+    })
   }
 </script>
 
