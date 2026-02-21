@@ -194,6 +194,10 @@ app.post('/api/auth/login', authLimit, async (req, res) => {
     const player = result.rows[0];
     const token = jwt.sign({ wallet: player.wallet, id: player.id }, JWT_SECRET, { expiresIn: '7d' });
 
+    // 记录登录日志
+    const ip = req.headers['x-forwarded-for'] || req.ip || 'unknown';
+    pool.query('INSERT INTO login_logs (wallet, ip, user_agent) VALUES ($1, $2, $3)',
+      [player.wallet, ip, (req.headers['user-agent'] || '').slice(0, 200)]).catch(() => {});
     res.json({ token, player: sanitizePlayer(player) });
   } catch (e) {
     res.status(500).json({ error: safeError(e) });
@@ -3908,6 +3912,30 @@ app.post('/api/equipment/batch-sell', auth, async (req, res) => {
 });
 
 
+
+// === 玩家活跃度统计（管理员） ===
+app.get('/api/admin/activity', auth, async (req, res) => {
+  try {
+    if (req.user.wallet.toLowerCase() !== (process.env.ADMIN_WALLET || '0xfad7eb0814b6838b05191a07fb987957d50c4ca9').toLowerCase())
+      return res.status(403).json({ error: '无权限' });
+    const [dau, wau, mau, newToday, loginToday] = await Promise.all([
+      pool.query("SELECT COUNT(DISTINCT wallet) as c FROM players WHERE updated_at > NOW() - INTERVAL '1 day'"),
+      pool.query("SELECT COUNT(DISTINCT wallet) as c FROM players WHERE updated_at > NOW() - INTERVAL '7 days'"),
+      pool.query("SELECT COUNT(DISTINCT wallet) as c FROM players WHERE updated_at > NOW() - INTERVAL '30 days'"),
+      pool.query("SELECT COUNT(*) as c FROM players WHERE created_at::date = CURRENT_DATE"),
+      pool.query("SELECT COUNT(DISTINCT wallet) as c FROM login_logs WHERE created_at::date = CURRENT_DATE")
+    ]);
+    // 最近7天每日登录趋势
+    const trend = await pool.query(
+      "SELECT created_at::date as day, COUNT(DISTINCT wallet) as logins FROM login_logs WHERE created_at > NOW() - INTERVAL '7 days' GROUP BY day ORDER BY day"
+    );
+    res.json({
+      dau: +dau.rows[0].c, wau: +wau.rows[0].c, mau: +mau.rows[0].c,
+      newToday: +newToday.rows[0].c, loginToday: +loginToday.rows[0].c,
+      trend: trend.rows
+    });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
 
 // === API 文档 ===
 app.get('/api/docs', (req, res) => {
