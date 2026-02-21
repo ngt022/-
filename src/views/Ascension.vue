@@ -189,10 +189,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { usePlayerStore } from '../stores/player'
 import { NButton, NInput, NModal, NSpin, useMessage } from 'naive-ui'
 import GameGuide from '../components/GameGuide.vue'
 
 const authStore = useAuthStore()
+const playerStore = usePlayerStore()
 const message = useMessage()
 
 const loading = ref(false)
@@ -268,6 +270,16 @@ async function doAscend() {
     showConfirmModal.value = false
     confirmText.value = ''
     showAnimation.value = true
+
+    // 飞升后重新加载玩家数据到 store
+    try {
+      const loadRes = await fetch(API + '/api/game/load', { headers: headers.value })
+      const loadData = await loadRes.json()
+      if (loadData.gameData) {
+        playerStore.$patch(loadData.gameData)
+      }
+    } catch(e) { console.error('飞升后同步失败', e) }
+
     message.success('涅槃飞升成功！')
     await fetchInfo()
     await fetchPerks()

@@ -174,6 +174,12 @@ async function enterDungeon(d) {
     battleDone.value = true
     data.result === "victory" ? sfx.victory() : sfx.defeat()
 
+    // 同步焰晶奖励
+    if (data.rewards?.spiritStones) playerStore.spiritStones += data.rewards.spiritStones
+    if (data.rewards?.cultivation) playerStore.cultivation += data.rewards.cultivation
+    if (data.rewards?.petEssence) playerStore.petEssence = (playerStore.petEssence || 0) + data.rewards.petEssence
+    if (data.rewards?.refinementStones) playerStore.refinementStones = (playerStore.refinementStones || 0) + data.rewards.refinementStones
+
     fetchList()
     fetchHistory()
   } catch (e) { sfx.error(); message.error("网络错误") }

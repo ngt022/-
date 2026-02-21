@@ -295,6 +295,7 @@ async function doBid() {
   try {
     const data = await authStore.apiPost('/auction/bid', { listing_id: detailData.value.id, amount: bidAmount.value })
     message.success(data.message)
+    playerStore.spiritStones -= bidAmount.value
     await openDetail(detailData.value.id)
     await authStore.saveToCloud(playerStore)
   } catch (e) { message.error(e.message) }
@@ -306,6 +307,9 @@ async function doBuyout() {
   try {
     const data = await authStore.apiPost('/auction/buyout', { listing_id: detailData.value.id })
     message.success(data.message)
+    // 重新加载玩家数据以同步焰晶和物品
+    const pd = await authStore.apiGet('/game/load')
+    if (pd.gameData) playerStore.$patch(pd.gameData)
     showDetail.value = false
     loadBrowse()
     await authStore.saveToCloud(playerStore)
@@ -464,8 +468,8 @@ let timer = null
 onMounted(() => {
   loadBrowse()
   timer = setInterval(() => {
-    if (activeTab.value === 'browse') browseList.value = [...browseList.value]
-  }, 60000)
+    if (activeTab.value === 'browse') loadBrowse()
+  }, 30000)
 })
 onUnmounted(() => { if (timer) clearInterval(timer) })
 

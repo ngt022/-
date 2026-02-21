@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config({ path: new URL('./.env', import.meta.url).pathname });
 import express from 'express';
 import cors from 'cors';
 import pg from 'pg';
@@ -54,7 +56,7 @@ const RATE_PER_ROON = 10000; // 1 ROON = 10000 灵石
 const FIRST_RECHARGE_BONUS = 2; // 首充双倍
 
 const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://roon_user:RoonG%40ming2026!@localhost:5432/xiuxian'
+  connectionString: process.env.DATABASE_URL || 'postgresql://roon_user:changeme@localhost:5432/xiuxian'
 });
 
 const provider = new ethers.JsonRpcProvider(ROON_RPC);
@@ -141,7 +143,7 @@ console.log("[SAVE DEBUG]", req.user.wallet.slice(-4), "level:", level, "realm:"
       : (current.rows[0].game_data || {});
     
     // Server-managed fields: use DB values, never accept frontend overwrite
-    const serverManagedFields = ['spiritStones', 'items', 'reinforceStones', 'petEssence', 
+    const serverManagedFields = ['spiritStones', 'items', 'reinforceStones', 'refinementStones', 'petEssence', 
       'purchasedPacks', 'buffs', 'herbs', 'pillRecipes', 'pillFragments',
       'storageExpand', 'autoSellQualities', 'autoReleaseRarities'];
     
@@ -194,7 +196,7 @@ console.log("[SAVE DEBUG]", req.user.wallet.slice(-4), "level:", level, "realm:"
       ? JSON.parse(current.rows[0].game_data)
       : (current.rows[0].game_data || {});
 
-    const serverManagedFields = ['spiritStones', 'items', 'reinforceStones', 'petEssence',
+    const serverManagedFields = ['spiritStones', 'items', 'reinforceStones', 'refinementStones', 'petEssence',
       'purchasedPacks', 'buffs', 'herbs', 'pillRecipes', 'pillFragments',
       'storageExpand', 'autoSellQualities', 'autoReleaseRarities'];
 
@@ -2993,15 +2995,31 @@ app.post("/api/dungeon-daily/enter", auth, async (req, res) => {
       if (rc.petEssence) rewards.petEssence = rc.petEssence;
       if (rc.refinementStones) rewards.refinementStones = rc.refinementStones;
 
-      // 发放灵石和修为
+      // 发放灵石、修为、焰兽精华、符文石
       const curStones = Number(gameData.spiritStones) || 0;
       const curCult = Number(gameData.cultivation) || 0;
+      const curPE = Number(gameData.petEssence) || 0;
+      const curRS = Number(gameData.refinementStones) || 0;
+      let setExpr = `game_data = jsonb_set(jsonb_set(game_data, '{spiritStones}', to_jsonb(($1)::bigint)), '{cultivation}', to_jsonb(($2)::bigint))`;
+      const params = [curStones + (rc.spiritStones || 0), curCult + (rc.cultivation || 0), rc.spiritStones || 0, w];
+      let idx = 5;
+      if (rc.petEssence) {
+        setExpr = `game_data = jsonb_set(jsonb_set(jsonb_set(game_data, '{spiritStones}', to_jsonb(($1)::bigint)), '{cultivation}', to_jsonb(($2)::bigint)), '{petEssence}', to_jsonb(($${idx})::bigint))`;
+        params.push(curPE + rc.petEssence);
+        idx++;
+      }
+      if (rc.refinementStones) {
+        if (rc.petEssence) {
+          setExpr = `game_data = jsonb_set(jsonb_set(jsonb_set(jsonb_set(game_data, '{spiritStones}', to_jsonb(($1)::bigint)), '{cultivation}', to_jsonb(($2)::bigint)), '{petEssence}', to_jsonb(($${idx-1})::bigint)), '{refinementStones}', to_jsonb(($${idx})::bigint))`;
+        } else {
+          setExpr = `game_data = jsonb_set(jsonb_set(jsonb_set(game_data, '{spiritStones}', to_jsonb(($1)::bigint)), '{cultivation}', to_jsonb(($2)::bigint)), '{refinementStones}', to_jsonb(($${idx})::bigint))`;
+        }
+        params.push(curRS + rc.refinementStones);
+        idx++;
+      }
       await pool.query(
-        `UPDATE players SET
-          game_data = jsonb_set(jsonb_set(game_data, '{spiritStones}', to_jsonb(($1)::bigint)), '{cultivation}', to_jsonb(($2)::bigint)),
-          spirit_stones = spirit_stones + $3
-        WHERE wallet = $4`,
-        [curStones + rc.spiritStones, curCult + rc.cultivation, rc.spiritStones, w]
+        `UPDATE players SET ${setExpr}, spirit_stones = spirit_stones + $3 WHERE wallet = $4`,
+        params
       );
     }
 

@@ -189,6 +189,14 @@
     isLoading.value = false
     getMenuOptions()
     startAutoGain()
+
+    // 30秒自动云存档
+    if (window.__autoSaveTimer) clearInterval(window.__autoSaveTimer)
+    window.__autoSaveTimer = setInterval(() => {
+      if (authStore.isLoggedIn) {
+        authStore.saveToCloud(playerStore).catch(() => {})
+      }
+    }, 30000)
     // 离线收益
     const reward = playerStore.calculateOfflineReward()
     if (reward) {

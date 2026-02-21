@@ -22,3 +22,20 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Server
+server/node_modules
+server/*.bak*
+
+# Build output (regeneratable)
+docs/assets/js/
+docs/assets/css/
+
+# Env & secrets
+.env
+*.env.*
+
+# Old copies
+src/views/views/
+src/stores/stores/
+src/components/components/

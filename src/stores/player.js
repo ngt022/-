@@ -252,6 +252,7 @@ export const usePlayerStore = defineStore('player', {
     },
   },
   actions: {
+    stopAutoCultivation() { /* noop */ },
     // 获取合并后的总属性（base + 装备 + buff）
     getTotalStats() {
       const ab = this.artifactBonuses || {}

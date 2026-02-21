@@ -148,10 +148,12 @@
 <script setup>
 import { ref, computed, onMounted, h } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { usePlayerStore } from '../stores/player'
 import { NButton, NTag, createDiscreteApi } from 'naive-ui'
 import GameGuide from '../components/GameGuide.vue'
 
 const authStore = useAuthStore()
+const playerStore = usePlayerStore()
 const { message } = createDiscreteApi(['message'])
 
 const loading = ref(false)
@@ -271,6 +273,7 @@ async function completeTask(taskId) {
   try {
     const data = await api('POST', `/sect/tasks/${taskId}/complete`)
     message.success(`任务完成！贡献+${data.reward_contribution} 焰晶+${data.reward_stones}`)
+    if (data.reward_stones) playerStore.spiritStones += data.reward_stones
     await loadMySect()
   } catch (e) { message.error(e.message) }
 }
@@ -281,6 +284,7 @@ async function donate() {
   try {
     const data = await api('POST', '/sect/donate', { amount: donateAmount.value })
     message.success(`捐献成功！贡献+${data.contribution}`)
+    playerStore.spiritStones -= donateAmount.value
     await loadMySect()
   } catch (e) { message.error(e.message) }
   donating.value = false

@@ -314,7 +314,13 @@ async function sendGift() {
       to_wallet: giftTarget.value.wallet, ...giftForm.value
     }) })
     const d = await r.json()
-    if (d.ok) { msg.success("礼物已送出"); giftRemaining.value = d.remaining; showGift.value = false; fetchFriends() }
+    if (d.ok) { 
+      msg.success("礼物已送出")
+      if (d.spiritStones !== undefined) playerStore.spiritStones = d.spiritStones
+      giftRemaining.value = d.remaining
+      showGift.value = false
+      fetchFriends()
+    }
     else msg.warning(d.error)
   } catch {} finally { giftSending.value = false }
 }

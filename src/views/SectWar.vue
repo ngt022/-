@@ -386,7 +386,11 @@ async function claimRewards() {
       method: 'POST', headers: headers()
     })
     const data = await res.json()
-    if (data.ok) { message.success(data.message); fetchAll() }
+    if (data.ok) { 
+      message.success(data.message)
+      if (data.stones) playerStore.spiritStones += data.stones
+      fetchAll() 
+    }
     else message.error(data.error)
   } catch (e) { message.error('网络错误') }
   claiming.value = false
