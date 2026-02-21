@@ -92,12 +92,16 @@ const SIGN_REWARDS = [
   { day: 7, stones: 5000, items: '神品碎片x1' },
 ];
 
-// 请求响应时间 header
+// 请求响应时间 header（在响应发送前设置）
 app.use((req, res, next) => {
   const start = Date.now();
-  res.on('finish', () => {
-    res.set('X-Response-Time', (Date.now() - start) + 'ms');
-  });
+  const origEnd = res.end;
+  res.end = function(...args) {
+    if (!res.headersSent) {
+      res.set('X-Response-Time', (Date.now() - start) + 'ms');
+    }
+    origEnd.apply(this, args);
+  };
   next();
 });
 
