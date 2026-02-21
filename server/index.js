@@ -280,6 +280,17 @@ app.post('/api/game/save-beacon', async (req, res) => {
         mergedData[field] = dbGameData[field];
       }
     }
+    // 离线收益上限校验
+    const dbCultB = Number(dbGameData.cultivation) || 0;
+    const dbSpiritB = Number(dbGameData.spirit) || 0;
+    const newCultB = Number(mergedData.cultivation) || 0;
+    const newSpiritB = Number(mergedData.spirit) || 0;
+    const plvB = level || 1;
+    const maxCultGainB = Math.floor(Math.pow(1.2, plvB - 1) * 0.5) * 2.5 * 720 + 10000;
+    const maxSpiritGainB = Math.floor(plvB * 3 + 10) * 2.5 * 720 + 5000;
+    if (newCultB - dbCultB > maxCultGainB) mergedData.cultivation = dbCultB + maxCultGainB;
+    if (newSpiritB - dbSpiritB > maxSpiritGainB) mergedData.spirit = dbSpiritB + maxSpiritGainB;
+
     const dbSpiritStones = current.rows[0].spirit_stones ?? mergedData.spiritStones ?? 0;
 
     await pool.query(
