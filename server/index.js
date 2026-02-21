@@ -92,6 +92,20 @@ const SIGN_REWARDS = [
   { day: 7, stones: 5000, items: '神品碎片x1' },
 ];
 
+// 请求日志（只记录异常和慢请求）
+app.use((req, res, next) => {
+  const start = Date.now();
+  const origEnd = res.end;
+  res.end = function(...args) {
+    const ms = Date.now() - start;
+    if (res.statusCode >= 400 || ms > 2000) {
+      console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} ${res.statusCode} ${ms}ms`);
+    }
+    origEnd.apply(this, args);
+  };
+  next();
+});
+
 // 请求响应时间 header（在响应发送前设置）
 app.use((req, res, next) => {
   const start = Date.now();

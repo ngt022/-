@@ -12,6 +12,15 @@ app.use(router)
 // 全局错误处理
 app.config.errorHandler = (err, vm, info) => {
   if (err.message?.includes('登录已过期')) return
+  console.error('[Vue Error]', info, err)
 }
+app.config.warnHandler = (msg) => {
+  if (msg.includes('Failed to resolve')) console.warn('[Vue Warn]', msg)
+}
+// 全局 Promise 错误捕获
+window.addEventListener('unhandledrejection', (e) => {
+  if (e.reason?.message?.includes('登录已过期')) { e.preventDefault(); return }
+  console.error('[Unhandled Promise]', e.reason)
+})
 
 app.mount('#app')
