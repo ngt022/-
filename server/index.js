@@ -480,9 +480,9 @@ app.get('/api/leaderboard/:type', async (req, res) => {
       const data = cached.rows[0].data.map(r => ({
         ...r,
         wallet: r.wallet ? r.wallet.slice(0, 6) + '...' + r.wallet.slice(-4) : '',
-        // 兼容前端字段名
-        combat_power: Number(r.score) || 0,
-        total_recharge: r.score,
+        // 兼容前端字段名（优先用缓存中的真实值）
+        combat_power: Number(r.combat_power ?? r.score) || 0,
+        total_recharge: r.total_recharge ?? r.score,
         vip_level: r.vip_level || 0
       }));
       return res.json({ type, data });
@@ -3902,9 +3902,9 @@ async function refreshLeaderboard() {
     for (const t of types) {
       const col = t === 'recharge' ? 'total_recharge' : t;
       const rows = await pool.query(
-        `SELECT wallet, name, ${col} as score, realm, level FROM players WHERE wallet NOT LIKE '0xbot%' ORDER BY ${col} DESC LIMIT 50`
+        `SELECT wallet, name, ${col} as score, realm, level, combat_power, vip_level, total_recharge FROM players WHERE wallet NOT LIKE '0xbot%' ORDER BY ${col} DESC LIMIT 50`
       );
-      const data = rows.rows.map((r, i) => ({ rank: i + 1, wallet: r.wallet, name: r.name, score: r.score, realm: r.realm, level: r.level }));
+      const data = rows.rows.map((r, i) => ({ rank: i + 1, wallet: r.wallet, name: r.name, score: r.score, realm: r.realm, level: r.level, combat_power: Number(r.combat_power || 0), vip_level: r.vip_level || 0, total_recharge: r.total_recharge }));
       await pool.query(
         `INSERT INTO leaderboard_cache (type, data, updated_at) VALUES ($1, $2::jsonb, NOW())
          ON CONFLICT (type) DO UPDATE SET data = $2::jsonb, updated_at = NOW()`,
