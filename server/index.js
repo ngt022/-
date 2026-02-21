@@ -4235,6 +4235,27 @@ server.listen(PORT, '127.0.0.1', () => console.log(`焰修后端启动 127.0.0.1
 
 
 
+// === 月卡每日奖励自动发放（每小时检查一次） ===
+setInterval(async () => {
+  try {
+    const now = new Date();
+    // 只在每天 UTC 0-1 点执行（北京时间 8-9 点）
+    if (now.getUTCHours() !== 0) return;
+    const today = now.toISOString().split('T')[0];
+    // 查找所有有效月卡且今天未发放的玩家
+    const cards = await pool.query(
+      "SELECT mc.wallet FROM monthly_cards mc WHERE mc.expires_at > NOW() AND NOT EXISTS (SELECT 1 FROM player_mail pm WHERE pm.to_wallet = mc.wallet AND pm.title = '🌙 月卡每日奖励' AND pm.created_at::date = CURRENT_DATE)"
+    );
+    for (const card of cards.rows) {
+      await pool.query(
+        "INSERT INTO player_mail (to_wallet, from_type, from_name, title, content, rewards) VALUES ($1, 'system', '月卡', '🌙 月卡每日奖励', '月卡每日奖励已送达，请查收！', $2)",
+        [card.wallet, JSON.stringify({ spiritStones: 5000 })]
+      );
+    }
+    if (cards.rows.length > 0) console.log('[MonthlyCard]', cards.rows.length, 'daily rewards sent');
+  } catch (e) { console.error('[MonthlyCard error]', e.message); }
+}, 3600000);
+
 // === 自动清理过期数据（每6小时） ===
 setInterval(async () => {
   try {
