@@ -912,20 +912,45 @@
   const onEquipmentPageSizeChange = size => { equipmentPageSize.value = size; currentEquipmentPage.value = 1 }
 
   const batchSellEquipments = async () => {
-    const result = await playerStore.batchSellEquipments(selectedQuality.value === 'all' ? null : selectedQuality.value, selectedEquipmentType.value)
-    if (result.success) {
-      message.success(result.message)
-      if (authStore.isLoggedIn) playerStore.saveData()
-    } else message.error(result.message || '批量卖出失败')
+    if (authStore.isLoggedIn) {
+      try {
+        const resp = await authStore.apiPost('/equipment/batch-sell', {
+          quality: selectedQuality.value === 'all' ? null : selectedQuality.value,
+          equipmentType: selectedEquipmentType.value
+        })
+        playerStore.reinforceStones = resp.reinforceStones
+        // 重新从服务端同步 items
+        if (resp.count > 0) {
+          const loadResp = await authStore.apiGet('/game/load')
+          if (loadResp.player?.game_data?.items) playerStore.items = loadResp.player.game_data.items
+        }
+        message.success(`成功卖出${resp.count}件装备，获得${resp.totalStones}个淬火石`)
+      } catch (e) { message.error(e.message || '批量卖出失败') }
+    } else {
+      const result = await playerStore.batchSellEquipments(selectedQuality.value === 'all' ? null : selectedQuality.value, selectedEquipmentType.value)
+      if (result.success) {
+        message.success(result.message)
+      } else message.error(result.message || '批量卖出失败')
+    }
   }
 
   const sellEquipment = async equipment => {
-    const result = await playerStore.sellEquipment(equipment)
-    if (result.success) {
-      message.success(result.message)
-      showEquipmentDetailModal.value = false
-      if (authStore.isLoggedIn) playerStore.saveData()
-    } else message.error(result.message || '卖出失败')
+    if (authStore.isLoggedIn) {
+      try {
+        const resp = await authStore.apiPost('/equipment/sell', { equipmentId: equipment.id })
+        playerStore.reinforceStones = resp.reinforceStones
+        const idx = playerStore.items.findIndex(i => String(i.id) === String(equipment.id))
+        if (idx > -1) playerStore.items.splice(idx, 1)
+        message.success(`成功卖出装备，获得${resp.stones}个淬火石`)
+        showEquipmentDetailModal.value = false
+      } catch (e) { message.error(e.message || '卖出失败') }
+    } else {
+      const result = await playerStore.sellEquipment(equipment)
+      if (result.success) {
+        message.success(result.message)
+        showEquipmentDetailModal.value = false
+      } else message.error(result.message || '卖出失败')
+    }
   }
 
   const showEquipmentDetails = equipment => { selectedEquipment.value = equipment; showEquipmentDetailModal.value = true }

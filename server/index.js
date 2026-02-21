@@ -3686,6 +3686,65 @@ app.post('/api/equipment/reforge-confirm', auth, async (req, res) => {
 
 
 
+// ============ 卖装备 服务端验证 ============
+const qualityStoneMap = { mythic: 6, legendary: 5, epic: 4, rare: 3, uncommon: 2, common: 1 };
+
+app.post('/api/equipment/sell', auth, async (req, res) => {
+  try {
+    const wallet = req.user.wallet;
+    const { equipmentId } = req.body;
+    if (!equipmentId) return res.status(400).json({ error: '缺少装备ID' });
+    const r = await pool.query('SELECT game_data FROM players WHERE wallet = $1', [wallet]);
+    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = r.rows[0].game_data;
+    const items = gd.items || [];
+    const idx = items.findIndex(i => String(i.id) === String(equipmentId));
+    if (idx < 0) return res.status(404).json({ error: '装备不存在' });
+    const equip = items[idx];
+    // 不能卖已装备的
+    const ea = gd.equippedArtifacts || {};
+    for (const [, item] of Object.entries(ea)) {
+      if (item && String(item.id) === String(equipmentId)) return res.status(400).json({ error: '请先卸下装备' });
+    }
+    // 不能卖丹药/宠物
+    if (equip.type === 'pill' || equip.type === 'pet') return res.status(400).json({ error: '该物品不能出售' });
+    const stones = qualityStoneMap[equip.quality] || 1;
+    gd.items.splice(idx, 1);
+    gd.reinforceStones = (gd.reinforceStones || 0) + stones;
+    await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gd), wallet]);
+    res.json({ success: true, stones, reinforceStones: gd.reinforceStones, itemCount: gd.items.length });
+  } catch (e) { console.error('sell error:', e); res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/equipment/batch-sell', auth, async (req, res) => {
+  try {
+    const wallet = req.user.wallet;
+    const { quality, equipmentType } = req.body;
+    const r = await pool.query('SELECT game_data FROM players WHERE wallet = $1', [wallet]);
+    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = r.rows[0].game_data;
+    const equippedIds = new Set();
+    for (const [, item] of Object.entries(gd.equippedArtifacts || {})) {
+      if (item) equippedIds.add(String(item.id));
+    }
+    let totalStones = 0, count = 0;
+    gd.items = (gd.items || []).filter(item => {
+      if (!item || !item.type || item.type === 'pill' || item.type === 'pet') return true;
+      if (equippedIds.has(String(item.id))) return true;
+      if (quality && item.quality !== quality) return true;
+      if (equipmentType && item.type !== equipmentType) return true;
+      const s = qualityStoneMap[item.quality] || 1;
+      totalStones += s; count++;
+      return false;
+    });
+    gd.reinforceStones = (gd.reinforceStones || 0) + totalStones;
+    await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gd), wallet]);
+    res.json({ success: true, totalStones, count, reinforceStones: gd.reinforceStones, itemCount: gd.items.length });
+  } catch (e) { console.error('batch-sell error:', e); res.status(500).json({ error: e.message }); }
+});
+
+
+
 // ============ 404 catch-all ============
 app.use('/api/*', (req, res) => {
   res.status(404).json({ error: 'API not found' });
@@ -3699,5 +3758,6 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason) => {
   console.error('[WARN] unhandledRejection:', reason);
 });
+
 
 server.listen(PORT, () => console.log(`修仙后端启动 port ${PORT}`));
