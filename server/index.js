@@ -83,13 +83,13 @@ const VIP_CONFIG = [
 
 // 签到奖励
 const SIGN_REWARDS = [
-  { day: 1, stones: 500, items: '强化石x2' },
-  { day: 2, stones: 800, items: '洗练石x2' },
-  { day: 3, stones: 1000, items: '强化石x5' },
-  { day: 4, stones: 1500, items: '洗练石x5' },
-  { day: 5, stones: 2000, items: '强化石x10' },
-  { day: 6, stones: 3000, items: '洗练石x10' },
-  { day: 7, stones: 5000, items: '神品碎片x1' },
+  { day: 1, stones: 500, reinforceStones: 2, refinementStones: 0, items: '淬火石x2' },
+  { day: 2, stones: 800, reinforceStones: 0, refinementStones: 2, items: '符文石x2' },
+  { day: 3, stones: 1200, reinforceStones: 5, refinementStones: 0, items: '淬火石x5' },
+  { day: 4, stones: 1500, reinforceStones: 0, refinementStones: 5, items: '符文石x5' },
+  { day: 5, stones: 2000, reinforceStones: 10, refinementStones: 5, items: '淬火石x10+符文石x5' },
+  { day: 6, stones: 3000, reinforceStones: 5, refinementStones: 10, items: '淬火石x5+符文石x10' },
+  { day: 7, stones: 8000, reinforceStones: 20, refinementStones: 15, petEssence: 50, items: '淬火石x20+符文石x15+精华x50' },
 ];
 
 // 请求日志（只记录异常和慢请求）
@@ -516,6 +516,7 @@ app.post('/api/sign/daily', auth, async (req, res) => {
 
     const reward = SIGN_REWARDS[(streak - 1) % 7];
 
+    // 发放焰晶
     await pool.query(
       `UPDATE players SET daily_sign_date = $1, daily_sign_streak = $2, 
        spirit_stones = spirit_stones + $3,
@@ -523,6 +524,27 @@ app.post('/api/sign/daily', auth, async (req, res) => {
        updated_at = NOW() WHERE wallet = $4`,
       [today, streak, reward.stones, req.user.wallet]
     );
+    // 发放材料奖励
+    if (reward.reinforceStones || reward.refinementStones || reward.petEssence) {
+      const updates = [];
+      const vals = [req.user.wallet];
+      let idx = 2;
+      if (reward.reinforceStones) {
+        updates.push(`game_data = jsonb_set(game_data, '{reinforceStones}', to_jsonb((COALESCE((game_data->>'reinforceStones')::int, 0) + $` + idx + `)::int))`);
+        vals.push(reward.reinforceStones); idx++;
+      }
+      if (reward.refinementStones) {
+        updates.push(`game_data = jsonb_set(game_data, '{refinementStones}', to_jsonb((COALESCE((game_data->>'refinementStones')::int, 0) + $` + idx + `)::int))`);
+        vals.push(reward.refinementStones); idx++;
+      }
+      if (reward.petEssence) {
+        updates.push(`game_data = jsonb_set(game_data, '{petEssence}', to_jsonb((COALESCE((game_data->>'petEssence')::int, 0) + $` + idx + `)::int))`);
+        vals.push(reward.petEssence); idx++;
+      }
+      if (updates.length) {
+        await pool.query('UPDATE players SET ' + updates.join(', ') + ' WHERE wallet = $1', vals);
+      }
+    }
 
     res.json({ ok: true, streak, reward });
   } catch (e) {
