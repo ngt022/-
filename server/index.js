@@ -3870,7 +3870,7 @@ async function refreshLeaderboard() {
 setInterval(refreshLeaderboard, 10 * 60 * 1000);
 setTimeout(refreshLeaderboard, 5000);
 
-server.listen(PORT, () => console.log(`焰修后端启动 port ${PORT}`));
+server.listen(PORT, '127.0.0.1', () => console.log(`焰修后端启动 127.0.0.1:${PORT}`));
 
 // Graceful shutdown
 function gracefulShutdown(signal) {
