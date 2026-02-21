@@ -77,7 +77,7 @@ export const events = [
   {
     id: 'treasure_trove',
     name: '焰域宝藏',
-    description: '发现一处上古修士遗留的宝藏。',
+    description: '发现一处上古焰修遗留的宝藏。',
     chance: 0.05,
     effect: (playerStore, showMessage) => {
       const stoneBonus = Math.floor(30 * (playerStore.level / 2 + 1))

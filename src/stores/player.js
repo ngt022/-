@@ -25,7 +25,7 @@ export const usePlayerStore = defineStore('player', {
       }
     },
     // 基础属性
-    name: '无名修士',
+    name: '无名焰修',
     nameChangeCount: 0, // 道号修改次数
     level: 1, // 境界等级
     realm: '燃火期一层', // 当前境界名称
