@@ -184,6 +184,11 @@ app.post('/api/auth/login', authLimit, async (req, res) => {
         'INSERT INTO players (wallet) VALUES ($1) RETURNING *',
         [wallet.toLowerCase()]
       );
+      // 新玩家欢迎邮件
+      await pool.query(
+        `INSERT INTO player_mail (to_wallet, from_type, from_name, title, content, rewards) VALUES ($1, 'system', '系统', '🔥 欢迎来到火之文明！', '欢迎加入焰修世界！这是你的新手礼物，祝你修炼顺利！提示：1.先去修炼积累焰力 2.去探索获取资源 3.去焰运阁抽装备 4.记得每日签到！', $2)`,
+        [wallet.toLowerCase(), JSON.stringify({spiritStones: 10000, reinforceStones: 20})]
+      );
     }
 
     const player = result.rows[0];
