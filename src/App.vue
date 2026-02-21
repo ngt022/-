@@ -226,6 +226,19 @@
         positiveText: '太好了！',
       })
     }
+
+    // 首次登录改名引导
+    if (playerStore.nameChangeCount === 0 && (playerStore.name === '无名焰修' || playerStore.name === '无名修士')) {
+      setTimeout(() => {
+        dialog.info({
+          title: '🔥 欢迎来到火之文明！',
+          content: '请先给自己取一个焰名吧！首次改名免费哦~',
+          positiveText: '去取名',
+          negativeText: '稍后再说',
+          onPositiveClick: () => router.push('/settings'),
+        })
+      }, 1500)
+    }
   }
 
   // 如果已有 token（刷新页面），直接初始化
