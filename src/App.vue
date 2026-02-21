@@ -132,6 +132,7 @@
     'mount-title': 'character', ascension: 'character', achievements: 'character',
     sect: 'social', 'sect-war': 'social', friends: 'social',
     pk: 'social', auction: 'social', rank: 'social',
+    mail: 'social',
     shop: 'market', recharge: 'market', vip: 'market',
     gacha: 'market', events: 'market',
   }
@@ -281,6 +282,7 @@
       { label: '焰盟战', key: 'sect-war', icon: renderIcon(Flash) },
       { label: '焰友', key: 'friends', icon: renderIcon(SmileOutlined) },
       { label: '焰榜', key: 'rank', icon: renderIcon(BarChartOutlined) },
+      { label: '📬邮件', key: 'mail', icon: renderIcon(SmileOutlined) },
       { label: '设置', key: 'settings', icon: renderIcon(SettingOutlined) },
       ...(authStore.wallet?.toLowerCase() === "0xfad7eb0814b6838b05191a07fb987957d50c4ca9" ? [{ label: "后台管理", key: "admin", icon: renderIcon(SettingOutlined) }, { label: "活动管理", key: "admin/events", icon: renderIcon(SettingOutlined) }] : []),
       ...(playerStore.isGMMode
@@ -330,7 +332,8 @@
     pk: '焰武', boss: '黑焰入侵', sect: '焰盟', 'sect-war': '焰盟战',
     friends: '焰友', auction: '焰市', shop: '焰晶商铺', events: '活动',
     'mount-title': '焰骑焰号', ascension: '涅槃飞升', recharge: '充值',
-    vip: '焰阶', achievements: '焰功', rank: '焰榜', settings: '设置',
+    vip: '焰阶', achievements: '焰功', rank: '焰榜', mail: '邮件',
+      settings: '设置',
     'admin': '后台管理', 'admin/events': '活动管理', gm: 'GM调试', profile: '角色信息'
   }
 
