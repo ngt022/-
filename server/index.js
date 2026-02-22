@@ -1239,30 +1239,45 @@ function getWsByWallet(wallet) {
 }
 
 function runPkBattle(statsA, statsB) {
-  // 简化版服务端战斗（复用前端 combat 逻辑）
+  // Full combat with all attributes
   const calcDmg = (atk, def) => {
     let dmg = atk.attack * (100 / (100 + def.defense));
+    // combatBoost: overall damage multiplier
+    dmg *= 1 + (atk.combatBoost || 0);
+    // finalDamageBoost: attacker's final damage increase
+    dmg *= 1 + (atk.finalDamageBoost || 0);
     let isCrit = Math.random() < (atk.critRate || 0.05);
     let isCombo = Math.random() < (atk.comboRate || 0);
-    let isDodged = Math.random() < (def.dodgeRate || 0.05);
-    if (isCrit) dmg *= 1.5 + (atk.critDamageBoost || 0);
+    // dodgeRate reduced by dodgeResist
+    const effectiveDodge = Math.max(0, (def.dodgeRate || 0.05) - (atk.dodgeResist || 0));
+    let isDodged = Math.random() < effectiveDodge;
+    if (isCrit) {
+      let critMult = 1.5 + (atk.critDamageBoost || 0);
+      // critDamageReduce: defender reduces crit damage
+      critMult -= (def.critDamageReduce || 0);
+      dmg *= Math.max(1.1, critMult);
+    }
     if (isCombo) dmg *= 1.3;
-    dmg *= 1 - (def.finalDamageReduce || 0);
-    return { damage: Math.floor(dmg), isCrit, isCombo, isDodged };
+    // finalDamageReduce: defender's final damage reduction
+    dmg *= 1 - Math.min(0.7, (def.finalDamageReduce || 0));
+    // resistanceBoost: defender's overall resistance
+    dmg *= 1 - Math.min(0.3, (def.resistanceBoost || 0));
+    return { damage: Math.max(1, Math.floor(dmg)), isCrit, isCombo, isDodged };
   };
 
   let hpA = statsA.health, hpB = statsB.health;
+  const maxHpA = hpA, maxHpB = hpB;
   const rounds = [];
   const maxRounds = 15;
 
   for (let i = 0; i < maxRounds && hpA > 0 && hpB > 0; i++) {
     const r = { round: i + 1, actions: [] };
-    // A 先攻（速度高先手）
     const first = (statsA.speed || 10) >= (statsB.speed || 10) ? 'A' : 'B';
     const order = first === 'A' ? [['A', statsA, statsB], ['B', statsB, statsA]] : [['B', statsB, statsA], ['A', statsA, statsB]];
 
     for (const [side, atk, def] of order) {
-      if ((side === 'A' ? hpA : hpB) <= 0) break;
+      const atkHp = side === 'A' ? hpA : hpB;
+      if (atkHp <= 0) break;
       const hit = calcDmg(atk, def);
       if (hit.isDodged) {
         r.actions.push({ attacker: side, isDodged: true, damage: 0, isCrit: false, isCombo: false });
@@ -1270,6 +1285,21 @@ function runPkBattle(statsA, statsB) {
         if (side === 'A') hpB = Math.max(0, hpB - hit.damage);
         else hpA = Math.max(0, hpA - hit.damage);
         r.actions.push({ attacker: side, damage: hit.damage, isCrit: hit.isCrit, isCombo: hit.isCombo, isDodged: false });
+        // vampireRate: lifesteal (reduced by vampireResist)
+        const effectiveVampire = Math.max(0, (atk.vampireRate || 0) - (def.vampireResist || 0));
+        if (effectiveVampire > 0) {
+          const heal = Math.floor(hit.damage * effectiveVampire);
+          if (side === 'A') hpA = Math.min(maxHpA, hpA + heal);
+          else hpB = Math.min(maxHpB, hpB + heal);
+        }
+        // counterRate: defender counter-attacks (reduced by counterResist)
+        const effectiveCounter = Math.max(0, (def.counterRate || 0) - (atk.counterResist || 0));
+        if (effectiveCounter > 0 && Math.random() < effectiveCounter) {
+          const counterDmg = Math.max(1, Math.floor(def.attack * 0.5 * (100 / (100 + atk.defense))));
+          if (side === 'A') hpA = Math.max(0, hpA - counterDmg);
+          else hpB = Math.max(0, hpB - counterDmg);
+          r.actions.push({ attacker: side === 'A' ? 'B' : 'A', damage: counterDmg, isCounter: true });
+        }
       }
       if (hpA <= 0 || hpB <= 0) break;
     }
@@ -1801,10 +1831,17 @@ app.post('/api/boss/attack', auth, idempotent(pool, 'boss_attack'), async (req, 
     const bonuses = await getMountTitleBonuses(client, wallet);
     const finalStats = computeFinalStats(gameData, bonuses);
     const pAtk = finalStats.attack;
-    const critRate = finalStats.critRate;
+    const critRate = finalStats.critRate || 0.05;
+    const comboRate = finalStats.comboRate || 0;
     const isCrit = Math.random() < critRate;
+    const isCombo = Math.random() < comboRate;
     let damage = Math.max(1, Math.floor(pAtk * (100 / (100 + b.defense)) * (0.9 + Math.random() * 0.2)));
-    if (isCrit) damage = Math.floor(damage * 1.5);
+    // combatBoost & finalDamageBoost
+    damage *= 1 + (finalStats.combatBoost || 0);
+    damage *= 1 + (finalStats.finalDamageBoost || 0);
+    if (isCrit) damage = Math.floor(damage * (1.5 + (finalStats.critDamageBoost || 0)));
+    if (isCombo) damage = Math.floor(damage * 1.3);
+    damage = Math.max(1, Math.floor(damage));
     const newHp = Math.max(0, Number(b.current_hp) - damage);
     await client.query('UPDATE world_bosses SET current_hp = $1 WHERE id = $2', [newHp, b.id]);
     const newVersion = (Number(p.state_version) || 0) + 1;
@@ -3150,42 +3187,65 @@ app.post("/api/dungeon-daily/enter", auth, async (req, res) => {
     );
     if (used.rows[0].cnt >= d.max_entries) return res.status(400).json({ error: "今日次数已用完" });
 
-    // 战斗模拟
+    // 战斗模拟 - 使用实际属性
     const enemy = d.enemy_config;
-    const enemyCombat = enemy.attack * 2 + enemy.defense + enemy.hp / 10;
-    const winRate = pCombat / (pCombat + enemyCombat);
-    const roll = Math.random();
-    const victory = roll < winRate;
+    const bonuses = await getMountTitleBonuses(pool, w);
+    const finalStats = computeFinalStats(gameData, bonuses);
+    const playerAtk = Math.max(50, finalStats.attack || 50);
+    const playerDef = Math.max(10, finalStats.defense || 10);
+    const playerCritRate = finalStats.critRate || 0.05;
+    const playerCritDmgBoost = finalStats.critDamageBoost || 0;
+    const playerComboRate = finalStats.comboRate || 0;
+    const playerDodgeRate = finalStats.dodgeRate || 0;
+    const playerVampireRate = finalStats.vampireRate || 0;
+    const playerFinalDmgBoost = finalStats.finalDamageBoost || 0;
+    const playerFinalDmgReduce = finalStats.finalDamageReduce || 0;
+    const playerCombatBoost = finalStats.combatBoost || 0;
 
-    // 生成战斗日志
-    let playerHp = Math.max(1000, pCombat * 2);
+    let playerHp = Math.max(500, finalStats.health || 500);
     const playerMaxHp = playerHp;
     let enemyHp = enemy.hp;
     const enemyMaxHp = enemy.hp;
-    const playerAtk = Math.max(50, pCombat * 0.3);
-    const playerDef = Math.max(20, pCombat * 0.1);
     const combatLog = [];
     let round = 0;
 
-    while (playerHp > 0 && enemyHp > 0 && round < 10) {
+    while (playerHp > 0 && enemyHp > 0 && round < 12) {
       round++;
       // 玩家攻击
-      const pDmgBase = playerAtk * (0.8 + Math.random() * 0.4);
-      const pDmgReduced = Math.max(1, pDmgBase - enemy.defense * 0.3);
-      const pCrit = Math.random() < 0.15;
-      const pFinalDmg = Math.floor(pCrit ? pDmgReduced * 1.5 : pDmgReduced);
+      let pDmg = playerAtk * (100 / (100 + (enemy.defense || 10))) * (0.9 + Math.random() * 0.2);
+      pDmg *= 1 + playerCombatBoost;
+      pDmg *= 1 + playerFinalDmgBoost;
+      const pCrit = Math.random() < playerCritRate;
+      const pCombo = Math.random() < playerComboRate;
+      if (pCrit) pDmg *= 1.5 + playerCritDmgBoost;
+      if (pCombo) pDmg *= 1.3;
+      const pFinalDmg = Math.max(1, Math.floor(pDmg));
       enemyHp = Math.max(0, enemyHp - pFinalDmg);
+      // vampireRate lifesteal
+      if (playerVampireRate > 0) {
+        playerHp = Math.min(playerMaxHp, playerHp + Math.floor(pFinalDmg * playerVampireRate));
+      }
       combatLog.push({
-        round, actor: "player", damage: pFinalDmg, crit: pCrit,
+        round, actor: "player", damage: pFinalDmg, crit: pCrit, combo: pCombo,
         enemyHp: Math.max(0, enemyHp), enemyMaxHp, playerHp, playerMaxHp
       });
       if (enemyHp <= 0) break;
 
       // 敌人攻击
-      const eDmgBase = enemy.attack * (0.8 + Math.random() * 0.4);
-      const eDmgReduced = Math.max(1, eDmgBase - playerDef * 0.3);
+      let eDmg = enemy.attack * (100 / (100 + playerDef)) * (0.9 + Math.random() * 0.2);
+      // player dodge
+      const eDodged = Math.random() < playerDodgeRate;
+      if (eDodged) {
+        combatLog.push({
+          round, actor: "enemy", damage: 0, dodged: true,
+          enemyHp, enemyMaxHp, playerHp, playerMaxHp
+        });
+        continue;
+      }
       const eCrit = Math.random() < 0.1;
-      const eFinalDmg = Math.floor(eCrit ? eDmgReduced * 1.5 : eDmgReduced);
+      if (eCrit) eDmg *= 1.5;
+      eDmg *= 1 - Math.min(0.7, playerFinalDmgReduce);
+      const eFinalDmg = Math.max(1, Math.floor(eDmg));
       playerHp = Math.max(0, playerHp - eFinalDmg);
       combatLog.push({
         round, actor: "enemy", damage: eFinalDmg, crit: eCrit,
@@ -3193,15 +3253,8 @@ app.post("/api/dungeon-daily/enter", auth, async (req, res) => {
       });
     }
 
-    // 根据预定胜负调整最后一条日志
-    const result = victory ? "victory" : "defeat";
-    if (victory && enemyHp > 0) {
-      enemyHp = 0;
-      combatLog.push({ round: round + 1, actor: "player", damage: enemyHp, crit: true, enemyHp: 0, enemyMaxHp, playerHp, playerMaxHp, finisher: true });
-    } else if (!victory && playerHp > 0) {
-      playerHp = 0;
-      combatLog.push({ round: round + 1, actor: "enemy", damage: playerHp, crit: false, enemyHp, enemyMaxHp, playerHp: 0, playerMaxHp, finisher: true });
-    }
+    const result = playerHp > 0 && enemyHp <= 0 ? "victory" : "defeat";
+    const victory = result === "victory";
 
     let rewards = {};
     if (victory) {
