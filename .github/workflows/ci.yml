@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: roon_user
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: xiuxian_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        run: cd server && npm ci
+
+      - name: Syntax check
+        run: cd server && node --check index.js
+
+      - name: Run migrations
+        env:
+          PGPASSWORD: testpass
+        run: |
+          for f in server/migrations/*.sql; do
+            psql -h localhost -U roon_user -d xiuxian_test -f "$f"
+          done
+
+      - name: Start server
+        env:
+          GAME_ENV: test
+          NODE_ENV: development
+          PORT: 3017
+          DATABASE_URL: postgresql://roon_user:testpass@localhost:5432/xiuxian_test
+          DB_PASSWORD: testpass
+          JWT_SECRET: xiuxian_secret_2026_test
+          ADMIN_WALLETS: "0xfad7eb0814b6838b05191a07fb987957d50c4ca9"
+        run: |
+          cd server && node index.js &
+          sleep 5
+
+      - name: Run regression tests
+        run: cd /home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY) && npx vitest run server/tests/regression.test.mjs
