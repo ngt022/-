@@ -16,6 +16,7 @@ import helmet from 'helmet';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { recalcAndPatch, computeFinalStats, getPlayerFinalStats, getMountTitleBonuses, logBattleTrace } from './services/stats-service.js';
+import { idempotent } from './services/lock-service.js';
 
 const app = express();
 
@@ -1769,7 +1770,7 @@ app.get('/api/boss/current', auth, async (req, res) => {
 });
 
 // POST /api/boss/attack
-app.post('/api/boss/attack', auth, async (req, res) => {
+app.post('/api/boss/attack', auth, idempotent(pool, 'boss_attack'), async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -3969,7 +3970,7 @@ app.post('/api/pet/deploy', auth, async (req, res) => {
 });
 
 // === 装备穿戴API ===
-app.post('/api/equip/wear', auth, async (req, res) => {
+app.post('/api/equip/wear', auth, idempotent(pool, 'wear'), async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -4004,7 +4005,7 @@ app.post('/api/equip/wear', auth, async (req, res) => {
 });
 
 // === 装备卸下API ===
-app.post('/api/equip/unwear', auth, async (req, res) => {
+app.post('/api/equip/unwear', auth, idempotent(pool, 'unwear'), async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -4031,7 +4032,7 @@ app.post('/api/equip/unwear', auth, async (req, res) => {
 });
 
 // === 装备强化API ===
-app.post('/api/equip/enhance', auth, async (req, res) => {
+app.post('/api/equip/enhance', auth, idempotent(pool, 'enhance'), async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
