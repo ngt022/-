@@ -37,7 +37,7 @@ const DEFAULTS = {
   gacha_pity: {
     epic_guarantee: 50,          // 50抽保底 epic+
     legendary_guarantee: 100,    // 100抽保底 legendary+
-    mythic_guarantee: 200,       // 200抽保底 mythic（无视限量）
+    mythic_guarantee: -1,    // 仙品无保底，纯概率       // 200抽保底 mythic（无视限量）
     pet_mystic_guarantee: 80,    // 80抽保底 mystic+ 焰兽
     pet_celestial_guarantee: 200 // 200抽保底 celestial+ 焰兽
   },

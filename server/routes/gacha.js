@@ -392,11 +392,11 @@ async function drawSingleEquip(level, wishlistEnabled, wishEquipQuality, gachaRa
   // 保底检查
   let forcedQuality = null
   if (gachaPity) {
-    if (pity.equipCount >= gachaPity.mythic_guarantee) {
+    if (gachaPity.mythic_guarantee > 0 && pity.equipCount >= gachaPity.mythic_guarantee) {
       forcedQuality = 'mythic' // 保底神话无视限量
-    } else if (pity.equipCount >= gachaPity.legendary_guarantee) {
+    } else if (gachaPity.legendary_guarantee > 0 && pity.equipCount >= gachaPity.legendary_guarantee) {
       forcedQuality = 'legendary'
-    } else if (pity.equipCount >= gachaPity.epic_guarantee) {
+    } else if (gachaPity.epic_guarantee > 0 && pity.equipCount >= gachaPity.epic_guarantee) {
       forcedQuality = 'epic'
     }
   }
@@ -445,9 +445,9 @@ async function drawSinglePet(wishlistEnabled, wishPetRarity, gachaRateBoost, pit
   // 保底检查
   let forcedRarity = null
   if (gachaPity) {
-    if (pity.petCount >= gachaPity.pet_celestial_guarantee) {
+    if (gachaPity.pet_celestial_guarantee > 0 && pity.petCount >= gachaPity.pet_celestial_guarantee) {
       forcedRarity = 'celestial'
-    } else if (pity.petCount >= gachaPity.pet_mystic_guarantee) {
+    } else if (gachaPity.pet_mystic_guarantee > 0 && pity.petCount >= gachaPity.pet_mystic_guarantee) {
       forcedRarity = 'mystic'
     }
   }
