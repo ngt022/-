@@ -62,4 +62,4 @@ jobs:
           sleep 5
 
       - name: Run regression tests
-        run: cd /home/runner/work/$(basename $GITHUB_REPOSITORY)/$(basename $GITHUB_REPOSITORY) && npx vitest run server/tests/regression.test.mjs
+        run: npx vitest run --config vitest.config.mjs
