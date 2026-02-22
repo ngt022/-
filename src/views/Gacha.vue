@@ -3,7 +3,7 @@
     <!-- 装饰性顶部背景 -->
     <div class="gacha-page-bg"></div>
     <game-guide>
-      <p>🎰 支持<strong>单抽/10连/50连/100连</strong>，每次100焰晶（心愿单200）</p>
+      <p>🎰 支持<strong>单抽/10连/50连/100连</strong>，每次150焰晶（心愿单300）</p>
       <p>📦 两个卡池：<strong>装备池</strong>、<strong>焰兽池</strong></p>
       <p>⚔️ 装备概率：凡品50%、下品30%、中品12%、上品5%、极品2%、仙品1%</p>
       <p>🐾 焰兽概率：凡品50%、灵品28%、玄品16%、仙品5.8%、<strong>神品0.2%</strong></p>
@@ -52,11 +52,11 @@
               :class="{ 'gacha-btn-multi': item >= 10, 'gacha-btn-mega': item >= 50 }"
               @click="performGacha(item)"
               :disabled="
-                playerStore.spiritStones < Math.floor((playerStore.wishlistEnabled ? item * 200 : item * 100) * (authStore.isLoggedIn ? vipDiscounts[authStore.vipLevel]||1 : 1)) || isDrawing
+                playerStore.spiritStones < Math.floor((playerStore.wishlistEnabled ? item * 300 : item * 150) * (authStore.isLoggedIn ? vipDiscounts[authStore.vipLevel]||1 : 1)) || isDrawing
               "
             >
               <span class="gacha-btn-label">抽{{ item }}次</span>
-              <span class="gacha-btn-cost">💎 {{ Math.floor((playerStore.wishlistEnabled ? item * 200 : item * 100) * (authStore.isLoggedIn ? vipDiscounts[authStore.vipLevel]||1 : 1)) }}</span>
+              <span class="gacha-btn-cost">💎 {{ Math.floor((playerStore.wishlistEnabled ? item * 300 : item * 150) * (authStore.isLoggedIn ? vipDiscounts[authStore.vipLevel]||1 : 1)) }}</span>
             </button>
           </div>
           <div class="gacha-tool-row">
@@ -145,11 +145,11 @@
                 class="gacha-btn gacha-btn-multi"
                 @click="performGacha(gachaNumber)"
                 :disabled="
-                  playerStore.spiritStones < Math.floor((playerStore.wishlistEnabled ? gachaNumber * 200 : gachaNumber * 100) * (authStore.isLoggedIn ? vipDiscounts[authStore.vipLevel]||1 : 1)) || isDrawing
+                  playerStore.spiritStones < Math.floor((playerStore.wishlistEnabled ? gachaNumber * 300 : gachaNumber * 150) * (authStore.isLoggedIn ? vipDiscounts[authStore.vipLevel]||1 : 1)) || isDrawing
                 "
               >
                 <span class="gacha-btn-label">再抽{{ gachaNumber }}次</span>
-                <span class="gacha-btn-cost">💎 {{ Math.floor((playerStore.wishlistEnabled ? gachaNumber * 200 : gachaNumber * 100) * (authStore.isLoggedIn ? vipDiscounts[authStore.vipLevel]||1 : 1)) }}</span>
+                <span class="gacha-btn-cost">💎 {{ Math.floor((playerStore.wishlistEnabled ? gachaNumber * 300 : gachaNumber * 150) * (authStore.isLoggedIn ? vipDiscounts[authStore.vipLevel]||1 : 1)) }}</span>
               </button>
             </n-space>
             <div class="result-grid">
@@ -547,7 +547,7 @@ const performGacha = async (times) => {
   gachaNumber.value = times
   showResult.value = false
   
-  const baseCost = playerStore.wishlistEnabled ? times * 200 : times * 100
+  const baseCost = playerStore.wishlistEnabled ? times * 300 : times * 150
   const discount = vipDiscounts[authStore.vipLevel] || 1
   const cost = Math.floor(baseCost * discount)
   
