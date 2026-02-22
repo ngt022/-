@@ -15,6 +15,7 @@ import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
+import { recalcAndPatch, computeFinalStats, getPlayerFinalStats, getMountTitleBonuses, logBattleTrace } from './services/stats-service.js';
 
 const app = express();
 
@@ -158,106 +159,10 @@ function safeError(e) {
   return e.message;
 }
 
-// === 从 equippedArtifacts 重算所有派生属性 ===
+// === 从 equippedArtifacts 重算所有派生属性 (M1: delegated to stats-service) ===
 function recalcDerivedStats(gd) {
-  // Ensure all required fields exist (new player has empty game_data)
-  if (!gd.baseAttributes) gd.baseAttributes = { attack: 10, health: 100, defense: 5, speed: 10 };
-  if (!gd.equippedArtifacts) gd.equippedArtifacts = {};
-  if (!gd.combatAttributes) gd.combatAttributes = { critRate:0, comboRate:0, counterRate:0, stunRate:0, dodgeRate:0, vampireRate:0 };
-  if (!gd.combatResistance) gd.combatResistance = { critResist:0, comboResist:0, counterResist:0, stunResist:0, dodgeResist:0, vampireResist:0 };
-  if (!gd.specialAttributes) gd.specialAttributes = { healBoost:0, critDamageBoost:0, critDamageReduce:0, finalDamageBoost:0, finalDamageReduce:0, combatBoost:0, resistanceBoost:0 };
-  if (!gd.artifactBonuses) gd.artifactBonuses = {};
-  // Reset artifactBonuses
-  const ab = {
-    attack:0, health:0, defense:0, speed:0,
-    critRate:0, comboRate:0, counterRate:0, stunRate:0, dodgeRate:0, vampireRate:0,
-    critResist:0, comboResist:0, counterResist:0, stunResist:0, dodgeResist:0, vampireResist:0,
-    healBoost:0, critDamageBoost:0, critDamageReduce:0, finalDamageBoost:0, finalDamageReduce:0,
-    combatBoost:0, resistanceBoost:0, cultivationRate:1, spiritRate:1
-  };
-  const equipped = gd.equippedArtifacts || {};
-  for (const slot of Object.keys(equipped)) {
-    const item = equipped[slot];
-    if (!item || !item.stats) continue;
-    for (const [k, v] of Object.entries(item.stats)) {
-      if (k in ab) {
-        if (k === 'cultivationRate' || k === 'spiritRate') {
-          ab[k] += v; // these are additive on top of base 1
-        } else {
-          ab[k] += v;
-        }
-      }
-    }
-  }
-  gd.artifactBonuses = ab;
-
-  // Pet bonus
-  const pet = gd.activePet;
-  let petAtk = 0, petHp = 0, petDef = 0, petSpd = 0;
-  if (pet && pet.deployed !== false) {
-    const q = pet.quality || {};
-    petAtk = (q.strength || 0) * (pet.level || 1);
-    petHp = (q.constitution || 0) * (pet.level || 1) * 5;
-    petDef = (q.constitution || 0) * (pet.level || 1) * 0.5;
-    petSpd = (q.agility || 0) * (pet.level || 1) * 0.3;
-  }
-
-  // Base attributes: we need the "naked" base (without equipment)
-  // The naked base should be stored separately, but currently baseAttributes includes equip bonuses
-  // Strategy: store a _nakedBase if not present, derive from level
-  if (!gd._nakedBase) {
-    // First time: subtract current artifactBonuses from baseAttributes to get naked base
-    // But old artifactBonuses was all zeros, so current baseAttributes IS the naked base
-    gd._nakedBase = {
-      attack: gd.baseAttributes.attack || 10,
-      health: gd.baseAttributes.health || 100,
-      defense: gd.baseAttributes.defense || 5,
-      speed: gd.baseAttributes.speed || 10
-    };
-  }
-
-  // Recalc baseAttributes = naked + equipment
-  gd.baseAttributes = {
-    attack: gd._nakedBase.attack + ab.attack + petAtk,
-    health: gd._nakedBase.health + ab.health + petHp,
-    defense: gd._nakedBase.defense + ab.defense + petDef,
-    speed: gd._nakedBase.speed + ab.speed + petSpd
-  };
-
-  // Recalc combatAttributes from equipment only (base combat is 0)
-  gd.combatAttributes = {
-    critRate: ab.critRate,
-    comboRate: ab.comboRate,
-    counterRate: ab.counterRate,
-    stunRate: ab.stunRate,
-    dodgeRate: ab.dodgeRate,
-    vampireRate: ab.vampireRate
-  };
-
-  // Recalc combatResistance from equipment only
-  gd.combatResistance = {
-    critResist: ab.critResist,
-    comboResist: ab.comboResist,
-    counterResist: ab.counterResist,
-    stunResist: ab.stunResist,
-    dodgeResist: ab.dodgeResist,
-    vampireResist: ab.vampireResist
-  };
-
-  // Recalc specialAttributes from equipment only
-  gd.specialAttributes = {
-    healBoost: ab.healBoost,
-    critDamageBoost: ab.critDamageBoost,
-    critDamageReduce: ab.critDamageReduce,
-    finalDamageBoost: ab.finalDamageBoost,
-    finalDamageReduce: ab.finalDamageReduce,
-    combatBoost: ab.combatBoost,
-    resistanceBoost: ab.resistanceBoost
-  };
-
-  return gd;
+  return recalcAndPatch(gd);
 }
-
 
 
 const strictLimit = rateLimit({ windowMs: 60000, max: 10, message: { error: '操作太频繁，请稍后再试' } });
@@ -369,7 +274,7 @@ app.post('/api/game/save', auth, async (req, res) => {
     console.log('[SAVE]', req.user.wallet.slice(-6), 'cult:', dbCult, '->', mergedData.cultivation, 'lv:', level);
     await pool.query(
       `UPDATE players SET game_data = $1, combat_power = $2, level = $3, realm = $4, 
-       spirit_stones = $5, name = $6, updated_at = NOW() WHERE wallet = $7`,
+       spirit_stones = $5, name = $6, state_version = state_version + 1, updated_at = NOW() WHERE wallet = $7`,
       [JSON.stringify(mergedData), combatPower || 0, mergedData.level || level || oldLevel, mergedData.realm || realm || current.rows[0]?.realm || '燃火期一层',
        dbSpiritStones, playerName, req.user.wallet]
     );
@@ -431,7 +336,7 @@ app.post('/api/game/save-beacon', async (req, res) => {
 
     await pool.query(
       `UPDATE players SET game_data = $1, combat_power = $2, level = $3, realm = $4,
-       spirit_stones = $5, name = $6, updated_at = NOW() WHERE wallet = $7`,
+       spirit_stones = $5, name = $6, state_version = state_version + 1, updated_at = NOW() WHERE wallet = $7`,
       [JSON.stringify(mergedData), combatPower || 0, mergedData.level || level || oldLevel, mergedData.realm || realm || current.rows[0]?.realm || '燃火期一层',
        dbSpiritStones, playerName, user.wallet]
     );
@@ -747,6 +652,7 @@ function sanitizePlayer(p) {
     vipLevel: p.vip_level, totalRecharge: p.total_recharge,
     spiritStones: p.spirit_stones, level: p.level, realm: p.realm,
     combatPower: p.combat_power, firstRecharge: p.first_recharge,
+    stateVersion: Number(p.state_version) || 0,
     dailySignDate: p.daily_sign_date ? (p.daily_sign_date instanceof Date ? p.daily_sign_date.toISOString().split("T")[0] : String(p.daily_sign_date).split("T")[0]) : null, dailySignStreak: p.daily_sign_streak
   };
 }
@@ -1540,30 +1446,16 @@ wss.on('connection', (ws, req) => {
         pkCooldown.set(challenge.from, Date.now());
         pkCooldown.set(userInfo.wallet, Date.now());
 
-        // 构造双方属性
-        const statsA = {
-          health: challenge.fromStats.health || 100,
-          attack: challenge.fromStats.attack || 10,
-          defense: challenge.fromStats.defense || 5,
-          speed: challenge.fromStats.speed || 10,
-          critRate: challenge.fromStats.critRate || 0.05,
-          comboRate: challenge.fromStats.comboRate || 0,
-          dodgeRate: challenge.fromStats.dodgeRate || 0.05,
-          critDamageBoost: challenge.fromStats.critDamageBoost || 0,
-          finalDamageReduce: challenge.fromStats.finalDamageReduce || 0,
-        };
-        const myStats = userInfo.stats || {};
-        const statsB = {
-          health: myStats.health || 100,
-          attack: myStats.attack || 10,
-          defense: myStats.defense || 5,
-          speed: myStats.speed || 10,
-          critRate: myStats.critRate || 0.05,
-          comboRate: myStats.comboRate || 0,
-          dodgeRate: myStats.dodgeRate || 0.05,
-          critDamageBoost: myStats.critDamageBoost || 0,
-          finalDamageReduce: myStats.finalDamageReduce || 0,
-        };
+        // 从DB读取双方真实属性（不信任前端上报）
+        const [playerAData, playerBData] = await Promise.all([
+          getPlayerFinalStats(pool, challenge.from),
+          getPlayerFinalStats(pool, userInfo.wallet)
+        ]);
+        if (!playerAData || !playerBData) {
+          return ws.send(JSON.stringify({ type: 'pk_error', msg: '无法获取玩家数据' }));
+        }
+        const statsA = playerAData.finalStats;
+        const statsB = playerBData.finalStats;
 
         // 跑战斗
         const result = runPkBattle(statsA, statsB);
@@ -1600,8 +1492,16 @@ wss.on('connection', (ws, req) => {
           rounds: result.rounds, winner: result.winner,
           winnerName, reward: PK_REWARD,
           finalHpA: result.finalHpA, finalHpB: result.finalHpB,
-          maxHpA: statsA.health, maxHpB: statsB.health
+          maxHpA: statsA.health, maxHpB: statsB.health,
+          state_version_a: playerAData.stateVersion,
+          state_version_b: playerBData.stateVersion
         };
+        // 记录战斗日志
+        logBattleTrace(pool, {
+          battleType: 'pk', walletA: challenge.from, walletB: userInfo.wallet,
+          versionA: playerAData.stateVersion, versionB: playerBData.stateVersion,
+          statsA, statsB, result: { winner: result.winner, rounds: result.rounds.length }
+        });
 
         fromWs.send(JSON.stringify(battleResult));
         ws.send(JSON.stringify(battleResult));
@@ -1870,56 +1770,42 @@ app.get('/api/boss/current', auth, async (req, res) => {
 
 // POST /api/boss/attack
 app.post('/api/boss/attack', auth, async (req, res) => {
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     const wallet = req.user.wallet;
     const now = Date.now();
     const lastAtk = bossAttackCooldown.get(wallet) || 0;
     if (now - lastAtk < 3000) {
+      await client.query('ROLLBACK');
       return res.status(400).json({ error: `冷却中，${Math.ceil((3000 - (now - lastAtk)) / 1000)}秒后再试` });
     }
-    const boss = await pool.query(
+    const boss = await client.query(
       "SELECT * FROM world_bosses WHERE status = 'active' ORDER BY spawn_time DESC LIMIT 1"
     );
-    if (boss.rows.length === 0) return res.status(400).json({ error: '当前没有世界Boss' });
+    if (boss.rows.length === 0) { await client.query('ROLLBACK'); return res.status(400).json({ error: '当前没有世界Boss' }); }
     const b = boss.rows[0];
-    if (Number(b.current_hp) <= 0) return res.status(400).json({ error: 'Boss已被击杀' });
-    const player = await pool.query('SELECT * FROM players WHERE wallet = $1', [wallet]);
-    if (!player.rows.length) return res.status(400).json({ error: '玩家不存在' });
+    if (Number(b.current_hp) <= 0) { await client.query('ROLLBACK'); return res.status(400).json({ error: 'Boss已被击杀' }); }
+    const player = await client.query('SELECT * FROM players WHERE wallet = $1', [wallet]);
+    if (!player.rows.length) { await client.query('ROLLBACK'); return res.status(400).json({ error: '玩家不存在' }); }
     const p = player.rows[0];
     const gameData = typeof p.game_data === 'string' ? JSON.parse(p.game_data) : (p.game_data || {});
     const spirit = gameData.spirit || 0;
-    if (spirit < 10) return res.status(400).json({ error: '灵力不足，需要10灵力' });
+    if (spirit < 10) { await client.query('ROLLBACK'); return res.status(400).json({ error: '灵力不足，需要10灵力' }); }
     gameData.spirit = spirit - 10;
-    await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gameData), wallet]);
-    // 计算装备加成
-    let equipAtk = 0, equipCritRate = 0;
-    if (gameData.equippedArtifacts) {
-      Object.values(gameData.equippedArtifacts).forEach(eq => {
-        if (!eq) return;
-        const s = eq.stats || eq;
-        equipAtk += (s.attack || 0);
-        equipCritRate += (s.critRate || 0);
-      });
-    }
-    // 查询坐骑+称号百分比加成
-    let mountAtkPct = 0, titleAtkPct = 0;
-    try {
-      const mRow = await pool.query(
-        `SELECT m.attack_bonus FROM player_mounts pm JOIN mounts m ON pm.mount_id=m.id WHERE pm.wallet=$1 AND pm.is_active=true`, [wallet]);
-      if (mRow.rows[0]) mountAtkPct = mRow.rows[0].attack_bonus || 0;
-      const tRow = await pool.query(
-        `SELECT t.attack_bonus FROM player_titles pt JOIN titles t ON pt.title_id=t.id WHERE pt.wallet=$1 AND pt.is_active=true`, [wallet]);
-      if (tRow.rows[0]) titleAtkPct = tRow.rows[0].attack_bonus || 0;
-    } catch(e) {}
-    const rawAtk = (gameData.baseAttributes?.attack || 100) + equipAtk;
-    const pAtk = Math.floor(rawAtk * (1 + mountAtkPct + titleAtkPct));
-    const critRate = Math.min(1, (gameData.combatAttributes?.critRate || 0.05) + equipCritRate);
+    // 使用 stats-service 计算最终属性
+    const bonuses = await getMountTitleBonuses(client, wallet);
+    const finalStats = computeFinalStats(gameData, bonuses);
+    const pAtk = finalStats.attack;
+    const critRate = finalStats.critRate;
     const isCrit = Math.random() < critRate;
     let damage = Math.max(1, Math.floor(pAtk * (100 / (100 + b.defense)) * (0.9 + Math.random() * 0.2)));
     if (isCrit) damage = Math.floor(damage * 1.5);
     const newHp = Math.max(0, Number(b.current_hp) - damage);
-    await pool.query('UPDATE world_bosses SET current_hp = $1 WHERE id = $2', [newHp, b.id]);
-    await pool.query(
+    await client.query('UPDATE world_bosses SET current_hp = $1 WHERE id = $2', [newHp, b.id]);
+    const newVersion = (Number(p.state_version) || 0) + 1;
+    await client.query('UPDATE players SET game_data = $1, state_version = $2 WHERE wallet = $3', [JSON.stringify(gameData), newVersion, wallet]);
+    await client.query(
       `INSERT INTO boss_damage_log (boss_id, wallet, player_name, damage, attacks_count, last_attack_at)
        VALUES ($1, $2, $3, $4, 1, NOW())
        ON CONFLICT (boss_id, wallet) DO UPDATE SET
@@ -1930,9 +1816,10 @@ app.post('/api/boss/attack', auth, async (req, res) => {
       [b.id, wallet, p.name || '无名焰修', damage]
     );
     bossAttackCooldown.set(wallet, now);
-    const myTotal = await pool.query(
+    const myTotal = await client.query(
       'SELECT damage FROM boss_damage_log WHERE boss_id = $1 AND wallet = $2', [b.id, wallet]
     );
+    await client.query('COMMIT');
     broadcast({
       type: 'boss_hit',
       data: {
@@ -1945,15 +1832,27 @@ app.post('/api/boss/attack', auth, async (req, res) => {
       await pool.query("UPDATE world_bosses SET status = 'dead', death_time = NOW() WHERE id = $1", [b.id]);
       await settleBossRewards(b.id);
     }
+    // 记录战斗日志
+    logBattleTrace(pool, {
+      battleType: 'boss', walletA: wallet, walletB: null,
+      versionA: newVersion, versionB: null,
+      statsA: finalStats, statsB: { hp: Number(b.current_hp), defense: b.defense },
+      result: { damage, isCrit, bossHp: newHp }
+    });
     res.json({
       damage, isCrit,
       bossHp: newHp, bossMaxHp: Number(b.max_hp),
       myTotalDamage: Number(myTotal.rows[0]?.damage || damage),
-      spirit: gameData.spirit
+      spirit: gameData.spirit,
+      state_version: newVersion
     });
-  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {});
+    res.status(500).json({ error: e.message || '服务器错误' });
+  } finally {
+    client.release();
+  }
 });
-
 // GET /api/boss/ranking
 app.get('/api/boss/ranking', auth, async (req, res) => {
   try {
@@ -2899,7 +2798,7 @@ app.put('/api/pets/:id/upgrade', auth, async (req, res) => {
       }
     }
     pet.combatAttributes = attrs;
-    await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gameData), wallet]);
+    await pool.query('UPDATE players SET game_data = $1, state_version = state_version + 1 WHERE wallet = $2', [JSON.stringify(gameData), wallet]);
     res.json({ success: true, data: pet });
   } catch (err) { console.error('Upgrade pet error:', err); res.status(500).json({ success: false, message: '服务器错误' }); }
 });
@@ -4071,19 +3970,20 @@ app.post('/api/pet/deploy', auth, async (req, res) => {
 
 // === 装备穿戴API ===
 app.post('/api/equip/wear', auth, async (req, res) => {
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     const { equipId, slot } = req.body;
     const w = req.user.wallet;
-    const r = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [w]);
-    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const r = await client.query('SELECT game_data, state_version FROM players WHERE wallet=$1 FOR UPDATE', [w]);
+    if (!r.rows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: '玩家不存在' }); }
     const gd = typeof r.rows[0].game_data === 'string' ? JSON.parse(r.rows[0].game_data) : (r.rows[0].game_data || {});
     const items = gd.items || [];
     const idx = items.findIndex(i => String(i.id) === String(equipId));
-    if (idx === -1) return res.json({ success: false, message: '装备不存在' });
+    if (idx === -1) { await client.query('ROLLBACK'); return res.json({ success: false, message: '装备不存在' }); }
     const equip = items[idx];
     if (!gd.equippedArtifacts) gd.equippedArtifacts = {};
     const targetSlot = slot || equip.type;
-    // 如果槽位已有装备，先卸下到背包
     if (gd.equippedArtifacts[targetSlot]) {
       items.push(gd.equippedArtifacts[targetSlot]);
     }
@@ -4091,41 +3991,58 @@ app.post('/api/equip/wear', auth, async (req, res) => {
     items.splice(idx, 1);
     gd.items = items;
     recalcDerivedStats(gd);
-    await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
-    res.json({ success: true, message: '装备成功', items: gd.items, equippedArtifacts: gd.equippedArtifacts });
-  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+    const newVersion = (Number(r.rows[0].state_version) || 0) + 1;
+    await client.query('UPDATE players SET game_data=$1, state_version=$2 WHERE wallet=$3', [JSON.stringify(gd), newVersion, w]);
+    await client.query('COMMIT');
+    res.json({ success: true, message: '装备成功', items: gd.items, equippedArtifacts: gd.equippedArtifacts, state_version: newVersion, computed_at: new Date().toISOString() });
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {});
+    res.status(500).json({ error: e.message || '服务器错误' });
+  } finally {
+    client.release();
+  }
 });
 
 // === 装备卸下API ===
 app.post('/api/equip/unwear', auth, async (req, res) => {
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     const { slot } = req.body;
     const w = req.user.wallet;
-    const r = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [w]);
-    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const r = await client.query('SELECT game_data, state_version FROM players WHERE wallet=$1 FOR UPDATE', [w]);
+    if (!r.rows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: '玩家不存在' }); }
     const gd = typeof r.rows[0].game_data === 'string' ? JSON.parse(r.rows[0].game_data) : (r.rows[0].game_data || {});
-    if (!gd.equippedArtifacts || !gd.equippedArtifacts[slot]) return res.json({ success: false, message: '该槽位没有装备' });
+    if (!gd.equippedArtifacts || !gd.equippedArtifacts[slot]) { await client.query('ROLLBACK'); return res.json({ success: false, message: '该槽位没有装备' }); }
     if (!gd.items) gd.items = [];
     gd.items.push(gd.equippedArtifacts[slot]);
     gd.equippedArtifacts[slot] = null;
     recalcDerivedStats(gd);
-    await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
-    res.json({ success: true, message: '卸下成功', items: gd.items, equippedArtifacts: gd.equippedArtifacts });
-  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+    const newVersion = (Number(r.rows[0].state_version) || 0) + 1;
+    await client.query('UPDATE players SET game_data=$1, state_version=$2 WHERE wallet=$3', [JSON.stringify(gd), newVersion, w]);
+    await client.query('COMMIT');
+    res.json({ success: true, message: '卸下成功', items: gd.items, equippedArtifacts: gd.equippedArtifacts, state_version: newVersion, computed_at: new Date().toISOString() });
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {});
+    res.status(500).json({ error: e.message || '服务器错误' });
+  } finally {
+    client.release();
+  }
 });
 
 // === 装备强化API ===
 app.post('/api/equip/enhance', auth, async (req, res) => {
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     const { equipId, slot } = req.body;
     const w = req.user.wallet;
-    const r = await pool.query('SELECT game_data FROM players WHERE wallet=$1', [w]);
-    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const r = await client.query('SELECT game_data, state_version FROM players WHERE wallet=$1 FOR UPDATE', [w]);
+    if (!r.rows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: '玩家不存在' }); }
     const gd = typeof r.rows[0].game_data === 'string' ? JSON.parse(r.rows[0].game_data) : (r.rows[0].game_data || {});
     const stones = gd.reinforceStones || 0;
     const cost = 1;
-    if (stones < cost) return res.json({ success: false, message: '强化石不足' });
-    // 找装备（可能在背包或已穿戴）
+    if (stones < cost) { await client.query('ROLLBACK'); return res.json({ success: false, message: '强化石不足' }); }
     let equip = null; let inSlot = null;
     if (slot && gd.equippedArtifacts && gd.equippedArtifacts[slot] && String(gd.equippedArtifacts[slot].id) === String(equipId)) {
       equip = gd.equippedArtifacts[slot]; inSlot = slot;
@@ -4133,31 +4050,38 @@ app.post('/api/equip/enhance', auth, async (req, res) => {
       const idx = (gd.items || []).findIndex(i => String(i.id) === String(equipId));
       if (idx > -1) equip = gd.items[idx];
     }
-    if (!equip) return res.json({ success: false, message: '装备不存在' });
+    if (!equip) { await client.query('ROLLBACK'); return res.json({ success: false, message: '装备不存在' }); }
     const level = (equip.enhanceLevel || 0);
     const maxLevel = 20;
-    if (level >= maxLevel) return res.json({ success: false, message: '已达最高强化等级' });
-    // 成功率递减
+    if (level >= maxLevel) { await client.query('ROLLBACK'); return res.json({ success: false, message: '已达最高强化等级' }); }
     const rate = Math.max(0.3, 1 - level * 0.05);
     gd.reinforceStones = stones - cost;
+    const newVersion = (Number(r.rows[0].state_version) || 0) + 1;
     if (Math.random() < rate) {
       equip.enhanceLevel = level + 1;
       const bonus = 1 + equip.enhanceLevel * 0.05;
       if (equip.attributes) {
         for (const k of Object.keys(equip.attributes)) {
           if (typeof equip.attributes[k] === 'number') equip.attributes[k] = Math.floor(equip.attributes[k] * (1 + 0.05) );
-          }
+        }
       }
       if (inSlot) gd.equippedArtifacts[inSlot] = equip;
       recalcDerivedStats(gd);
-      await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
-      res.json({ success: true, message: '强化成功！+' + equip.enhanceLevel, equip, reinforceStones: gd.reinforceStones, items: gd.items, equippedArtifacts: gd.equippedArtifacts });
+      await client.query('UPDATE players SET game_data=$1, state_version=$2 WHERE wallet=$3', [JSON.stringify(gd), newVersion, w]);
+      await client.query('COMMIT');
+      res.json({ success: true, message: '强化成功！+' + equip.enhanceLevel, equip, reinforceStones: gd.reinforceStones, items: gd.items, equippedArtifacts: gd.equippedArtifacts, state_version: newVersion, computed_at: new Date().toISOString() });
     } else {
       recalcDerivedStats(gd);
-      await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
-      res.json({ success: false, message: '强化失败，强化石已消耗', reinforceStones: gd.reinforceStones });
+      await client.query('UPDATE players SET game_data=$1, state_version=$2 WHERE wallet=$3', [JSON.stringify(gd), newVersion, w]);
+      await client.query('COMMIT');
+      res.json({ success: false, message: '强化失败，强化石已消耗', reinforceStones: gd.reinforceStones, state_version: newVersion, computed_at: new Date().toISOString() });
     }
-  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {});
+    res.status(500).json({ error: e.message || '服务器错误' });
+  } finally {
+    client.release();
+  }
 });
 
 // === 装备分解API ===
