@@ -197,7 +197,9 @@
 
   const initGame = async () => {
     isLoading.value = true
-    // 如果已登录，先从云端加载存档（刷新页面场景）
+    // 先加载本地 IndexedDB 存档
+    await playerStore.initializePlayer()
+    // 再用云端数据覆盖（云端优先）
     if (authStore.isLoggedIn) {
       try {
         const cloudData = await authStore.loadFromCloud()
@@ -217,7 +219,6 @@
         console.error("云存档加载失败:", e)
       }
     }
-    await playerStore.initializePlayer()
     isLoading.value = false
     getMenuOptions()
     startAutoGain()
