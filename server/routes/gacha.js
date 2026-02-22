@@ -11,11 +11,11 @@ const VIP_DISCOUNTS = [1, 0.95, 0.9, 0.85, 0.8, 0.7]
 // 装备品质配置
 const equipmentQualities = {
   common: { name: '凡品', color: '#9e9e9e', statMod: 1.0, maxStatMod: 1.5 },
-  uncommon: { name: '下品', color: '#4caf50', statMod: 1.2, maxStatMod: 2.0 },
-  rare: { name: '中品', color: '#2196f3', statMod: 1.5, maxStatMod: 2.5 },
-  epic: { name: '上品', color: '#9c27b0', statMod: 2.0, maxStatMod: 3.0 },
-  legendary: { name: '极品', color: '#ff9800', statMod: 2.5, maxStatMod: 3.5 },
-  mythic: { name: '仙品', color: '#e91e63', statMod: 3.0, maxStatMod: 4.0 }
+  uncommon: { name: '下品', color: '#4caf50', statMod: 1.5, maxStatMod: 2.0 },
+  rare: { name: '中品', color: '#2196f3', statMod: 2.5, maxStatMod: 3.5 },
+  epic: { name: '上品', color: '#9c27b0', statMod: 4.0, maxStatMod: 5.5 },
+  legendary: { name: '极品', color: '#ff9800', statMod: 6.0, maxStatMod: 8.0 },
+  mythic: { name: '仙品', color: '#e91e63', statMod: 10.0, maxStatMod: 13.0 }
 }
 
 // 装备基础概率（fallback）
@@ -42,19 +42,19 @@ const equipmentTypes = {
 
 // 装备基础属性范围
 const equipmentBaseStats = {
-  weapon: { attack: { name: '攻击', min: 10, max: 20 }, critRate: { name: '暴击率', min: 0.05, max: 0.1 }, critDamageBoost: { name: '暴击伤害', min: 0.1, max: 0.3 } },
+  weapon: { attack: { name: '攻击', min: 10, max: 20 }, critRate: { name: '暴击率', min: 0.01, max: 0.03 }, critDamageBoost: { name: '暴击伤害', min: 0.02, max: 0.06 } },
   head: { defense: { name: '防御', min: 5, max: 10 }, health: { name: '生命', min: 50, max: 100 }, stunResist: { name: '抗眩晕', min: 0.05, max: 0.1 } },
   body: { defense: { name: '防御', min: 8, max: 15 }, health: { name: '生命', min: 80, max: 150 }, finalDamageReduce: { name: '最终减伤', min: 0.05, max: 0.1 } },
-  legs: { defense: { name: '防御', min: 6, max: 12 }, speed: { name: '速度', min: 5, max: 10 }, dodgeRate: { name: '闪避率', min: 0.05, max: 0.1 } },
-  feet: { defense: { name: '防御', min: 4, max: 8 }, speed: { name: '速度', min: 8, max: 15 }, dodgeRate: { name: '闪避率', min: 0.05, max: 0.1 } },
-  shoulder: { defense: { name: '防御', min: 5, max: 10 }, health: { name: '生命', min: 40, max: 80 }, counterRate: { name: '反击率', min: 0.05, max: 0.1 } },
-  hands: { attack: { name: '攻击', min: 5, max: 10 }, critRate: { name: '暴击率', min: 0.03, max: 0.08 }, comboRate: { name: '连击率', min: 0.05, max: 0.1 } },
-  wrist: { defense: { name: '防御', min: 3, max: 8 }, counterRate: { name: '反击率', min: 0.05, max: 0.1 }, vampireRate: { name: '吸血率', min: 0.05, max: 0.1 } },
-  necklace: { health: { name: '生命', min: 60, max: 120 }, healBoost: { name: '强化治疗', min: 0.1, max: 0.2 }, spiritRate: { name: '焰灵获取', min: 0.1, max: 0.2 } },
-  ring1: { attack: { name: '攻击', min: 5, max: 10 }, critDamageBoost: { name: '暴击伤害', min: 0.1, max: 0.2 }, finalDamageBoost: { name: '最终增伤', min: 0.05, max: 0.1 } },
-  ring2: { defense: { name: '防御', min: 5, max: 10 }, critDamageReduce: { name: '爆伤减免', min: 0.1, max: 0.2 }, resistanceBoost: { name: '抗性提升', min: 0.05, max: 0.1 } },
-  belt: { health: { name: '生命', min: 40, max: 80 }, defense: { name: '防御', min: 4, max: 8 }, combatBoost: { name: '战斗属性', min: 0.05, max: 0.1 } },
-  artifact: { attack: { name: '攻击力', min: 0.1, max: 0.3 }, critRate: { name: '暴击率', min: 0.1, max: 0.3 }, comboRate: { name: '连击率', min: 0.1, max: 0.3 } }
+  legs: { defense: { name: '防御', min: 6, max: 12 }, speed: { name: '速度', min: 5, max: 10 }, dodgeRate: { name: '闪避率', min: 0.01, max: 0.03 } },
+  feet: { defense: { name: '防御', min: 4, max: 8 }, speed: { name: '速度', min: 8, max: 15 }, dodgeRate: { name: '闪避率', min: 0.01, max: 0.03 } },
+  shoulder: { defense: { name: '防御', min: 5, max: 10 }, health: { name: '生命', min: 40, max: 80 }, counterRate: { name: '反击率', min: 0.01, max: 0.03 } },
+  hands: { attack: { name: '攻击', min: 5, max: 10 }, critRate: { name: '暴击率', min: 0.005, max: 0.02 }, comboRate: { name: '连击率', min: 0.01, max: 0.03 } },
+  wrist: { defense: { name: '防御', min: 3, max: 8 }, counterRate: { name: '反击率', min: 0.01, max: 0.03 }, vampireRate: { name: '吸血率', min: 0.01, max: 0.03 } },
+  necklace: { health: { name: '生命', min: 60, max: 120 }, healBoost: { name: '强化治疗', min: 0.02, max: 0.05 }, spiritRate: { name: '焰灵获取', min: 0.02, max: 0.05 } },
+  ring1: { attack: { name: '攻击', min: 5, max: 10 }, critDamageBoost: { name: '暴击伤害', min: 0.02, max: 0.05 }, finalDamageBoost: { name: '最终增伤', min: 0.01, max: 0.03 } },
+  ring2: { defense: { name: '防御', min: 5, max: 10 }, critDamageReduce: { name: '爆伤减免', min: 0.02, max: 0.05 }, resistanceBoost: { name: '抗性提升', min: 0.01, max: 0.03 } },
+  belt: { health: { name: '生命', min: 40, max: 80 }, defense: { name: '防御', min: 4, max: 8 }, combatBoost: { name: '战斗属性', min: 0.01, max: 0.03 } },
+  artifact: { attack: { name: '攻击力', min: 3, max: 8 }, critRate: { name: '暴击率', min: 0.02, max: 0.05 }, comboRate: { name: '连击率', min: 0.01, max: 0.03 } }
 }
 
 // 宠物品质配置（fallback）

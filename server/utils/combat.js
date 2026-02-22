@@ -21,12 +21,12 @@ class CombatStats {
     this.damage = base.damage || 10
     this.defense = base.defense || 5
     this.speed = base.speed || 10
-    this.critRate = base.critRate || 0.05
-    this.comboRate = base.comboRate || 0
-    this.counterRate = base.counterRate || 0
+    this.critRate = Math.min(base.critRate || 0.05, 0.75)
+    this.comboRate = Math.min(base.comboRate || 0, 0.5)
+    this.counterRate = Math.min(base.counterRate || 0, 0.5)
     this.stunRate = base.stunRate || 0
-    this.dodgeRate = base.dodgeRate || 0.05
-    this.vampireRate = base.vampireRate || 0
+    this.dodgeRate = Math.min(base.dodgeRate || 0.05, 0.5)
+    this.vampireRate = Math.min(base.vampireRate || 0, 0.3)
     this.critResist = base.critResist || 0
     this.comboResist = base.comboResist || 0
     this.counterResist = base.counterResist || 0
@@ -34,10 +34,10 @@ class CombatStats {
     this.dodgeResist = base.dodgeResist || 0
     this.vampireResist = base.vampireResist || 0
     this.healBoost = base.healBoost || 0
-    this.critDamageBoost = base.critDamageBoost || 0.5
+    this.critDamageBoost = Math.min(base.critDamageBoost || 0.5, 2.0)
     this.critDamageReduce = base.critDamageReduce || 0
-    this.finalDamageBoost = base.finalDamageBoost || 0
-    this.finalDamageReduce = base.finalDamageReduce || 0
+    this.finalDamageBoost = Math.min(base.finalDamageBoost || 0, 0.5)
+    this.finalDamageReduce = Math.min(base.finalDamageReduce || 0, 0.5)
     this.combatBoost = base.combatBoost || 0
     this.resistanceBoost = base.resistanceBoost || 0
   }
