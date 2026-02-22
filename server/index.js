@@ -1814,6 +1814,12 @@ async function settleBossRewards(bossId) {
         'INSERT INTO boss_rewards (boss_id, wallet, rank, reward_stones) VALUES ($1, $2, $3, $4)',
         [bossId, rows[i].wallet, rank, stones]
       );
+      // 同时发邮件通知
+      const bossName2 = boss.rows[0]?.name || '世界Boss';
+      await pool.query(
+        'INSERT INTO player_mail (to_wallet, from_type, from_name, title, content, rewards) VALUES ($1, $2, $3, $4, $5, $6)',
+        [rows[i].wallet, 'system', '系统', '世界Boss击杀奖励', '恭喜您在' + bossName2 + '的战斗中排名第' + rank + '名！奖励已发放。', JSON.stringify({spiritStones: stones})]
+      );
     }
     const boss = await pool.query('SELECT name FROM world_bosses WHERE id = $1', [bossId]);
     const topDamagers = rows.slice(0, 5).map((r, i) => ({

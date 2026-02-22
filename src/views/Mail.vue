@@ -60,6 +60,7 @@ import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 
 const authStore = useAuthStore()
+const playerStore = usePlayerStore()
 const mails = ref([])
 const unread = ref(0)
 const loading = ref(false)
@@ -84,7 +85,7 @@ const openMail = async (mail) => {
   showDetail.value = true
   if (!mail.is_read) {
     try {
-      await authStore.apiPost('/mail/read', { mailId: mail.id })
+      const resp = await authStore.apiPost('/mail/read', { mailId: mail.id })
       mail.is_read = true
       unread.value = Math.max(0, unread.value - 1)
     } catch {}
@@ -95,8 +96,14 @@ const claimReward = async () => {
   if (!currentMail.value || claiming.value) return
   claiming.value = true
   try {
-    await authStore.apiPost('/mail/claim', { mailId: currentMail.value.id })
+    const resp = await authStore.apiPost('/mail/claim', { mailId: currentMail.value.id })
     currentMail.value.is_claimed = true
+    // 更新玩家资源
+    if (resp.rewards) {
+      if (resp.rewards.spiritStones) playerStore.spiritStones += resp.rewards.spiritStones
+      if (resp.rewards.petEssence) playerStore.petEssence = (playerStore.petEssence || 0) + resp.rewards.petEssence
+      if (resp.rewards.reinforceStones) playerStore.reinforceStones = (playerStore.reinforceStones || 0) + resp.rewards.reinforceStones
+    }
     window.$message?.success('奖励已领取！')
   } catch (e) { window.$message?.error(e.message) }
   claiming.value = false
@@ -105,7 +112,7 @@ const claimReward = async () => {
 const deleteMail = async () => {
   if (!currentMail.value) return
   try {
-    await authStore.apiPost('/mail/delete', { mailId: currentMail.value.id })
+    const resp = await authStore.apiPost('/mail/delete', { mailId: currentMail.value.id })
     mails.value = mails.value.filter(m => m.id !== currentMail.value.id)
     showDetail.value = false
     currentMail.value = null

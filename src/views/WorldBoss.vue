@@ -119,8 +119,8 @@
           </n-card>
 
           <!-- 奖励领取 -->
-          <n-card title="🎁 Boss奖励" class="boss-card" style="margin-top:12px" v-if="rewards.length">
-            <div v-for="r in rewards" :key="r.id" class="reward-item">
+          <n-card title="🎁 Boss奖励" class="boss-card" style="margin-top:12px" v-if="true">
+            <div v-if="!rewards.length" style="text-align:center;color:#999;padding:12px">暂无Boss奖励</div><div v-for="r in rewards" :key="r.id" class="reward-item">
               <span>{{ r.bossName }} - 第{{ r.rank }}名</span>
               <span class="gold">{{ formatNum(r.stones) }} 焰晶</span>
               <n-tag v-if="r.claimed" type="default" size="small">已领取</n-tag>
@@ -237,7 +237,7 @@ async function fetchBoss() {
     myAttacks.value = data.myAttacks || 0
     myRank.value = data.myRank || 0
     totalPlayers.value = data.totalPlayers || 0
-  } catch {}
+  } catch (e) { console.error("获取奖励失败:", e) }
 }
 
 async function fetchRanking() {
@@ -245,7 +245,7 @@ async function fetchRanking() {
     const res = await fetch('/api/boss/ranking', { headers })
     const data = await res.json()
     ranking.value = data.ranking || []
-  } catch {}
+  } catch (e) { console.error("获取奖励失败:", e) }
 }
 
 async function fetchRewards() {
@@ -253,7 +253,7 @@ async function fetchRewards() {
     const res = await fetch('/api/boss/rewards', { headers })
     const data = await res.json()
     rewards.value = data.rewards || []
-  } catch {}
+  } catch (e) { console.error("获取奖励失败:", e) }
 }
 
 async function fetchHistory() {
@@ -261,7 +261,7 @@ async function fetchHistory() {
     const res = await fetch('/api/boss/history', { headers })
     const data = await res.json()
     history.value = data.bosses || []
-  } catch {}
+  } catch (e) { console.error("获取奖励失败:", e) }
 }
 
 async function doAttack() {
@@ -285,8 +285,8 @@ async function doAttack() {
     // 浮动伤害
     addFloatingDmg(data.damage, data.isCrit)
     // 音效
-    if (data.isCrit) { try { sfx.crit() } catch {} }
-    else { try { sfx.hit() } catch {} }
+    if (data.isCrit) { try { sfx.crit() } catch (e) { console.error("获取奖励失败:", e) } }
+    else { try { sfx.hit() } catch (e) { console.error("获取奖励失败:", e) } }
     startCooldown()
     // 刷新排行
     fetchRanking()
@@ -340,7 +340,7 @@ function connectWs() {
         const d = data.data
         message.success(`🐉 ${d.bossName} 已被击杀！最大功臣: ${d.killerName}`)
         if (boss.value) boss.value.status = 'dead'
-        try { sfx.victory() } catch {}
+        try { sfx.victory() } catch (e) { console.error("获取奖励失败:", e) }
         fetchRewards()
         fetchHistory()
       }
@@ -351,7 +351,7 @@ function connectWs() {
         fetchRanking()
         battleLogs.value = []
       }
-    } catch {}
+    } catch (e) { console.error("获取奖励失败:", e) }
   }
   ws.onclose = () => {
     wsConnected.value = false

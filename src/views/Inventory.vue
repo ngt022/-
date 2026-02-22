@@ -940,6 +940,12 @@ const playerStore = usePlayerStore()
       if (resp.success) {
         if (resp.items) playerStore.items = resp.items
         if (resp.equippedArtifacts) playerStore.equippedArtifacts = resp.equippedArtifacts
+        // 更新属性面板
+        if (resp.baseAttributes) playerStore.baseAttributes = resp.baseAttributes
+        if (resp.combatAttributes) playerStore.combatAttributes = resp.combatAttributes
+        if (resp.combatResistance) playerStore.combatResistance = resp.combatResistance
+        if (resp.specialAttributes) playerStore.specialAttributes = resp.specialAttributes
+        if (resp.artifactBonuses) playerStore.artifactBonuses = resp.artifactBonuses
         showEquipmentDetailModal.value = false
         message.success('当前装备已卸下')
       } else { message.error(resp.message || '卸下装备失败') }
@@ -1099,6 +1105,12 @@ const playerStore = usePlayerStore()
       if (resp.success) {
         if (resp.items) playerStore.items = resp.items
         if (resp.equippedArtifacts) playerStore.equippedArtifacts = resp.equippedArtifacts
+        // 更新属性面板
+        if (resp.baseAttributes) playerStore.baseAttributes = resp.baseAttributes
+        if (resp.combatAttributes) playerStore.combatAttributes = resp.combatAttributes
+        if (resp.combatResistance) playerStore.combatResistance = resp.combatResistance
+        if (resp.specialAttributes) playerStore.specialAttributes = resp.specialAttributes
+        if (resp.artifactBonuses) playerStore.artifactBonuses = resp.artifactBonuses
         message.success(resp.message)
         showEquipmentModal.value = false
         showEquipmentDetailModal.value = false
@@ -1144,6 +1156,12 @@ const playerStore = usePlayerStore()
           if (resp.success) {
             if (resp.items) playerStore.items = resp.items
             if (resp.equippedArtifacts) playerStore.equippedArtifacts = resp.equippedArtifacts
+        // 更新属性面板
+        if (resp.baseAttributes) playerStore.baseAttributes = resp.baseAttributes
+        if (resp.combatAttributes) playerStore.combatAttributes = resp.combatAttributes
+        if (resp.combatResistance) playerStore.combatResistance = resp.combatResistance
+        if (resp.specialAttributes) playerStore.specialAttributes = resp.specialAttributes
+        if (resp.artifactBonuses) playerStore.artifactBonuses = resp.artifactBonuses
             count++
           }
         } catch (e) {}
