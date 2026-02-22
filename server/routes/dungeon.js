@@ -1,4 +1,5 @@
 import { CombatManager, CombatEntity, CombatType, generateEnemy } from '../utils/combat.js'
+import { computeFinalStats, getMountTitleBonuses } from '../services/stats-service.js'
 
 // 活跃副本状态存储 (内存)
 const activeDungeons = new Map()
@@ -200,12 +201,15 @@ function registerDungeonRoutes(app, pool, auth) {
       }
       
       // 创建副本状态
+      // M2: Use unified stats-service for initial combat stats
+      const _mtBonuses = await getMountTitleBonuses(pool, wallet);
+      const _unified = computeFinalStats(gameData, _mtBonuses);
       const dungeonState = {
         wallet,
         difficulty,
         floor: startingFloor + 1,
-        playerStats: buildPlayerCombatStats(gameData),
-        originalPlayerStats: buildPlayerCombatStats(gameData),
+        playerStats: _unified,
+        originalPlayerStats: { ..._unified },
         buffs: [],
         inCombat: false,
         currentEnemy: null,
