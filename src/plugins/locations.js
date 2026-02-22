@@ -7,7 +7,7 @@ export const locations = [
     minLevel: 1,
     spiritCost: 50,
     rewards: [
-      { type: 'spirit_stone', chance: 0.3, amount: [1, 3] },
+      { type: 'spirit_stone', chance: 0.3, amount: [5, 15] },
       { type: 'herb', chance: 0.3, amount: [1, 2] },
       { type: 'cultivation', chance: 0.2, amount: [5, 10] },
       { type: 'pill_fragment', chance: 0.2, amount: [1, 1] }

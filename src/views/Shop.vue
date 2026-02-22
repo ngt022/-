@@ -251,15 +251,15 @@ const cultPills = [
   { id: 'cult_large', name: '大修为丹', img: img('/assets/images/pills/pill_niepan.png'), desc: '+等级×3000修为', price: 20000, canMulti: true, buyType: 'pill' },
 ]
 const expPills = [
-  { id: 'exp_1', name: '1级经验丹', img: img('/assets/images/pills/pill_wuxing.png'), desc: '直接升1级', price: 50000, canMulti: true, buyType: 'pill' },
-  { id: 'exp_5', name: '5级经验丹', img: img('/assets/images/pills/pill_riyue.png'), desc: '直接升5级', price: 200000, canMulti: true, buyType: 'pill' },
-  { id: 'exp_10', name: '10级经验丹', img: img('/assets/images/pills/pill_niepan.png'), desc: '直接升10级', price: 500000, canMulti: true, buyType: 'pill' },
+  { id: 'exp_1', name: '1级经验丹', img: img('/assets/images/pills/pill_wuxing.png'), desc: '直接升1级(日限5)', price: 50000, canMulti: true, buyType: 'pill' },
+  { id: 'exp_5', name: '5级经验丹', img: img('/assets/images/pills/pill_riyue.png'), desc: '直接升5级(日限3)', price: 200000, canMulti: true, buyType: 'pill' },
+  { id: 'exp_10', name: '10级经验丹', img: img('/assets/images/pills/pill_niepan.png'), desc: '直接升10级(日限1)', price: 500000, canMulti: true, buyType: 'pill' },
 ]
 const attrPills = [
-  { id: 'attr_attack', name: '攻击丹', img: img('/assets/images/pills/pill_leiling.png'), desc: '永久+50攻击', price: 3000, canMulti: true, buyType: 'pill' },
-  { id: 'attr_health', name: '生命丹', img: img('/assets/images/pills/pill_huiling.png'), desc: '永久+500生命', price: 3000, canMulti: true, buyType: 'pill' },
-  { id: 'attr_defense', name: '防御丹', img: img('/assets/images/pills/pill_qingxin.png'), desc: '永久+30防御', price: 3000, canMulti: true, buyType: 'pill' },
-  { id: 'attr_speed', name: '速度丹', img: img('/assets/images/pills/pill_huoyuan.png'), desc: '永久+20速度', price: 3000, canMulti: true, buyType: 'pill' },
+  { id: 'attr_attack', name: '攻击丹', img: img('/assets/images/pills/pill_leiling.png'), desc: '永久+50攻击(日限10)', price: 5000, canMulti: true, buyType: 'pill' },
+  { id: 'attr_health', name: '生命丹', img: img('/assets/images/pills/pill_huiling.png'), desc: '永久+500生命(日限10)', price: 5000, canMulti: true, buyType: 'pill' },
+  { id: 'attr_defense', name: '防御丹', img: img('/assets/images/pills/pill_qingxin.png'), desc: '永久+30防御(日限10)', price: 5000, canMulti: true, buyType: 'pill' },
+  { id: 'attr_speed', name: '速度丹', img: img('/assets/images/pills/pill_huoyuan.png'), desc: '永久+20速度(日限10)', price: 5000, canMulti: true, buyType: 'pill' },
 ]
 const fragItems = [
   { id: 'pill_frag_health', name: '回春焰丹碎片', img: img('/assets/images/pills/pill_huiling.png'), desc: '收集5个合成回春焰方', price: 1000, canMulti: true, buyType: 'material' },

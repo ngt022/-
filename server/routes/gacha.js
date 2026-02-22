@@ -103,7 +103,7 @@ const petPool = {
 }
 
 // 装备出售价格
-const sellPrices = { common: 1, uncommon: 2, rare: 3, epic: 4, legendary: 5, mythic: 6 }
+const sellPrices = { common: 20, uncommon: 50, rare: 150, epic: 500, legendary: 2000, mythic: 10000 }
 
 // 背包容量配置
 const storageConfig = {

@@ -24,7 +24,7 @@
                 </n-card>
               </n-gi>
             </n-grid>
-            <n-input-number v-model:value="customAmount" :min="0.1" :step="1" placeholder="自定义金额 (ROON)">
+            <n-input-number v-model:value="customAmount" :min="0.1" :step="1" placeholder="自定义金额 (ROON)" @update:value="onCustomInput">
               <template #prefix>ROON</template>
             </n-input-number>
             <n-button type="primary" block :loading="isRecharging" @click="doRecharge" :disabled="!selectedPkg && !customAmount">
@@ -78,6 +78,7 @@ const columns = [
 ]
 
 const selectPackage = (pkg) => { selectedPkg.value = pkg; customAmount.value = null }
+const onCustomInput = (val) => { if (val) selectedPkg.value = null }
 
 const doRecharge = async () => {
   const amount = selectedPkg.value?.roon || customAmount.value

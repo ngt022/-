@@ -19,13 +19,13 @@ const PILL_ITEMS = {
   cult_small:    { price:1000,  name:'小修为丹',   effect:'cultivation', multiplier:100 },
   cult_medium:   { price:5000,  name:'中修为丹',   effect:'cultivation', multiplier:600 },
   cult_large:    { price:20000, name:'大修为丹',   effect:'cultivation', multiplier:3000 },
-  exp_1:  { price:50000,  name:'1级经验丹', effect:'levelup', levels:1 },
-  exp_5:  { price:200000, name:'5级经验丹', effect:'levelup', levels:5 },
-  exp_10: { price:500000, name:'10级经验丹',effect:'levelup', levels:10 },
-  attr_attack:  { price:3000, name:'攻击丹', effect:'attr', stat:'attack',  value:50 },
-  attr_health:  { price:3000, name:'生命丹', effect:'attr', stat:'health',  value:500 },
-  attr_defense: { price:3000, name:'防御丹', effect:'attr', stat:'defense', value:30 },
-  attr_speed:   { price:3000, name:'速度丹', effect:'attr', stat:'speed',   value:20 },
+  exp_1:  { price:50000,  name:'1级经验丹', effect:'levelup', levels:1, dailyLimit:5 },
+  exp_5:  { price:200000, name:'5级经验丹', effect:'levelup', levels:5, dailyLimit:3 },
+  exp_10: { price:500000, name:'10级经验丹',effect:'levelup', levels:10, dailyLimit:1 },
+  attr_attack:  { price:5000, name:'攻击丹', effect:'attr', stat:'attack',  value:50, dailyLimit:10 },
+  attr_health:  { price:5000, name:'生命丹', effect:'attr', stat:'health',  value:500, dailyLimit:10 },
+  attr_defense: { price:5000, name:'防御丹', effect:'attr', stat:'defense', value:30, dailyLimit:10 },
+  attr_speed:   { price:5000, name:'速度丹', effect:'attr', stat:'speed',   value:20, dailyLimit:10 },
 };
 
 // 材料价格从配置读取，这里保留默认价格配置
@@ -116,11 +116,31 @@ const BUFF_ITEMS = {
 };
 
 function getRealmNameServer(level) {
-  const realms = ['燃火期','炼气期','筑基期','金丹期','元婴期','化神期','合体期','大乘期','渡劫期','飞升期'];
-  const layers = ['一层','二层','三层','四层','五层','六层','七层','八层','九层','十层'];
-  const realmIndex = Math.min(Math.floor((level - 1) / 10), realms.length - 1);
-  const layerIndex = (level - 1) % 10;
-  return { name: realms[realmIndex] + layers[layerIndex], maxCultivation: 100 + level * 50 };
+  // Must match frontend realm.js exactly: 14 realms x 9 layers = 126 levels
+  const realms = [
+    '燃火','铸炉','凝焰','焰婴','化焰','焰虚','焰合','大焰','渡焰','焰仙','真焰','圣焰','永焰','焰帝'
+  ];
+  const layers = ['一重','二重','三重','四重','五重','六重','七重','八重','九重'];
+  const maxCultTable = [
+    100,200,300,400,500,600,700,800,900,
+    1000,1200,1400,1600,1800,2000,2200,2400,2600,
+    3000,3500,4000,4500,5000,5500,6000,6500,7000,
+    8000,9000,10000,11000,12000,13000,14000,15000,16000,
+    18000,20000,22000,24000,26000,28000,30000,32000,35000,
+    40000,45000,50000,55000,60000,65000,70000,75000,80000,
+    90000,100000,110000,120000,130000,140000,150000,160000,170000,
+    200000,230000,260000,290000,320000,350000,380000,410000,450000,
+    500000,550000,600000,650000,700000,750000,800000,850000,900000,
+    1000000,1200000,1400000,1600000,1800000,2000000,2200000,2400000,2600000,
+    3000000,3500000,4000000,4500000,5000000,5500000,6000000,6500000,7000000,
+    8000000,9000000,10000000,11000000,12000000,13000000,14000000,15000000,16000000,
+    20000000,24000000,28000000,32000000,36000000,40000000,44000000,48000000,52000000,
+    60000000,70000000,80000000,90000000,100000000,110000000,120000000,130000000,140000000
+  ];
+  const idx = Math.min(level - 1, maxCultTable.length - 1);
+  const realmIndex = Math.min(Math.floor(idx / 9), realms.length - 1);
+  const layerIndex = idx % 9;
+  return { name: realms[realmIndex] + layers[layerIndex], maxCultivation: maxCultTable[idx] || 100 };
 }
 
 function applyLevelUp(gameData, level, times) {
@@ -137,7 +157,7 @@ function applyLevelUp(gameData, level, times) {
     gameData.baseAttributes.defense += 5 + Math.floor(newLevel * 2);
     gameData.baseAttributes.speed += 3 + Math.floor(newLevel * 1);
     gameData.spirit = (gameData.spirit || 0) + 200 * newLevel + 500;
-    gameData.spiritRate = (gameData.spiritRate || 1) * 1.2;
+    gameData.spiritRate = Math.round(((gameData.spiritRate || 1) + 0.05) * 100) / 100;
   }
 }
 
@@ -282,9 +302,25 @@ export default function(pool, auth) {
         gameData.cultivation = (gameData.cultivation || 0) + gain;
         resultMsg = '修为 +' + gain;
       } else if (pill.effect === 'levelup') {
+        if (pill.dailyLimit) {
+          const today = new Date().toISOString().split('T')[0];
+          if (!gameData.shopDailyBuys) gameData.shopDailyBuys = {};
+          if (gameData.shopDailyBuys._date !== today) gameData.shopDailyBuys = { _date: today };
+          const bought = gameData.shopDailyBuys[pillId] || 0;
+          if (bought + count > pill.dailyLimit) return res.status(400).json({ error: `今日购买已达上限(${pill.dailyLimit}次/日)` });
+          gameData.shopDailyBuys[pillId] = bought + count;
+        }
         applyLevelUp(gameData, level, pill.levels * count);
         resultMsg = '升' + (pill.levels * count) + '级';
       } else if (pill.effect === 'attr') {
+        if (pill.dailyLimit) {
+          const today = new Date().toISOString().split('T')[0];
+          if (!gameData.shopDailyBuys) gameData.shopDailyBuys = {};
+          if (gameData.shopDailyBuys._date !== today) gameData.shopDailyBuys = { _date: today };
+          const bought = gameData.shopDailyBuys[pillId] || 0;
+          if (bought + count > pill.dailyLimit) return res.status(400).json({ error: `今日购买已达上限(${pill.dailyLimit}次/日)` });
+          gameData.shopDailyBuys[pillId] = bought + count;
+        }
         if (!gameData.baseAttributes) gameData.baseAttributes = { attack:10, health:100, defense:5, speed:10 };
         gameData.baseAttributes[pill.stat] = (gameData.baseAttributes[pill.stat] || 0) + pill.value * count;
         resultMsg = pill.name + ' x' + count;

@@ -372,7 +372,7 @@ export const usePlayerStore = defineStore('player', {
         if (pinia) {
           const authState = pinia.state.value.auth
           if (authState) {
-            const boosts = [1, 1.2, 1.5, 1.8, 2.0, 2.5]
+            const boosts = [1, 1.1, 1.2, 1.5, 1.8, 2.0]
             vipBoost = boosts[authState.vipLevel] || 1
           }
         }

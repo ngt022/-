@@ -58,6 +58,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { usePlayerStore } from '../stores/player'
 
 const authStore = useAuthStore()
 const playerStore = usePlayerStore()

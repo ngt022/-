@@ -201,6 +201,13 @@
     if (authStore.isLoggedIn) {
       try {
         const cloudData = await authStore.loadFromCloud()
+        if (cloudData) {
+          authStore.vipLevel = cloudData.vipLevel || 0
+          authStore.totalRecharge = cloudData.totalRecharge || 0
+          authStore.firstRecharge = cloudData.firstRecharge || false
+          authStore.dailySignDate = cloudData.dailySignDate || null
+          authStore.dailySignStreak = cloudData.dailySignStreak || 0
+        }
         if (cloudData && cloudData.gameData && Object.keys(cloudData.gameData).length > 0) {
           Object.entries(cloudData.gameData).forEach(([key, value]) => {
             if (key in playerStore.$state) playerStore[key] = value
