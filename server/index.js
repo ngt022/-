@@ -3969,6 +3969,42 @@ app.post('/api/pet/deploy', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
+
+// === M4: Equipment dual-write helper ===
+async function syncEquipToNewTables(client, playerId, slot, equipItem, action) {
+  // action: 'wear' or 'unwear'
+  try {
+    if (action === 'wear' && equipItem) {
+      const origId = String(equipItem.id);
+      // Find or create in inventory_items
+      let invRow = await client.query('SELECT id FROM inventory_items WHERE player_id=$1 AND original_id=$2', [playerId, origId]);
+      if (!invRow.rows.length) {
+        invRow = await client.query(
+          `INSERT INTO inventory_items (player_id, original_id, name, type, quality, stats, attributes, enhance_level, source)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+          [playerId, origId, equipItem.name || '未知', equipItem.type || slot, equipItem.quality || 'common',
+           JSON.stringify(equipItem.stats || {}), JSON.stringify(equipItem.attributes || {}),
+           equipItem.enhanceLevel || 0, 'game']
+        );
+      }
+      const itemId = invRow.rows[0].id;
+      await client.query(
+        `INSERT INTO equip_slots (player_id, slot, item_id) VALUES ($1, $2, $3)
+         ON CONFLICT (player_id, slot) DO UPDATE SET item_id = $3, updated_at = now()`,
+        [playerId, slot, itemId]
+      );
+    } else if (action === 'unwear') {
+      await client.query(
+        `DELETE FROM equip_slots WHERE player_id=$1 AND slot=$2`,
+        [playerId, slot]
+      );
+    }
+  } catch(e) {
+    console.error('[M4 DualWrite]', action, 'sync failed:', e.message);
+    // Non-fatal: game_data is still the source of truth during transition
+  }
+}
+
 // === 装备穿戴API ===
 app.post('/api/equip/wear', auth, idempotent(pool, 'wear'), async (req, res) => {
   const client = await pool.connect();
@@ -3994,6 +4030,9 @@ app.post('/api/equip/wear', auth, idempotent(pool, 'wear'), async (req, res) => 
     recalcDerivedStats(gd);
     const newVersion = (Number(r.rows[0].state_version) || 0) + 1;
     await client.query('UPDATE players SET game_data=$1, state_version=$2 WHERE wallet=$3', [JSON.stringify(gd), newVersion, w]);
+    // M4: dual-write to new tables
+    const _playerId = (await client.query('SELECT id FROM players WHERE wallet=$1', [w])).rows[0]?.id;
+    if (_playerId) await syncEquipToNewTables(client, _playerId, targetSlot, equip, 'wear');
     await client.query('COMMIT');
     res.json({ success: true, message: '装备成功', items: gd.items, equippedArtifacts: gd.equippedArtifacts, state_version: newVersion, computed_at: new Date().toISOString() });
   } catch (e) {
@@ -4021,6 +4060,9 @@ app.post('/api/equip/unwear', auth, idempotent(pool, 'unwear'), async (req, res)
     recalcDerivedStats(gd);
     const newVersion = (Number(r.rows[0].state_version) || 0) + 1;
     await client.query('UPDATE players SET game_data=$1, state_version=$2 WHERE wallet=$3', [JSON.stringify(gd), newVersion, w]);
+    // M4: dual-write to new tables
+    const _playerId2 = (await client.query('SELECT id FROM players WHERE wallet=$1', [w])).rows[0]?.id;
+    if (_playerId2) await syncEquipToNewTables(client, _playerId2, slot, null, 'unwear');
     await client.query('COMMIT');
     res.json({ success: true, message: '卸下成功', items: gd.items, equippedArtifacts: gd.equippedArtifacts, state_version: newVersion, computed_at: new Date().toISOString() });
   } catch (e) {
@@ -4070,6 +4112,8 @@ app.post('/api/equip/enhance', auth, idempotent(pool, 'enhance'), async (req, re
       recalcDerivedStats(gd);
       await client.query('UPDATE players SET game_data=$1, state_version=$2 WHERE wallet=$3', [JSON.stringify(gd), newVersion, w]);
       await client.query('COMMIT');
+      // M4: sync enhanced stats to inventory_items
+      try { const _origId = String(equipId); const _pid3 = (await client.query("SELECT id FROM players WHERE wallet=", [w])).rows[0]?.id; if (_pid3) await client.query("UPDATE inventory_items SET stats=, attributes=, enhance_level= WHERE player_id= AND original_id=", [JSON.stringify(equip.stats || {}), JSON.stringify(equip.attributes || {}), equip.enhanceLevel || 0, _pid3, _origId]); } catch(e) { console.error("[M4] enhance sync:", e.message); }
       res.json({ success: true, message: '强化成功！+' + equip.enhanceLevel, equip, reinforceStones: gd.reinforceStones, items: gd.items, equippedArtifacts: gd.equippedArtifacts, state_version: newVersion, computed_at: new Date().toISOString() });
     } else {
       recalcDerivedStats(gd);
