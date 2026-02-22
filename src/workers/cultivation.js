@@ -1,13 +1,13 @@
 // 计算当前境界的修炼消耗
 const getCurrentCultivationCost = level => {
   const baseCultivationCost = 10
-  return Math.floor(baseCultivationCost * Math.pow(1.5, level - 1))
+  return Math.max(10, Math.floor(baseCultivationCost * Math.pow(level, 1.5)))
 }
 
 // 计算当前境界的修炼获得
 const getCurrentCultivationGain = level => {
   const baseCultivationGain = 1
-  return Math.floor(baseCultivationGain * Math.pow(1.2, level - 1))
+  return Math.max(1, Math.floor(baseCultivationGain * level * 2))
 }
 
 // 计算实际获得的修为

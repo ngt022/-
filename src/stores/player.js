@@ -363,7 +363,7 @@ export const usePlayerStore = defineStore('player', {
       const offlineMin = Math.floor(offlineMs / 60000)
       if (offlineMin < 5) return null
       const cappedMin = Math.min(offlineMin, 720)
-      const baseCultPerMin = Math.floor(Math.pow(1.2, this.level - 1) * 0.5)
+      const baseCultPerMin = Math.max(1, Math.floor(this.level * 2))
       const baseStonesPerMin = Math.floor(this.level * 2 + 5)
       const baseSpiritPerMin = Math.floor(this.level * 3 + 10)
       let vipBoost = 1
@@ -506,7 +506,7 @@ export const usePlayerStore = defineStore('player', {
         }
         // 突破奖励
         this.spirit += 100 * this.level // 获得灵力奖励
-        this.spiritRate *= 1.2 // 提升灵力获取倍率
+        this.spiritRate = Math.round((this.spiritRate + 0.05) * 100) / 100 // 每次突破+5%灵力获取
         this.saveData()
         return true
       }

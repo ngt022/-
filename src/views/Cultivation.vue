@@ -92,12 +92,12 @@ const playerStore = usePlayerStore()
 
   // 计算当前境界的修炼消耗
   const getCurrentCultivationCost = () => {
-    return Math.floor(baseCultivationCost * Math.pow(1.5, playerStore.level - 1))
+    return Math.max(10, Math.floor(baseCultivationCost * Math.pow(playerStore.level, 1.5)))
   }
 
   // 计算当前境界的修炼获得
   const getCurrentCultivationGain = () => {
-    return Math.floor(baseCultivationGain * Math.pow(1.2, playerStore.level - 1))
+    return Math.max(1, Math.floor(baseCultivationGain * playerStore.level * 2))
   }
 
   // 计算当前修炼消耗（作为计算属性）
