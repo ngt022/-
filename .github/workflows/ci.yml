@@ -44,7 +44,7 @@ jobs:
         env:
           PGPASSWORD: testpass
         run: |
-          for f in server/migrations/*.sql; do
+          for f in server/migrations/0{01,02,03}*.sql; do
             psql -h localhost -U roon_user -d xiuxian_test -f "$f"
           done
 
@@ -60,6 +60,11 @@ jobs:
         run: |
           cd server && node index.js &
           sleep 5
+
+      - name: Seed test data
+        env:
+          PGPASSWORD: testpass
+        run: psql -h localhost -U roon_user -d xiuxian_test -f server/migrations/004_test_seed.sql
 
       - name: Run regression tests
         run: |
