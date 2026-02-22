@@ -294,20 +294,80 @@ export async function getMountTitleBonuses(pool, wallet) {
 
 /**
  * Full pipeline: load player from DB, compute final stats.
+ * M2: Uses snapshot cache — if snapshot.state_version matches player.state_version, return cached.
  */
 export async function getPlayerFinalStats(pool, wallet) {
   const r = await pool.query('SELECT id, game_data, state_version FROM players WHERE wallet=$1', [wallet]);
   if (!r.rows.length) return null;
   const player = r.rows[0];
+  const playerId = player.id;
+  const currentVersion = Number(player.state_version) || 0;
+
+  // Check snapshot cache
+  const snap = await pool.query(
+    'SELECT state_version, final_stats, computed_at FROM player_stats_snapshot WHERE player_id=$1',
+    [playerId]
+  );
+  if (snap.rows.length && Number(snap.rows[0].state_version) === currentVersion) {
+    // Cache hit
+    const cached = typeof snap.rows[0].final_stats === 'string'
+      ? JSON.parse(snap.rows[0].final_stats)
+      : snap.rows[0].final_stats;
+    return {
+      playerId,
+      stateVersion: currentVersion,
+      finalStats: cached,
+      computedAt: snap.rows[0].computed_at,
+      fromCache: true
+    };
+  }
+
+  // Cache miss — recompute
   const gd = typeof player.game_data === 'string' ? JSON.parse(player.game_data) : (player.game_data || {});
   const bonuses = await getMountTitleBonuses(pool, wallet);
   const finalStats = computeFinalStats(gd, bonuses);
+  const computedAt = new Date().toISOString();
+
+  // Write snapshot (upsert)
+  try {
+    await pool.query(
+      `INSERT INTO player_stats_snapshot (player_id, state_version, final_stats, computed_at)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (player_id) DO UPDATE SET
+         state_version = $2, final_stats = $3, computed_at = $4`,
+      [playerId, currentVersion, JSON.stringify(finalStats), computedAt]
+    );
+  } catch(e) {
+    console.error('[StatsSnapshot] write failed:', e.message);
+  }
+
   return {
-    playerId: player.id,
-    stateVersion: Number(player.state_version) || 0,
+    playerId,
+    stateVersion: currentVersion,
     finalStats,
-    computedAt: new Date().toISOString()
+    computedAt,
+    fromCache: false
   };
+}
+
+/**
+ * Invalidate snapshot (call after state_version changes).
+ * Not strictly needed since getPlayerFinalStats checks version,
+ * but useful for explicit invalidation.
+ */
+export async function invalidateSnapshot(pool, playerId) {
+  try {
+    await pool.query('DELETE FROM player_stats_snapshot WHERE player_id=$1', [playerId]);
+  } catch(e) {}
+}
+
+/**
+ * Get final stats by player ID (not wallet). Used internally.
+ */
+export async function getFinalStatsById(pool, playerId) {
+  const r = await pool.query('SELECT wallet, game_data, state_version FROM players WHERE id=$1', [playerId]);
+  if (!r.rows.length) return null;
+  return getPlayerFinalStats(pool, r.rows[0].wallet);
 }
 
 /**
