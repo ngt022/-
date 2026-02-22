@@ -273,6 +273,9 @@ app.post('/api/game/save', auth, async (req, res) => {
     // spirit_stones column also uses DB value
     const dbSpiritStones = current.rows[0].spirit_stones ?? mergedData.spiritStones ?? 0;
 
+    // Sync column-level fields into game_data so they survive serverManagedFields merge
+    mergedData.vipLevel = current.rows[0].vip_level || 0;
+
     logger.info('[SAVE]', req.user.wallet.slice(-6), 'cult:', dbCult, '->', mergedData.cultivation, 'lv:', level);
     await pool.query(
       `UPDATE players SET game_data = $1, combat_power = $2, level = $3, realm = $4, 
@@ -335,6 +338,9 @@ app.post('/api/game/save-beacon', async (req, res) => {
     if (newSpiritB - dbSpiritB > maxSpiritGainB) mergedData.spirit = dbSpiritB + maxSpiritGainB;
 
     const dbSpiritStones = current.rows[0].spirit_stones ?? mergedData.spiritStones ?? 0;
+
+    // Sync column-level fields into game_data
+    mergedData.vipLevel = current.rows[0].vip_level || 0;
 
     await pool.query(
       `UPDATE players SET game_data = $1, combat_power = $2, level = $3, realm = $4,

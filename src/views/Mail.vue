@@ -74,10 +74,17 @@ const refreshBadge = () => { window.dispatchEvent(new Event('mail-read')) }
 const loadMails = async () => {
   loading.value = true
   try {
-    const data = await authStore.apiGet('/mail/list')
+    const token = localStorage.getItem('xx_token')
+    if (!token) { loading.value = false; return }
+    const res = await fetch('/api/mail/list', { headers: { Authorization: 'Bearer ' + token } })
+    if (!res.ok) throw new Error('HTTP ' + res.status)
+    const data = await res.json()
     mails.value = data.mails || []
     unread.value = data.unread || 0
-  } catch (e) { console.error('加载邮件失败:', e) }
+  } catch (e) { 
+    console.error('加载邮件失败:', e)
+    window.$message?.error('加载邮件失败: ' + e.message)
+  }
   loading.value = false
 }
 
