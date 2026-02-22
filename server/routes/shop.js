@@ -1,3 +1,4 @@
+import logger from "../services/logger.js";
 import express from 'express';
 import { generateEquipment, generatePet, equipmentQualities, equipmentTypes } from './gacha.js';
 import { getConfig } from '../game-config.js';
@@ -192,15 +193,15 @@ export default function(pool, auth) {
 
     router.post('/buy-equip', auth, async (req, res) => {
     try {
-      console.log("[buy-equip] body:", JSON.stringify(req.body), "wallet:", req.user?.wallet);
+      logger.info("[buy-equip] body:", JSON.stringify(req.body), "wallet:", req.user?.wallet);
       const { quality, equipType } = req.body;
       const wallet = req.user.wallet;
       
       // 读取限购配置
       const shopLimits = await getConfig('shop_limits') || { mythic_equip_enabled: false, legendary_equip_per_week: 1 };
       
-      if (!EQUIP_PRICES[quality]) { console.log('[buy-equip] invalid quality:', quality); return res.status(400).json({ error: '无效品质' }); };
-      if (!equipmentTypes[equipType]) { console.log('[buy-equip] invalid equipType:', equipType); return res.status(400).json({ error: '无效装备类型' }); };
+      if (!EQUIP_PRICES[quality]) { logger.info('[buy-equip] invalid quality:', quality); return res.status(400).json({ error: '无效品质' }); };
+      if (!equipmentTypes[equipType]) { logger.info('[buy-equip] invalid equipType:', equipType); return res.status(400).json({ error: '无效装备类型' }); };
       
       // 检查仙品装备是否启用
       if (quality === 'mythic' && shopLimits.mythic_equip_enabled === false) {
@@ -432,7 +433,7 @@ export default function(pool, auth) {
       const herb = HERB_ITEMS[herbId];
       if (!herb) return res.status(400).json({ error: '焰草不存在' });
       const mult = HERB_QUALITY_MULT[quality];
-      if (!mult) { console.log('[buy-equip] invalid quality:', quality); return res.status(400).json({ error: '无效品质' }); };
+      if (!mult) { logger.info('[buy-equip] invalid quality:', quality); return res.status(400).json({ error: '无效品质' }); };
       if (quantity < 1 || quantity > 99) return res.status(400).json({ error: '数量无效' });
       const unitPrice = Math.floor(herb.baseValue * mult * 100);
       const totalPrice = unitPrice * quantity;

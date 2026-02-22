@@ -1,3 +1,4 @@
+import logger from "./logger.js";
 /**
  * stats-service.js — Single Source of Truth for player final stats.
  * 
@@ -338,7 +339,7 @@ export async function getPlayerFinalStats(pool, wallet) {
       [playerId, currentVersion, JSON.stringify(finalStats), computedAt]
     );
   } catch(e) {
-    console.error('[StatsSnapshot] write failed:', e.message);
+    logger.error('[StatsSnapshot] write failed:', e.message);
   }
 
   return {
@@ -383,7 +384,7 @@ export async function logBattleTrace(pool, opts) {
        JSON.stringify(statsA), statsB ? JSON.stringify(statsB) : null, JSON.stringify(result)]
     );
   } catch(e) {
-    console.error('[BattleTrace] log failed:', e.message);
+    logger.error('[BattleTrace] log failed:', e.message);
   }
 }
 

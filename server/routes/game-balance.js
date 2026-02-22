@@ -1,3 +1,4 @@
+import logger from "../services/logger.js";
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import { getConfig, setConfig, getAllConfig, reloadConfig } from '../game-config.js';
@@ -40,7 +41,7 @@ router.get('/balance', adminAuth, async (req, res) => {
       config
     });
   } catch (e) {
-    console.error('Get balance config error:', e);
+    logger.error('Get balance config error:', e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -71,7 +72,7 @@ router.put('/balance/:key', adminAuth, async (req, res) => {
       value
     });
   } catch (e) {
-    console.error('Set balance config error:', e);
+    logger.error('Set balance config error:', e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -86,7 +87,7 @@ router.post('/balance/reload', adminAuth, async (req, res) => {
       loadedCount: count
     });
   } catch (e) {
-    console.error('Reload config error:', e);
+    logger.error('Reload config error:', e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -162,7 +163,7 @@ router.get('/balance/stats', adminAuth, async (req, res) => {
       }
     });
   } catch (e) {
-    console.error('Get balance stats error:', e);
+    logger.error('Get balance stats error:', e);
     res.status(500).json({ error: e.message });
   }
 });

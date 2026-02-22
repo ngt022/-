@@ -1,3 +1,4 @@
+import logger from "../services/logger.js";
 import { Router } from 'express'
 import pool from '../db.js'
 import { getConfig } from '../game-config.js'
@@ -234,7 +235,7 @@ async function getGlobalMythicEquipCount(slot) {
     }
     return count
   } catch (e) {
-    console.error('Get global mythic count error:', e)
+    logger.error('Get global mythic count error:', e)
     return 0
   }
 }
@@ -252,7 +253,7 @@ async function getGlobalDivinePetCount() {
     }
     return count
   } catch (e) {
-    console.error('Get global divine pet count error:', e)
+    logger.error('Get global divine pet count error:', e)
     return 0
   }
 }
@@ -752,7 +753,7 @@ router.post('/draw', auth, async (req, res) => {
       }
     })
   } catch (e) {
-    console.error('Gacha draw error:', e)
+    logger.error('Gacha draw error:', e)
     res.status(500).json({ error: e.message })
   }
 })

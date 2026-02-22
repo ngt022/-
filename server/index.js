@@ -5,7 +5,7 @@ const __dirname_env = dirname(fileURLToPath(import.meta.url));
 const _gameEnv = process.env.GAME_ENV || 'production';
 dotenv.config({ path: join(__dirname_env, '.env.' + _gameEnv) });
 dotenv.config({ path: join(__dirname_env, '.env') });
-console.log('[ENV] GAME_ENV=' + _gameEnv + ' DB=' + (process.env.DATABASE_URL || '').split('/').pop());
+logger.info('[ENV] GAME_ENV=' + _gameEnv + ' DB=' + (process.env.DATABASE_URL || '').split('/').pop());
 import express from 'express';
 import cors from 'cors';
 import pg from 'pg';
@@ -17,6 +17,7 @@ import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { recalcAndPatch, computeFinalStats, getPlayerFinalStats, getMountTitleBonuses, logBattleTrace } from './services/stats-service.js';
 import { idempotent } from './services/lock-service.js';
+import logger, { requestLogger } from './services/logger.js';
 
 const app = express();
 
@@ -74,7 +75,7 @@ const pool = new pg.Pool({
 
 // DB 连接池错误处理
 pool.on('error', (err) => {
-  console.error('[DB] Pool error:', err.message);
+  logger.error('[DB] Pool error:', err.message);
 });
 
 const provider = new ethers.JsonRpcProvider(ROON_RPC);
@@ -107,7 +108,7 @@ app.use((req, res, next) => {
   res.end = function(...args) {
     const ms = Date.now() - start;
     if (res.statusCode >= 400 || ms > 2000) {
-      console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} ${res.statusCode} ${ms}ms`);
+      logger.info(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} ${res.statusCode} ${ms}ms`);
     }
     origEnd.apply(this, args);
   };
@@ -262,17 +263,17 @@ app.post('/api/game/save', auth, async (req, res) => {
     const maxSpiritGain = maxSpiritPerMin * maxOfflineMin + 5000;
     if (newCult - dbCult > maxCultGain) {
       mergedData.cultivation = dbCult + maxCultGain;
-      console.log('[AntiCheat] cultivation capped for', req.user.wallet, 'tried:', newCult - dbCult, 'max:', maxCultGain);
+      logger.info('[AntiCheat] cultivation capped for', req.user.wallet, 'tried:', newCult - dbCult, 'max:', maxCultGain);
     }
     if (newSpirit - dbSpirit > maxSpiritGain) {
       mergedData.spirit = dbSpirit + maxSpiritGain;
-      console.log('[AntiCheat] spirit capped for', req.user.wallet, 'tried:', newSpirit - dbSpirit, 'max:', maxSpiritGain);
+      logger.info('[AntiCheat] spirit capped for', req.user.wallet, 'tried:', newSpirit - dbSpirit, 'max:', maxSpiritGain);
     }
 
     // spirit_stones column also uses DB value
     const dbSpiritStones = current.rows[0].spirit_stones ?? mergedData.spiritStones ?? 0;
 
-    console.log('[SAVE]', req.user.wallet.slice(-6), 'cult:', dbCult, '->', mergedData.cultivation, 'lv:', level);
+    logger.info('[SAVE]', req.user.wallet.slice(-6), 'cult:', dbCult, '->', mergedData.cultivation, 'lv:', level);
     await pool.query(
       `UPDATE players SET game_data = $1, combat_power = $2, level = $3, realm = $4, 
        spirit_stones = $5, name = $6, state_version = state_version + 1, updated_at = NOW() WHERE wallet = $7`,
@@ -392,7 +393,7 @@ app.post('/api/exploration/reward', auth, async (req, res) => {
     const plv = player.rows[0]?.level || 1;
     const maxStoneReward = Math.floor(plv * 50 + 200); // 最大焰晶奖励
     if (type === 'spirit_stone' && amount > maxStoneReward) {
-      console.log('[AntiCheat] exploration reward capped for', w, 'tried:', amount, 'max:', maxStoneReward);
+      logger.info('[AntiCheat] exploration reward capped for', w, 'tried:', amount, 'max:', maxStoneReward);
       return res.status(400).json({ error: '奖励异常' });
     }
 
@@ -1732,7 +1733,7 @@ async function settleBossRewards(bossId) {
     broadcast({ type: 'boss_dead', data: { bossName: boss.rows[0]?.name, killerName, topDamagers } });
     broadcastEvent(`🐉 世界Boss ${boss.rows[0]?.name} 已被击杀！最大功臣: ${killerName}`, 'boss');
   } catch (e) {
-    console.error('Boss reward settlement error:', e);
+    logger.error('Boss reward settlement error:', e);
   }
 }
 
@@ -2620,7 +2621,7 @@ async function processExpiredAuctions() {
         await pool.query("UPDATE auction_listings SET status='expired' WHERE id=$1", [listing.id]);
       }
     }
-  } catch (e) { console.error('processExpiredAuctions error:', e.message); }
+  } catch (e) { logger.error('processExpiredAuctions error:', e.message); }
 }
 
 // POST /api/auction/list - 上架物品
@@ -2803,7 +2804,7 @@ app.put('/api/pets/:id/upgrade', auth, async (req, res) => {
     pet.combatAttributes = attrs;
     await pool.query('UPDATE players SET game_data = $1, state_version = state_version + 1 WHERE wallet = $2', [JSON.stringify(gameData), wallet]);
     res.json({ success: true, data: pet });
-  } catch (err) { console.error('Upgrade pet error:', err); res.status(500).json({ success: false, message: '服务器错误' }); }
+  } catch (err) { logger.error('Upgrade pet error:', err); res.status(500).json({ success: false, message: '服务器错误' }); }
 });
 
 // === 焰兽出战 (game_data) ===
@@ -2822,7 +2823,7 @@ app.put('/api/pets/:id/deploy', auth, async (req, res) => {
     gameData.activePetId = petId;
     await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gameData), wallet]);
     res.json({ success: true, data: pet });
-  } catch (err) { console.error('Deploy pet error:', err); res.status(500).json({ success: false, message: '服务器错误' }); }
+  } catch (err) { logger.error('Deploy pet error:', err); res.status(500).json({ success: false, message: '服务器错误' }); }
 });
 
 // === 焰兽召回 (game_data) ===
@@ -2839,7 +2840,7 @@ app.put('/api/pets/:id/recall', auth, async (req, res) => {
     if (String(gameData.activePetId) === String(petId)) gameData.activePetId = null;
     await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gameData), wallet]);
     res.json({ success: true, data: pet });
-  } catch (err) { console.error('Recall pet error:', err); res.status(500).json({ success: false, message: '服务器错误' }); }
+  } catch (err) { logger.error('Recall pet error:', err); res.status(500).json({ success: false, message: '服务器错误' }); }
 });
 
 // === 获取焰兽列表 (game_data.items) ===
@@ -2856,7 +2857,7 @@ app.get('/api/pets', auth, async (req, res) => {
     const pets = (gameData.items || []).filter(i => i.type === 'pet');
     res.json({ success: true, data: pets });
   } catch (err) {
-    console.error('Get pets error:', err);
+    logger.error('Get pets error:', err);
     res.status(500).json({ success: false, message: '服务器错误' });
   }
 });
@@ -2920,7 +2921,7 @@ app.put('/api/pets/:id/evolve', auth, async (req, res) => {
     
     res.json({ success: true, data: gameData.items[newPetIndex] });
   } catch (err) {
-    console.error('Evolve pet error:', err);
+    logger.error('Evolve pet error:', err);
     res.status(500).json({ success: false, message: '服务器错误' });
   }
 });
@@ -2954,7 +2955,7 @@ app.delete('/api/pets/:id/release', auth, async (req, res) => {
     
     res.json({ success: true, data: { essenceGained: essence } });
   } catch (err) {
-    console.error('Release pet error:', err);
+    logger.error('Release pet error:', err);
     res.status(500).json({ success: false, message: '服务器错误' });
   }
 });
@@ -4002,7 +4003,7 @@ async function syncEquipToNewTables(client, playerId, slot, equipItem, action) {
       );
     }
   } catch(e) {
-    console.error('[M4 DualWrite]', action, 'sync failed:', e.message);
+    logger.error('[M4 DualWrite]', action, 'sync failed:', e.message);
     // Non-fatal: game_data is still the source of truth during transition
   }
 }
@@ -4115,7 +4116,7 @@ app.post('/api/equip/enhance', auth, idempotent(pool, 'enhance'), async (req, re
       await client.query('UPDATE players SET game_data=$1, state_version=$2 WHERE wallet=$3', [JSON.stringify(gd), newVersion, w]);
       await client.query('COMMIT');
       // M4: sync enhanced stats to inventory_items
-      try { const _origId = String(equipId); const _pid3 = (await client.query("SELECT id FROM players WHERE wallet=", [w])).rows[0]?.id; if (_pid3) await client.query("UPDATE inventory_items SET stats=, attributes=, enhance_level= WHERE player_id= AND original_id=", [JSON.stringify(equip.stats || {}), JSON.stringify(equip.attributes || {}), equip.enhanceLevel || 0, _pid3, _origId]); } catch(e) { console.error("[M4] enhance sync:", e.message); }
+      try { const _origId = String(equipId); const _pid3 = (await client.query("SELECT id FROM players WHERE wallet=", [w])).rows[0]?.id; if (_pid3) await client.query("UPDATE inventory_items SET stats=, attributes=, enhance_level= WHERE player_id= AND original_id=", [JSON.stringify(equip.stats || {}), JSON.stringify(equip.attributes || {}), equip.enhanceLevel || 0, _pid3, _origId]); } catch(e) { logger.error("[M4] enhance sync:", e.message); }
       res.json({ success: true, message: '强化成功！+' + equip.enhanceLevel, equip, reinforceStones: gd.reinforceStones, items: gd.items, equippedArtifacts: gd.equippedArtifacts, state_version: newVersion, computed_at: new Date().toISOString() });
     } else {
       recalcDerivedStats(gd);
@@ -4249,7 +4250,7 @@ app.post('/api/equipment/enhance', auth, async (req, res) => {
       await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gd), wallet]);
       res.json({ success: true, enhanced: false, cost, message: '淬火失败', reinforceStones: gd.reinforceStones });
     }
-  } catch (e) { console.error('enhance error:', e); res.status(500).json({ error: safeError(e) }); }
+  } catch (e) { logger.error('enhance error:', e); res.status(500).json({ error: safeError(e) }); }
 });
 
 
@@ -4310,7 +4311,7 @@ app.post('/api/equipment/reforge', auth, async (req, res) => {
     gd._pendingReforge = { equipmentId: String(equipmentId), location, slotKey, newStats: tempStats, oldStats };
     await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gd), wallet]);
     res.json({ success: true, cost, oldStats, newStats: tempStats, refinementStones: gd.refinementStones });
-  } catch (e) { console.error('reforge error:', e); res.status(500).json({ error: safeError(e) }); }
+  } catch (e) { logger.error('reforge error:', e); res.status(500).json({ error: safeError(e) }); }
 });
 
 // ============ 铭符确认/取消 ============
@@ -4336,7 +4337,7 @@ app.post('/api/equipment/reforge-confirm', auth, async (req, res) => {
     delete gd._pendingReforge;
     await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gd), wallet]);
     res.json({ success: true, confirmed: !!confirm });
-  } catch (e) { console.error('reforge-confirm error:', e); res.status(500).json({ error: safeError(e) }); }
+  } catch (e) { logger.error('reforge-confirm error:', e); res.status(500).json({ error: safeError(e) }); }
 });
 
 
@@ -4368,7 +4369,7 @@ app.post('/api/equipment/sell', auth, async (req, res) => {
     gd.reinforceStones = (gd.reinforceStones || 0) + stones;
     await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gd), wallet]);
     res.json({ success: true, stones, reinforceStones: gd.reinforceStones, itemCount: gd.items.length });
-  } catch (e) { console.error('sell error:', e); res.status(500).json({ error: safeError(e) }); }
+  } catch (e) { logger.error('sell error:', e); res.status(500).json({ error: safeError(e) }); }
 });
 
 app.post('/api/equipment/batch-sell', auth, async (req, res) => {
@@ -4395,7 +4396,7 @@ app.post('/api/equipment/batch-sell', auth, async (req, res) => {
     gd.reinforceStones = (gd.reinforceStones || 0) + totalStones;
     await pool.query('UPDATE players SET game_data = $1 WHERE wallet = $2', [JSON.stringify(gd), wallet]);
     res.json({ success: true, totalStones, count, reinforceStones: gd.reinforceStones, itemCount: gd.items.length });
-  } catch (e) { console.error('batch-sell error:', e); res.status(500).json({ error: safeError(e) }); }
+  } catch (e) { logger.error('batch-sell error:', e); res.status(500).json({ error: safeError(e) }); }
 });
 
 
@@ -4741,10 +4742,10 @@ app.use('/api/*', (req, res) => {
 
 // ============ 全局错误处理 ============
 process.on('uncaughtException', (err) => {
-  console.error('[FATAL] uncaughtException:', err.message, err.stack);
+  logger.error('[FATAL] uncaughtException:', err.message, err.stack);
 });
 process.on('unhandledRejection', (reason) => {
-  console.error('[WARN] unhandledRejection:', reason);
+  logger.error('[WARN] unhandledRejection:', reason);
 });
 
 
@@ -4795,10 +4796,10 @@ async function settleExpiredAuctions() {
       }
     }
     await client.query('COMMIT');
-    if (expired.rows.length > 0) console.log('[Auction] Settled', expired.rows.length, 'expired listings');
+    if (expired.rows.length > 0) logger.info('[Auction] Settled', expired.rows.length, 'expired listings');
   } catch (e) {
     await client.query('ROLLBACK');
-    console.error('[Auction] Settlement error:', e.message);
+    logger.error('[Auction] Settlement error:', e.message);
   } finally {
     client.release();
   }
@@ -4821,15 +4822,15 @@ async function refreshLeaderboard() {
         [t, JSON.stringify(data)]
       );
     }
-    console.log('[Leaderboard] Cache refreshed');
+    logger.info('[Leaderboard] Cache refreshed');
   } catch (e) {
-    console.error('[Leaderboard] Refresh error:', e.message);
+    logger.error('[Leaderboard] Refresh error:', e.message);
   }
 }
 setInterval(refreshLeaderboard, 10 * 60 * 1000);
 setTimeout(refreshLeaderboard, 5000);
 
-server.listen(PORT, '127.0.0.1', () => console.log(`焰修后端启动 127.0.0.1:${PORT}`));
+server.listen(PORT, '127.0.0.1', () => logger.info(`焰修后端启动 127.0.0.1:${PORT}`));
 
 
 
@@ -4851,8 +4852,8 @@ setInterval(async () => {
         [card.wallet, JSON.stringify({ spiritStones: 5000 })]
       );
     }
-    if (cards.rows.length > 0) console.log('[MonthlyCard]', cards.rows.length, 'daily rewards sent');
-  } catch (e) { console.error('[MonthlyCard error]', e.message); }
+    if (cards.rows.length > 0) logger.info('[MonthlyCard]', cards.rows.length, 'daily rewards sent');
+  } catch (e) { logger.error('[MonthlyCard error]', e.message); }
 }, 3600000);
 
 // === 自动清理过期数据（每6小时） ===
@@ -4867,17 +4868,17 @@ setInterval(async () => {
     // 清理过期拍卖历史（60天前）
     const ah = await pool.query("DELETE FROM auction_history WHERE created_at < NOW() - INTERVAL '60 days'");
     const total = (pk.rowCount||0) + (mc.rowCount||0) + (mail.rowCount||0) + (ah.rowCount||0);
-    if (total > 0) console.log('[Cleanup]', total, 'expired records removed');
-  } catch (e) { console.error('[Cleanup error]', e.message); }
+    if (total > 0) logger.info('[Cleanup]', total, 'expired records removed');
+  } catch (e) { logger.error('[Cleanup error]', e.message); }
 }, 6 * 3600000);
 
 // Graceful shutdown
 function gracefulShutdown(signal) {
-  console.log('[Server] Received', signal, '- shutting down gracefully...');
+  logger.info('[Server] Received', signal, '- shutting down gracefully...');
   wss.clients.forEach(c => c.close(1001, 'Server shutting down'));
   server.close(() => {
     pool.end().then(() => {
-      console.log('[Server] Shutdown complete');
+      logger.info('[Server] Shutdown complete');
       process.exit(0);
     });
   });

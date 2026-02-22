@@ -1,3 +1,4 @@
+import logger from "./logger.js";
 /**
  * lock-service.js — Idempotency middleware using PostgreSQL.
  * Row-level locking (FOR UPDATE) in wear/unwear/enhance already handles concurrency.
@@ -28,7 +29,7 @@ export async function setIdempotencyCache(pool, key, statusCode, response) {
       [key, statusCode, JSON.stringify(response)]
     );
   } catch(e) {
-    console.error('[Idempotency] cache write failed:', e.message);
+    logger.error('[Idempotency] cache write failed:', e.message);
   }
 }
 

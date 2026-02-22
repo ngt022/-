@@ -1,3 +1,4 @@
+import logger from "../services/logger.js";
 import { Router } from 'express'
 import pool from '../db.js'
 import { auth } from '../middleware/auth.js'
@@ -11,7 +12,7 @@ router.get('/', auth, async (req, res) => {
     if (result.rows.length === 0) return res.json({ success: true, data: null })
     res.json({ success: true, data: result.rows[0] })
   } catch (err) {
-    console.error('Get player error:', err)
+    logger.error('Get player error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -62,7 +63,7 @@ router.put('/', auth, async (req, res) => {
     if (result.rows.length === 0) return res.status(404).json({ success: false, message: '玩家数据不存在' })
     res.json({ success: true, data: result.rows[0] })
   } catch (err) {
-    console.error('Update player error:', err)
+    logger.error('Update player error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -81,7 +82,7 @@ router.post('/init', auth, async (req, res) => {
     )
     res.json({ success: true, data: result.rows[0] })
   } catch (err) {
-    console.error('Init player error:', err)
+    logger.error('Init player error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })

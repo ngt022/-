@@ -1,3 +1,4 @@
+import logger from "../services/logger.js";
 import { Router } from 'express'
 import pool from '../db.js'
 import { auth } from '../middleware/auth.js'
@@ -11,7 +12,7 @@ router.get('/', auth, async (req, res) => {
     const result = await pool.query('SELECT * FROM pets WHERE owner_id = $1 ORDER BY created_at DESC', [req.user.userId])
     res.json({ success: true, data: result.rows })
   } catch (err) {
-    console.error('Get pets error:', err)
+    logger.error('Get pets error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -30,7 +31,7 @@ router.post('/generate', auth, async (req, res) => {
     )
     res.json({ success: true, data: result.rows[0] })
   } catch (err) {
-    console.error('Generate pet error:', err)
+    logger.error('Generate pet error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -48,7 +49,7 @@ router.put('/:id/deploy', auth, async (req, res) => {
     if (result.rows.length === 0) return res.status(404).json({ success: false, message: '焰兽不存在' })
     res.json({ success: true, data: result.rows[0] })
   } catch (err) {
-    console.error('Deploy pet error:', err)
+    logger.error('Deploy pet error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -64,7 +65,7 @@ router.put('/:id/recall', auth, async (req, res) => {
     if (result.rows.length === 0) return res.status(404).json({ success: false, message: '焰兽不存在' })
     res.json({ success: true, data: result.rows[0] })
   } catch (err) {
-    console.error('Recall pet error:', err)
+    logger.error('Recall pet error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -95,7 +96,7 @@ router.put('/:id/upgrade', auth, async (req, res) => {
     )
     res.json({ success: true, data: result.rows[0] })
   } catch (err) {
-    console.error('Upgrade pet error:', err)
+    logger.error('Upgrade pet error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -127,7 +128,7 @@ router.put('/:id/evolve', auth, async (req, res) => {
     )
     res.json({ success: true, data: result.rows[0] })
   } catch (err) {
-    console.error('Evolve pet error:', err)
+    logger.error('Evolve pet error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -148,7 +149,7 @@ router.delete('/:id/release', auth, async (req, res) => {
 
     res.json({ success: true, data: { essenceGained: essence } })
   } catch (err) {
-    console.error('Release pet error:', err)
+    logger.error('Release pet error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })

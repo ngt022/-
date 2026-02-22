@@ -1,3 +1,4 @@
+import logger from "../services/logger.js";
 import { Router } from 'express'
 import pool from '../db.js'
 import { auth } from '../middleware/auth.js'
@@ -26,7 +27,7 @@ router.get('/herbs', auth, async (req, res) => {
     const result = await pool.query('SELECT * FROM herbs WHERE owner_id = $1 ORDER BY created_at DESC', [req.user.userId])
     res.json({ success: true, data: result.rows })
   } catch (err) {
-    console.error('Get herbs error:', err)
+    logger.error('Get herbs error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -43,7 +44,7 @@ router.post('/herbs', auth, async (req, res) => {
     )
     res.json({ success: true, data: result.rows[0] })
   } catch (err) {
-    console.error('Add herb error:', err)
+    logger.error('Add herb error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -54,7 +55,7 @@ router.get('/pills', auth, async (req, res) => {
     const result = await pool.query('SELECT * FROM pills WHERE owner_id = $1 ORDER BY created_at DESC', [req.user.userId])
     res.json({ success: true, data: result.rows })
   } catch (err) {
-    console.error('Get pills error:', err)
+    logger.error('Get pills error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -85,7 +86,7 @@ router.post('/pills/use', auth, async (req, res) => {
 
     res.json({ success: true, data: { effect, message: '使用成功' } })
   } catch (err) {
-    console.error('Use pill error:', err)
+    logger.error('Use pill error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -96,7 +97,7 @@ router.get('/recipes', auth, async (req, res) => {
     const result = await pool.query('SELECT * FROM pill_recipes WHERE user_id = $1', [req.user.userId])
     res.json({ success: true, data: result.rows })
   } catch (err) {
-    console.error('Get recipes error:', err)
+    logger.error('Get recipes error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -227,7 +228,7 @@ router.post('/craft', auth, async (req, res) => {
 
   } catch (err) {
     await client.query('ROLLBACK')
-    console.error('Craft error:', err)
+    logger.error('Craft error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   } finally {
     client.release()
@@ -246,7 +247,7 @@ router.post("/pills/add", auth, async (req, res) => {
     )
     res.json({ success: true, data: result.rows[0] })
   } catch (err) {
-    console.error("Add pill error:", err)
+    logger.error("Add pill error:", err)
     res.status(500).json({ success: false, message: "服务器错误" })
   }
 })

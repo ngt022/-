@@ -1,3 +1,4 @@
+import logger from "../services/logger.js";
 import { Router } from 'express'
 import pool from '../db.js'
 import { auth } from '../middleware/auth.js'
@@ -37,7 +38,7 @@ router.get('/players', auth, adminAuth, async (req, res) => {
 
     res.json({ success: true, data: { players: result.rows, total, page: Number(page), limit: Number(limit) } })
   } catch (err) {
-    console.error('Admin get players error:', err)
+    logger.error('Admin get players error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -68,7 +69,7 @@ router.put('/player/:userId', auth, adminAuth, async (req, res) => {
 
     res.json({ success: true, message: '修改成功' })
   } catch (err) {
-    console.error('Admin update player error:', err)
+    logger.error('Admin update player error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -133,7 +134,7 @@ router.post('/airdrop', auth, adminAuth, async (req, res) => {
 
     res.json({ success: true, data: result?.rows?.[0], message: '空投成功' })
   } catch (err) {
-    console.error('Admin airdrop error:', err)
+    logger.error('Admin airdrop error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -156,7 +157,7 @@ router.post('/give-pill', auth, adminAuth, async (req, res) => {
 
     res.json({ success: true, data: result.rows[0], message: '焰丹空投成功' })
   } catch (err) {
-    console.error('Admin give pill error:', err)
+    logger.error('Admin give pill error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })

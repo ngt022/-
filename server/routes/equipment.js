@@ -1,3 +1,4 @@
+import logger from "../services/logger.js";
 import { Router } from 'express'
 import pool from '../db.js'
 import { auth } from '../middleware/auth.js'
@@ -45,7 +46,7 @@ router.get('/', auth, async (req, res) => {
     const result = await pool.query('SELECT * FROM equipment WHERE owner_id = $1 ORDER BY created_at DESC', [req.user.userId])
     res.json({ success: true, data: result.rows })
   } catch (err) {
-    console.error('Get equipment error:', err)
+    logger.error('Get equipment error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -61,7 +62,7 @@ router.post('/generate', auth, async (req, res) => {
     )
     res.json({ success: true, data: result.rows[0] })
   } catch (err) {
-    console.error('Generate equipment error:', err)
+    logger.error('Generate equipment error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -95,7 +96,7 @@ router.put('/:id/equip', auth, async (req, res) => {
     await applyEquipStats(req.user.userId, item.stats, true)
     res.json({ success: true, data: result.rows[0] })
   } catch (err) {
-    console.error('Equip error:', err)
+    logger.error('Equip error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -115,7 +116,7 @@ router.put('/:id/unequip', auth, async (req, res) => {
     )
     res.json({ success: true, data: result.rows[0] })
   } catch (err) {
-    console.error('Unequip error:', err)
+    logger.error('Unequip error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -141,7 +142,7 @@ router.put('/:id/enhance', auth, async (req, res) => {
     if (wasEquipped) await applyEquipStats(req.user.userId, enhanced.stats, true)
     res.json({ success: true, data: result.rows[0] })
   } catch (err) {
-    console.error('Enhance error:', err)
+    logger.error('Enhance error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -165,7 +166,7 @@ router.put('/:id/reforge', auth, async (req, res) => {
     if (wasEquipped) await applyEquipStats(req.user.userId, reforged.stats, true)
     res.json({ success: true, data: result.rows[0] })
   } catch (err) {
-    console.error('Reforge error:', err)
+    logger.error('Reforge error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
@@ -183,7 +184,7 @@ router.delete('/:id/sell', auth, async (req, res) => {
     await pool.query('UPDATE player_data SET spirit_stones = spirit_stones + $1 WHERE user_id = $2', [price, req.user.userId])
     res.json({ success: true, data: { soldPrice: price } })
   } catch (err) {
-    console.error('Sell error:', err)
+    logger.error('Sell error:', err)
     res.status(500).json({ success: false, message: '服务器错误' })
   }
 })
