@@ -209,6 +209,7 @@
           authStore.firstRecharge = cloudData.firstRecharge || false
           authStore.dailySignDate = cloudData.dailySignDate || null
           authStore.dailySignStreak = cloudData.dailySignStreak || 0
+          authStore.syncToStorage()
         }
         if (cloudData && cloudData.gameData && Object.keys(cloudData.gameData).length > 0) {
           Object.entries(cloudData.gameData).forEach(([key, value]) => {

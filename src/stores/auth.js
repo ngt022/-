@@ -7,12 +7,12 @@ export const useAuthStore = defineStore('auth', {
   state: () => ({
     wallet: localStorage.getItem('xx_wallet') || '',
     token: localStorage.getItem('xx_token') || '',
-    vipLevel: 0,
-    vipName: '普通',
-    totalRecharge: 0,
-    firstRecharge: false,
-    dailySignDate: null,
-    dailySignStreak: 0,
+    vipLevel: parseInt(localStorage.getItem('xx_vipLevel')) || 0,
+    vipName: localStorage.getItem('xx_vipName') || '普通',
+    totalRecharge: parseFloat(localStorage.getItem('xx_totalRecharge')) || 0,
+    firstRecharge: localStorage.getItem('xx_firstRecharge') === 'true',
+    dailySignDate: localStorage.getItem('xx_dailySignDate') || null,
+    dailySignStreak: parseInt(localStorage.getItem('xx_dailySignStreak')) || 0,
     isConnecting: false,
   }),
 
@@ -22,6 +22,14 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
+    syncToStorage() {
+      localStorage.setItem('xx_vipLevel', this.vipLevel)
+      localStorage.setItem('xx_vipName', this.vipName)
+      localStorage.setItem('xx_totalRecharge', this.totalRecharge)
+      localStorage.setItem('xx_firstRecharge', this.firstRecharge)
+      localStorage.setItem('xx_dailySignDate', this.dailySignDate || '')
+      localStorage.setItem('xx_dailySignStreak', this.dailySignStreak)
+    },
     async connectWallet() {
       if (!window.ethereum) {
         throw new Error('请安装 MetaMask 钱包')
@@ -50,6 +58,7 @@ export const useAuthStore = defineStore('auth', {
         this.firstRecharge = data.player.firstRecharge
         this.dailySignDate = data.player.dailySignDate
         this.dailySignStreak = data.player.dailySignStreak
+        this.syncToStorage()
 
         localStorage.setItem('xx_wallet', wallet)
         localStorage.setItem('xx_token', data.token)
@@ -65,6 +74,7 @@ export const useAuthStore = defineStore('auth', {
       this.token = ''
       this.vipLevel = 0
       this.totalRecharge = 0
+      this.syncToStorage()
       localStorage.removeItem('xx_wallet')
       localStorage.removeItem('xx_token')
     },
@@ -118,6 +128,7 @@ export const useAuthStore = defineStore('auth', {
       const data = await this.apiPost('/sign/daily', {})
       this.dailySignDate = new Date().toISOString().split('T')[0]
       this.dailySignStreak = data.streak
+      this.syncToStorage()
       return data
     },
 
@@ -126,6 +137,7 @@ export const useAuthStore = defineStore('auth', {
       this.vipLevel = data.vipLevel
       this.totalRecharge = data.totalRecharge
       this.firstRecharge = true
+      this.syncToStorage()
       return data
     },
 
