@@ -648,6 +648,8 @@ function sanitizePlayer(p) {
   // Recalc derived stats from equipment before sending to frontend
   if (!p.game_data || typeof p.game_data !== 'object') p.game_data = {};
   recalcDerivedStats(p.game_data);
+  // M4-fix: spirit_stones column is SSOT, override game_data
+  p.game_data.spiritStones = Number(p.spirit_stones) || 0;
   return {
     id: p.id, wallet: p.wallet, name: p.name, gameData: p.game_data,
     vipLevel: p.vip_level, totalRecharge: p.total_recharge,
