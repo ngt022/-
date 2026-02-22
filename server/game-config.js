@@ -23,8 +23,8 @@ const DEFAULTS = {
   
   // 抽卡费用
   gacha_cost: {
-    normal: 100,
-    wishlist: 200
+    normal: 150,
+    wishlist: 300
   },
   
   // 全服限量（-1 表示不限）
