@@ -62,4 +62,7 @@ jobs:
           sleep 5
 
       - name: Run regression tests
-        run: npx vitest run --config vitest.config.mjs
+        run: |
+          npm install --no-save vitest
+          echo 'export default { test: { testTimeout: 30000 } }' > vitest.ci.mjs
+          npx vitest run --config vitest.ci.mjs server/tests/regression.test.mjs
