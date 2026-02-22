@@ -27,19 +27,19 @@ class CombatStats {
     this.stunRate = base.stunRate || 0
     this.dodgeRate = Math.min(base.dodgeRate || 0.05, 0.5)
     this.vampireRate = Math.min(base.vampireRate || 0, 0.3)
-    this.critResist = base.critResist || 0
-    this.comboResist = base.comboResist || 0
-    this.counterResist = base.counterResist || 0
-    this.stunResist = base.stunResist || 0
-    this.dodgeResist = base.dodgeResist || 0
-    this.vampireResist = base.vampireResist || 0
-    this.healBoost = base.healBoost || 0
+    this.critResist = Math.min(base.critResist || 0, 0.5)
+    this.comboResist = Math.min(base.comboResist || 0, 0.5)
+    this.counterResist = Math.min(base.counterResist || 0, 0.5)
+    this.stunResist = Math.min(base.stunResist || 0, 0.8)
+    this.dodgeResist = Math.min(base.dodgeResist || 0, 0.5)
+    this.vampireResist = Math.min(base.vampireResist || 0, 0.5)
+    this.healBoost = Math.min(base.healBoost || 0, 0.5)
     this.critDamageBoost = Math.min(base.critDamageBoost || 0.5, 2.0)
-    this.critDamageReduce = base.critDamageReduce || 0
+    this.critDamageReduce = Math.min(base.critDamageReduce || 0, 0.5)
     this.finalDamageBoost = Math.min(base.finalDamageBoost || 0, 0.5)
     this.finalDamageReduce = Math.min(base.finalDamageReduce || 0, 0.5)
-    this.combatBoost = base.combatBoost || 0
-    this.resistanceBoost = base.resistanceBoost || 0
+    this.combatBoost = Math.min(base.combatBoost || 0, 0.3)
+    this.resistanceBoost = Math.min(base.resistanceBoost || 0, 0.5)
   }
 
   calculateDamage(target) {
