@@ -385,7 +385,7 @@ export const usePlayerStore = defineStore('player', {
       }
     },
     // 计算离线收益
-    calculateOfflineReward() {
+    async calculateOfflineReward() {
       if (!this.lastOnlineTime || this.lastOnlineTime <= 0) {
         this.lastOnlineTime = Date.now()
         this.saveData()
@@ -417,7 +417,7 @@ export const usePlayerStore = defineStore('player', {
       this.spiritStones += stones
       this.spirit += spirit
       if (this.cultivation >= this.maxCultivation) {
-        this.tryBreakthrough()
+        await this.tryBreakthrough()
       }
       this.lastOnlineTime = now
       this.saveData()
@@ -509,41 +509,66 @@ export const usePlayerStore = defineStore('player', {
       this.spirit += amount * this.spiritRate
     },
     // 修炼增加修为
-    cultivate(amount) {
+    async cultivate(amount) {
       // 确保amount是数字类型
       const numAmount = Number(String(amount).replace(/[^0-9.-]/g, '')) || 0
       this.cultivation = Number(String(this.cultivation).replace(/[^0-9.-]/g, '')) || 0
       this.cultivation += numAmount
       this.totalCultivationTime += 1 // 增加修炼时间统计
       if (this.cultivation >= this.maxCultivation) {
-        this.tryBreakthrough()
+        await this.tryBreakthrough()
       }
       this.saveData()
     },
     // 尝试突破
-    tryBreakthrough() {
-      const cfg = useGameConfigStore()
-      const realmsLength = cfg.loaded ? cfg.realms.length : getRealmLength()
-      // 检查是否可以突破到下一个境界
-      if (this.level < realmsLength) {
-        const nextRealm = cfg.loaded ? cfg.getRealmByLevel(this.level) : getRealmName(this.level)
-        // 更新境界信息
-        this.level += 1
-        this.realm = nextRealm.name // 使用完整的境界名称（如：燃火一重）
-        this.maxCultivation = nextRealm.maxCultivation
-        this.cultivation = 0 // 重置修为值
-        this.breakthroughCount += 1 // 增加突破次数
-        // 解锁新境界
-        if (!this.unlockedRealms.includes(nextRealm.name)) {
-          this.unlockedRealms.push(nextRealm.name)
+    async tryBreakthrough() {
+      // 未登录时用本地逻辑
+      const token = localStorage.getItem('xx_token')
+      if (!token) {
+        const cfg = useGameConfigStore()
+        const realmsLength = cfg.loaded ? cfg.realms.length : getRealmLength()
+        if (this.level < realmsLength && this.cultivation >= this.maxCultivation) {
+          const nextRealm = cfg.loaded ? cfg.getRealmByLevel(this.level) : getRealmName(this.level)
+          this.level += 1
+          this.realm = nextRealm.name
+          this.maxCultivation = nextRealm.maxCultivation
+          this.cultivation = 0
+          this.breakthroughCount += 1
+          this.spirit += 100 * this.level
+          this.saveData()
+          return true
         }
-        // 突破奖励
-        this.spirit += 100 * this.level // 获得灵力奖励
-        this.spiritRate = Math.round((this.spiritRate + 0.05) * 100) / 100 // 每次突破+5%灵力获取
-        this.saveData()
-        return true
+        return false
       }
-      return false
+      // 已登录走后端 API
+      try {
+        const res = await fetch('/api/game/breakthrough', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }
+        })
+        const data = await res.json()
+        if (data.success) {
+          this.level = data.level
+          this.realm = data.realm
+          this.maxCultivation = data.maxCultivation
+          this.cultivation = 0
+          this.spirit = data.spirit
+          this.maxSpirit = data.maxSpirit
+          this.spiritRegenRate = data.spiritRegenRate
+          this.cultivationCost = data.cultivationCost
+          this.cultivationGain = data.cultivationGain
+          this.breakthroughCount += 1
+          if (!this.unlockedRealms.includes(data.realm)) {
+            this.unlockedRealms.push(data.realm)
+          }
+          this.saveData()
+          return true
+        }
+        return false
+      } catch (e) {
+        console.error('突破API失败:', e)
+        return false
+      }
     },
     // 获得物品
     gainItem(item) {

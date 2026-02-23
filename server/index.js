@@ -239,7 +239,7 @@ app.post('/api/game/save', auth, async (req, res) => {
       'dungeonHighestFloor', 'dungeonHighestFloor_2', 'dungeonHighestFloor_5', 'dungeonHighestFloor_10', 'dungeonHighestFloor_100',
       'dungeonTotalKills', 'dungeonBossKills', 'dungeonEliteKills', 'dungeonTotalRewards', 'dungeonTotalRuns', 'dungeonDeathCount', 'dungeonLastFailedFloor','spiritStones', 'items', 'reinforceStones', 'refinementStones', 'petEssence', 
       'purchasedPacks', 'buffs', 'herbs', 'pillRecipes', 'pillFragments',
-      'storageExpand', 'autoSellQualities', 'autoReleaseRarities', 'shopWeeklyPurchases', 'activePet', 'pets', 'equippedArtifacts', 'baseAttributes', 'vipLevel', 'activeMount', 'activeTitle', 'realmName', 'realmIndex', 'combatAttributes', 'specialAttributes', 'combatResistance', 'artifactBonuses', 'activeMountBonus', 'activeTitleBonus', 'completedAchievements', 'nameChangeCount', 'pillsConsumed', 'pillsCrafted', 'explorationCount', 'itemsFound', 'breakthroughCount', 'selectedWishEquipQuality', 'selectedWishPetRarity', 'isNewPlayer', 'name', '_nakedBase'];
+      'storageExpand', 'autoSellQualities', 'autoReleaseRarities', 'shopWeeklyPurchases', 'activePet', 'pets', 'equippedArtifacts', 'baseAttributes', 'vipLevel', 'activeMount', 'activeTitle', 'realmName', 'realmIndex', 'level', 'realm', 'maxCultivation', 'combatAttributes', 'specialAttributes', 'combatResistance', 'artifactBonuses', 'activeMountBonus', 'activeTitleBonus', 'completedAchievements', 'nameChangeCount', 'pillsConsumed', 'pillsCrafted', 'explorationCount', 'itemsFound', 'breakthroughCount', 'selectedWishEquipQuality', 'selectedWishPetRarity', 'isNewPlayer', 'name', '_nakedBase'];
     
     // Merge: frontend data as base, but server-managed fields use DB values
     const mergedData = { ...gameData };
@@ -318,7 +318,7 @@ app.post('/api/game/save-beacon', async (req, res) => {
       'dungeonHighestFloor', 'dungeonHighestFloor_2', 'dungeonHighestFloor_5', 'dungeonHighestFloor_10', 'dungeonHighestFloor_100',
       'dungeonTotalKills', 'dungeonBossKills', 'dungeonEliteKills', 'dungeonTotalRewards', 'dungeonTotalRuns', 'dungeonDeathCount', 'dungeonLastFailedFloor','spiritStones', 'items', 'reinforceStones', 'refinementStones', 'petEssence',
       'purchasedPacks', 'buffs', 'herbs', 'pillRecipes', 'pillFragments',
-      'storageExpand', 'autoSellQualities', 'autoReleaseRarities', 'shopWeeklyPurchases', 'activePet', 'pets', 'equippedArtifacts', 'baseAttributes', 'vipLevel', 'activeMount', 'activeTitle', 'realmName', 'realmIndex', 'combatAttributes', 'specialAttributes', 'combatResistance', 'artifactBonuses', 'activeMountBonus', 'activeTitleBonus', 'completedAchievements', 'nameChangeCount', 'pillsConsumed', 'pillsCrafted', 'explorationCount', 'itemsFound', 'breakthroughCount', 'selectedWishEquipQuality', 'selectedWishPetRarity', 'isNewPlayer', 'name', '_nakedBase'];
+      'storageExpand', 'autoSellQualities', 'autoReleaseRarities', 'shopWeeklyPurchases', 'activePet', 'pets', 'equippedArtifacts', 'baseAttributes', 'vipLevel', 'activeMount', 'activeTitle', 'realmName', 'realmIndex', 'level', 'realm', 'maxCultivation', 'combatAttributes', 'specialAttributes', 'combatResistance', 'artifactBonuses', 'activeMountBonus', 'activeTitleBonus', 'completedAchievements', 'nameChangeCount', 'pillsConsumed', 'pillsCrafted', 'explorationCount', 'itemsFound', 'breakthroughCount', 'selectedWishEquipQuality', 'selectedWishPetRarity', 'isNewPlayer', 'name', '_nakedBase'];
 
     const mergedData = { ...gameData };
     for (const field of serverManagedFields) {
@@ -659,6 +659,14 @@ function sanitizePlayer(p) {
   recalcDerivedStats(p.game_data);
   // M4-fix: spirit_stones column is SSOT, override game_data
   p.game_data.spiritStones = Number(p.spirit_stones) || 0;
+  // 服务端权威数值：用 DB level 计算，强制写入 game_data
+  const lv = p.level || p.game_data.level || 1;
+  p.game_data.level = lv;
+  p.game_data.realm = p.realm || p.game_data.realm || '燃火一重';
+  p.game_data.maxSpirit = 200 + lv * 100;
+  p.game_data.spiritRegenRate = 2 + lv * 0.5;
+  p.game_data.cultivationCost = 5 + lv * 3;
+  p.game_data.cultivationGain = Math.max(1, Math.floor(lv * 2));
   return {
     id: p.id, wallet: p.wallet, name: p.name, gameData: p.game_data,
     vipLevel: p.vip_level, totalRecharge: p.total_recharge,
@@ -668,6 +676,81 @@ function sanitizePlayer(p) {
     dailySignDate: p.daily_sign_date ? (p.daily_sign_date instanceof Date ? p.daily_sign_date.toISOString().split("T")[0] : String(p.daily_sign_date).split("T")[0]) : null, dailySignStreak: p.daily_sign_streak
   };
 }
+
+// === 突破 API ===
+app.post('/api/game/breakthrough', auth, async (req, res) => {
+  try {
+    const w = req.user.wallet;
+    const player = await pool.query('SELECT * FROM players WHERE wallet = $1', [w]);
+    if (!player.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    
+    const p = player.rows[0];
+    const gd = typeof p.game_data === 'string' ? JSON.parse(p.game_data) : (p.game_data || {});
+    const currentLevel = p.level || gd.level || 1;
+    const cultivation = Number(gd.cultivation) || 0;
+    const maxCultivation = Number(gd.maxCultivation) || 100;
+    
+    // 获取境界配置
+    const realmsData = await fetch('http://127.0.0.1:' + (process.env.PORT || 3017) + '/api/game/config').then(r => r.json());
+    const realms = realmsData.realms;
+    
+    if (currentLevel >= realms.length) {
+      return res.json({ success: false, error: '已达最高境界' });
+    }
+    
+    if (cultivation < maxCultivation) {
+      return res.json({ success: false, error: '修为不足，无法突破', current: cultivation, required: maxCultivation });
+    }
+    
+    // 突破成功
+    const newLevel = currentLevel + 1;
+    const nextRealm = realms[newLevel - 1];
+    const spiritReward = 100 * newLevel;
+    
+    gd.level = newLevel;
+    gd.realm = nextRealm.name;
+    gd.maxCultivation = nextRealm.maxCultivation;
+    gd.cultivation = 0;
+    gd.spirit = (Number(gd.spirit) || 0) + spiritReward;
+    gd.spiritRate = Math.round(((Number(gd.spiritRate) || 1) + 0.05) * 100) / 100;
+    gd.breakthroughCount = (gd.breakthroughCount || 0) + 1;
+    
+    // 服务端权威数值
+    gd.maxSpirit = 200 + newLevel * 100;
+    gd.spiritRegenRate = 2 + newLevel * 0.5;
+    gd.cultivationCost = 5 + newLevel * 3;
+    gd.cultivationGain = Math.max(1, Math.floor(newLevel * 2));
+    
+    await pool.query(
+      'UPDATE players SET game_data = , level = , realm = , state_version = state_version + 1, updated_at = NOW() WHERE wallet = ',
+      [JSON.stringify(gd), newLevel, nextRealm.name, w]
+    );
+    
+    // 广播突破消息
+    const playerName = p.name || '无名焰修';
+    if (app.locals.broadcastEvent) {
+      app.locals.broadcastEvent(`\u26A1 ${playerName} \u7A81\u7834\u81F3 ${nextRealm.name}\uFF01`, "breakthrough");
+    }
+    
+    logger.info('[BREAKTHROUGH]', w.slice(-6), 'lv:', currentLevel, '->', newLevel, nextRealm.name);
+    
+    res.json({
+      success: true,
+      level: newLevel,
+      realm: nextRealm.name,
+      maxCultivation: nextRealm.maxCultivation,
+      spiritReward,
+      maxSpirit: gd.maxSpirit,
+      spiritRegenRate: gd.spiritRegenRate,
+      cultivationCost: gd.cultivationCost,
+      cultivationGain: gd.cultivationGain,
+      spirit: gd.spirit
+    });
+  } catch (e) {
+    logger.error('[BREAKTHROUGH ERROR]', e.message);
+    res.status(500).json({ error: safeError(e) });
+  }
+});
 
 // === 月卡系统 ===
 const MONTHLY_CARD_PRICE = 10; // 10 ROON

@@ -237,7 +237,7 @@ import { useGameConfigStore } from './stores/gameConfig'
       }
     }, 10000)
     // 离线收益
-    const reward = playerStore.calculateOfflineReward()
+    const reward = await playerStore.calculateOfflineReward()
     if (reward) {
       const hours = Math.floor(reward.offlineMin / 60)
       const mins = reward.offlineMin % 60

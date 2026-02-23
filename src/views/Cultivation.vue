@@ -151,7 +151,7 @@ const playerStore = usePlayerStore()
   const cultivationWorker = new Worker(new URL('../workers/cultivation.js', import.meta.url))
 
   // 处理Worker消息
-  cultivationWorker.onmessage = ({ data }) => {
+  cultivationWorker.onmessage = async ({ data }) => {
     if (data.type === 'error') {
       showMessage('error', data.message)
       return
@@ -161,15 +161,18 @@ const playerStore = usePlayerStore()
       // 扣除焰灵
       playerStore.spirit -= spiritCost
       // 增加修为
-      playerStore.cultivate(cultivationGain)
+      await playerStore.cultivate(cultivationGain)
       if (doubleGainTimes > 0) {
         showMessage('success', `福缘不错，获得${doubleGainTimes}次双倍焰力！`)
       }
       // 尝试突破
-      if (canBreakthrough() && playerStore.tryBreakthrough()) {
-        showMessage('success', `突破成功！恭喜进入${playerStore.realm}！`)
-      } else if (canBreakthrough()) {
-        showMessage('info', '已达到突破条件，但突破失败，请继续努力！')
+      if (canBreakthrough()) {
+        const broke = await playerStore.tryBreakthrough()
+        if (broke) {
+          showMessage('success', `突破成功！恭喜进入${playerStore.realm}！`)
+        } else {
+          showMessage('info', '已达到突破条件，但突破失败，请继续努力！')
+        }
       } else {
         showMessage('success', '冥想成功！')
       }
@@ -177,7 +180,7 @@ const playerStore = usePlayerStore()
   }
 
   // 一键修炼（直到突破）
-  const cultivateUntilBreakthrough = () => {
+  const cultivateUntilBreakthrough = async () => {
     try {
       // 检查是否已经达到突破条件
       if (!canBreakthrough()) {
@@ -194,7 +197,8 @@ const playerStore = usePlayerStore()
         })
       } else {
         // 直接尝试突破
-        if (playerStore.tryBreakthrough()) {
+        const broke = await playerStore.tryBreakthrough()
+        if (broke) {
           showMessage('success', `突破成功！恭喜进入${playerStore.realm}！`)
         } else {
           showMessage('info', '已达到突破条件，但突破失败，请继续努力！')
@@ -207,13 +211,13 @@ const playerStore = usePlayerStore()
   }
 
   // 手动修炼
-  const cultivate = () => {
+  const cultivate = async () => {
     try {
       const currentCost = getCurrentCultivationCost()
       if (playerStore.spirit >= currentCost) {
         const oldRealm = playerStore.realm
         playerStore.spirit -= currentCost
-        playerStore.cultivate(calculateCultivationGain())
+        await playerStore.cultivate(calculateCultivationGain())
         // 检查是否发生突破
         if (playerStore.realm !== oldRealm) {
           showMessage('success', `突破成功！恭喜进入${playerStore.realm}！`)
