@@ -209,14 +209,7 @@ app.post('/api/auth/login', authLimit, async (req, res) => {
         `INSERT INTO player_mail (to_wallet, from_type, from_name, title, content, rewards) VALUES ($1, 'system', '系统', '🔥 欢迎来到火之文明！', $2, $3)`,
         [wallet.toLowerCase(), welcomeMsg, JSON.stringify({spiritStones: welcomeStones, reinforceStones: 20})]
       );
-      if (betaBonus > 0) {
-        await pool.query(
-          `UPDATE players SET spirit_stones = spirit_stones + $1,
-           game_data = jsonb_set(COALESCE(game_data, '{}'::jsonb), '{spiritStones}', to_jsonb(($1)::bigint))
-           WHERE wallet = $2`,
-          [betaBonus, wallet.toLowerCase()]
-        );
-      }
+      // betaBonus 只通过邮件发放，不再直接加账户
     }
 
     const player = result.rows[0];
