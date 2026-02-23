@@ -4,7 +4,7 @@
           <p>👑 充值ROON提升<strong>VIP等级</strong>（共6级），享受各种特权</p>
           <p>⚡ VIP特权：冥想加速、抽卡折扣(最高7折)、额外掉落、离线收益加成</p>
           <p>📜 <strong>薪火令</strong>(月卡)：10 ROON/30天，每日领5000焰晶+冥想加速20%+免费抽卡1次</p>
-          <p>📅 <strong>每日燃火</strong>(签到)：连续7天递增奖励，第7天送源火碎片</p>
+          <p>📅 <strong>每日燃火</strong>(签到)：连续7天递增焰晶奖励</p>
         </game-guide>
         <!-- 当前VIP -->
         <n-card v-if="authStore.isLoggedIn">
@@ -102,7 +102,6 @@
                   <n-space vertical align="center" :size="4">
                     <n-text strong>第{{ i + 1 }}天</n-text>
                     <n-text style="font-size:12px">{{ r.stones }}焰晶</n-text>
-                    <n-text style="font-size:11px;color:#999">{{ r.items }}</n-text>
                   </n-space>
                 </n-card>
               </n-gi>
@@ -199,13 +198,13 @@ const claimMonthlyCard = async () => {
 }
 
 const signRewards = [
-  { day: 1, stones: 500, items: '淬火石x2' },
-  { day: 2, stones: 800, items: '符文石x2' },
-  { day: 3, stones: 1000, items: '淬火石x5' },
-  { day: 4, stones: 1500, items: '符文石x5' },
-  { day: 5, stones: 2000, items: '淬火石x10' },
-  { day: 6, stones: 3000, items: '符文石x10' },
-  { day: 7, stones: 5000, items: '源火碎片x1' },
+  { day: 1, stones: 100 },
+  { day: 2, stones: 150 },
+  { day: 3, stones: 200 },
+  { day: 4, stones: 250 },
+  { day: 5, stones: 300 },
+  { day: 6, stones: 400 },
+  { day: 7, stones: 800 },
 ]
 
 const signedToday = computed(() => {
@@ -233,26 +232,8 @@ const doSign = async () => {
   try {
     const data = await authStore.dailySign()
     playerStore.spiritStones += data.reward.stones
-    // 签到物品奖励
-    const itemRewards = {
-      '淬火石x2': { key: 'reinforceStones', amount: 2 },
-      '符文石x2': { key: 'refinementStones', amount: 2 },
-      '淬火石x5': { key: 'reinforceStones', amount: 5 },
-      '符文石x5': { key: 'refinementStones', amount: 5 },
-      '淬火石x10': { key: 'reinforceStones', amount: 10 },
-      '符文石x10': { key: 'refinementStones', amount: 10 },
-      // 兼容后端返回的旧名称
-      '强化石x2': { key: 'reinforceStones', amount: 2 },
-      '洗练石x2': { key: 'refinementStones', amount: 2 },
-      '强化石x5': { key: 'reinforceStones', amount: 5 },
-      '洗练石x5': { key: 'refinementStones', amount: 5 },
-      '强化石x10': { key: 'reinforceStones', amount: 10 },
-      '洗练石x10': { key: 'refinementStones', amount: 10 },
-    }
-    const reward = itemRewards[data.reward.items]
-    if (reward) playerStore[reward.key] += reward.amount
     playerStore.saveData()
-    message.success(`燃火成功！第${data.streak}天，获得 ${data.reward.stones} 焰晶 + ${data.reward.items}`)
+    message.success(`燃火成功！第${data.streak}天，获得 ${data.reward.stones} 焰晶`)
   } catch (e) {
     message.error(e.message)
   } finally {
