@@ -748,6 +748,92 @@ function sanitizePlayer(p) {
 }
 
 
+
+// === 离线收益 API ===
+app.post('/api/game/offline-reward', auth, async (req, res) => {
+  try {
+    const w = req.user.wallet;
+    const p = await pool.query('SELECT level, realm, vip_level, spirit_stones, game_data FROM players WHERE wallet = $1', [w]);
+    if (!p.rows.length) return res.status(404).json({ error: '玩家不存在' });
+
+    const row = p.rows[0];
+    const gd = typeof row.game_data === 'string' ? JSON.parse(row.game_data) : (row.game_data || {});
+    const lv = row.level || gd.level || 1;
+    const now = Date.now();
+    const lastOnline = Number(gd.lastOnlineTime) || Number(gd.lastTickTime) || now;
+    const offlineMs = now - lastOnline;
+    const offlineMin = Math.floor(offlineMs / 60000);
+
+    if (offlineMin < 5) {
+      gd.lastOnlineTime = now;
+      gd.lastTickTime = now;
+      await pool.query('UPDATE players SET game_data = $1, updated_at = NOW() WHERE wallet = $2', [JSON.stringify(gd), w]);
+      return res.json({ offlineMin: 0 });
+    }
+
+    const cappedMin = Math.min(offlineMin, 720);
+    const vipBoosts = [1, 1.1, 1.2, 1.5, 1.8, 2.0];
+    const vipBoost = vipBoosts[row.vip_level || 0] || 1;
+
+    const baseCultPerMin = Math.max(1, Math.floor(lv * 2));
+    const baseStonesPerMin = Math.floor(lv * 2 + 5);
+    const baseSpiritPerMin = Math.floor(lv * 3 + 10);
+
+    const cultGained = Math.floor(baseCultPerMin * cappedMin * vipBoost);
+    const stonesGained = Math.floor(baseStonesPerMin * cappedMin * vipBoost);
+    const spiritGained = Math.floor(baseSpiritPerMin * cappedMin * vipBoost);
+
+    // 更新数据
+    const maxSpirit = 200 + lv * 100;
+    let spirit = Math.min(maxSpirit, (Number(gd.spirit) || 0) + spiritGained);
+    let cultivation = (Number(gd.cultivation) || 0) + cultGained;
+    let spiritStones = (Number(row.spirit_stones) || 0) + stonesGained;
+
+    // 检查突破
+    let newLevel = lv;
+    let newRealm = row.realm;
+    let newMaxCult = Number(gd.maxCultivation) || 100;
+    let broke = false;
+    if (cultivation >= newMaxCult) {
+      try {
+        const cfgRes = await fetch('http://127.0.0.1:' + (process.env.PORT || 3017) + '/api/game/config').then(r => r.json());
+        const realms = cfgRes.realms;
+        while (cultivation >= newMaxCult) {
+          const nextIdx = realms.findIndex(r => r.level === newLevel + 1);
+          if (nextIdx < 0) break;
+          cultivation -= newMaxCult;
+          newLevel++;
+          newRealm = realms[nextIdx].name;
+          newMaxCult = realms[nextIdx].maxCultivation;
+          broke = true;
+        }
+      } catch (e) { logger.error('[OFFLINE] breakthrough check failed', e.message); }
+    }
+
+    gd.spirit = spirit;
+    gd.cultivation = cultivation;
+    gd.maxCultivation = newMaxCult;
+    gd.lastOnlineTime = now;
+    gd.lastTickTime = now;
+
+    await pool.query(
+      'UPDATE players SET game_data = $1, level = $2, realm = $3, spirit_stones = $4, updated_at = NOW() WHERE wallet = $5',
+      [JSON.stringify(gd), newLevel, newRealm, spiritStones, w]
+    );
+
+    res.json({
+      offlineMin: cappedMin,
+      spirit, cultivation, spiritStones,
+      level: newLevel, realm: newRealm, maxCultivation: newMaxCult,
+      cultGained, stonesGained, spiritGained,
+      vipBoost, broke
+    });
+  } catch (e) {
+    logger.error('[OFFLINE]', e.message);
+    res.status(500).json({ error: safeError(e) });
+  }
+});
+
 // === 心跳同步 API（前端每10秒调一次）===
 app.post('/api/game/tick', auth, async (req, res) => {
   try {

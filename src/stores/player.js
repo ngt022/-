@@ -453,8 +453,31 @@ export const usePlayerStore = defineStore('player', {
         resistanceBoost: (this.specialAttributes.resistanceBoost || 0) + (ab.resistanceBoost || 0),
       }
     },
-    // 计算离线收益
+    // 计算离线收益（已登录走后端，未登录本地算）
     async calculateOfflineReward() {
+      const token = localStorage.getItem('xx_token')
+      if (token) {
+        // 已登录：后端 tick 已经自动补发了离线 spirit，这里只需获取结果
+        try {
+          const res = await fetch('/api/game/offline-reward', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }
+          })
+          if (res.ok) {
+            const data = await res.json()
+            if (data.offlineMin < 5) return null
+            // 用后端返回值更新 store
+            this.spirit = data.spirit
+            this.cultivation = data.cultivation
+            this.spiritStones = data.spiritStones
+            this.level = data.level
+            this.realm = data.realm
+            this.maxCultivation = data.maxCultivation
+            return { offlineMin: data.offlineMin, cultivation: data.cultGained, stones: data.stonesGained, spirit: data.spiritGained, vipBoost: data.vipBoost }
+          }
+        } catch (e) { console.warn('[OFFLINE] failed:', e.message) }
+      }
+      // 未登录：本地计算
       if (!this.lastOnlineTime || this.lastOnlineTime <= 0) {
         this.lastOnlineTime = Date.now()
         this.saveData()
