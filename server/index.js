@@ -402,7 +402,7 @@ app.use('/api/inventory', inventoryRoutes(pool, auth));
 // === 探索系统 ===
 import explorationRoutes from './routes/exploration.js';
 import gameBalanceRoutes from "./routes/game-balance.js";
-import gameConfigApiRoutes from './routes/game-config-api.js';
+import gameConfigApiRoutes, { realms as REALMS_CONFIG } from './routes/game-config-api.js';
 app.use("/api/admin", gameBalanceRoutes);
 app.use('/api/exploration', explorationRoutes(pool, auth));
 app.use('/api/game', gameConfigApiRoutes);
@@ -704,7 +704,7 @@ function calcSpiritState(gd, level, now) {
     spirit = Math.min(maxSpirit, spirit + elapsed * regenRate);
   }
 
-  return { spirit, maxSpirit, regenRate, cultCost, cultGain, lastTick, elapsed };
+  return { spirit: Math.floor(spirit), maxSpirit, regenRate, cultCost, cultGain, lastTick, elapsed };
 }
 
 // 执行一次冥想（后端权威）
@@ -751,8 +751,14 @@ function sanitizePlayer(p) {
   // 用云端引擎计算 spirit（基于时间差自动补发）
   const now = Date.now();
   const st = calcSpiritState(p.game_data, lv, now);
-  p.game_data.spirit = st.spirit;
+  p.game_data.spirit = Math.floor(st.spirit);
   p.game_data.maxSpirit = st.maxSpirit;
+  // 确保 cultivation 和 maxCultivation 有值
+  if (!p.game_data.maxCultivation) {
+    const realmInfo = REALMS_CONFIG[lv - 1];
+    p.game_data.maxCultivation = realmInfo ? realmInfo.maxCultivation : 100;
+  }
+  if (p.game_data.cultivation == null) p.game_data.cultivation = 0;
   p.game_data.spiritRegenRate = st.regenRate;
   p.game_data.cultivationCost = st.cultCost;
   p.game_data.cultivationGain = st.cultGain;
@@ -1132,7 +1138,7 @@ app.post('/api/game/breakthrough', auth, async (req, res) => {
       spirit: gd.spirit
     });
   } catch (e) {
-    logger.error('[BREAKTHROUGH ERROR]', e.message);
+    logger.error('[BREAKTHROUGH ERROR] ' + e.message + ' ' + e.stack);
     res.status(500).json({ error: safeError(e) });
   }
 });
@@ -5485,6 +5491,63 @@ setInterval(async () => {
     await pool.query('DELETE FROM player_mail WHERE expires_at IS NOT NULL AND expires_at < NOW()');
   } catch {}
 }, 3600000);
+
+// === 数据监控 API ===
+app.get('/api/admin/monitor', auth, adminAuth, async (req, res) => {
+  try {
+    const [
+      totalPlayers, todayNew, todayActive, todayLogins,
+      avgLevel, maxLevel, totalStones, totalRecharge,
+      bugsPending, bugsTotal,
+      recentLogins
+    ] = await Promise.all([
+      pool.query('SELECT count(*) FROM players'),
+      pool.query("SELECT count(*) FROM players WHERE created_at > NOW() - INTERVAL '24 hours'"),
+      pool.query("SELECT count(*) FROM players WHERE updated_at > NOW() - INTERVAL '24 hours'"),
+      pool.query("SELECT count(*) FROM login_logs WHERE created_at > NOW() - INTERVAL '24 hours'"),
+      pool.query('SELECT COALESCE(AVG(level),0) as avg, COALESCE(MAX(level),0) as max FROM players'),
+      pool.query('SELECT COALESCE(MAX(level),0) as val FROM players'),
+      pool.query('SELECT COALESCE(SUM(spirit_stones),0) as val FROM players'),
+      pool.query('SELECT COALESCE(SUM(total_recharge),0) as val FROM players'),
+      pool.query("SELECT count(*) FROM bug_reports WHERE status='pending'"),
+      pool.query('SELECT count(*) FROM bug_reports'),
+      pool.query("SELECT DATE(created_at) as day, count(*) as cnt FROM login_logs WHERE created_at > NOW() - INTERVAL '7 days' GROUP BY DATE(created_at) ORDER BY day")
+    ]);
+    
+    const levelDist = await pool.query(`
+      SELECT 
+        CASE 
+          WHEN level <= 10 THEN '1-10'
+          WHEN level <= 20 THEN '11-20'
+          WHEN level <= 40 THEN '21-40'
+          WHEN level <= 60 THEN '41-60'
+          WHEN level <= 80 THEN '61-80'
+          ELSE '81+'
+        END as range,
+        count(*) as cnt
+      FROM players GROUP BY 1 ORDER BY MIN(level)
+    `);
+
+    res.json({
+      overview: {
+        totalPlayers: +totalPlayers.rows[0].count,
+        todayNew: +todayNew.rows[0].count,
+        todayActive: +todayActive.rows[0].count,
+        todayLogins: +todayLogins.rows[0].count,
+        avgLevel: Math.round(+avgLevel.rows[0].avg),
+        maxLevel: +maxLevel.rows[0].max,
+        totalStones: +totalStones.rows[0].val,
+        totalRecharge: +totalRecharge.rows[0].val,
+        bugsPending: +bugsPending.rows[0].count,
+        bugsTotal: +bugsTotal.rows[0].count,
+      },
+      loginTrend: recentLogins.rows,
+      levelDistribution: levelDist.rows
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // ============ 404 catch-all ============
 app.use('/api/*', (req, res) => {

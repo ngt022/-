@@ -205,4 +205,5 @@ export function clearConfigCache() {
   cachedConfig = null;
 }
 
+export { realms };
 export default router;

@@ -335,6 +335,96 @@
         <button class="gold-btn save-btn" @click="saveGachaConfig()" style="margin-top:16px">💾 保存抽卡配置</button>
       </div>
 
+      <!-- Bug 反馈管理 -->
+      <div v-if="activeTab === 'bugs'" class="tab-content">
+        <div class="section-title">🐛 Bug 反馈列表</div>
+        <div class="filter-bar">
+          <select v-model="bugStatusFilter" @change="loadBugs" class="setting-input">
+            <option value="">全部</option>
+            <option value="pending">待处理</option>
+            <option value="resolved">已解决</option>
+            <option value="ignored">已忽略</option>
+          </select>
+          <button class="gold-btn" @click="loadBugs">刷新</button>
+        </div>
+        <div v-if="!bugs.length" class="empty-text">暂无反馈</div>
+        <table v-else class="data-table">
+          <thead><tr><th>ID</th><th>玩家</th><th>等级</th><th>类型</th><th>描述</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr v-for="b in bugs" :key="b.id">
+              <td>{{ b.id }}</td>
+              <td>{{ b.player_name || shortAddr(b.wallet) }}</td>
+              <td>{{ b.player_level || '-' }}</td>
+              <td><span :class="'bug-type-' + b.type">{{ b.type === 'auto' ? '自动' : '手动' }}</span></td>
+              <td class="bug-desc">{{ b.description || b.error_message || '-' }}</td>
+              <td><span :class="'status-' + b.status">{{ bugStatusText(b.status) }}</span></td>
+              <td>{{ fmtDate(b.created_at) }}</td>
+              <td class="action-cell">
+                <button v-if="b.status==='pending'" class="sm-btn" @click="updateBugStatus(b.id,'resolved')">✅ 解决</button>
+                <button v-if="b.status==='pending'" class="sm-btn red" @click="updateBugStatus(b.id,'ignored')">❌ 忽略</button>
+                <button v-if="b.status!=='pending'" class="sm-btn" @click="updateBugStatus(b.id,'pending')">🔄 重开</button>
+                <button class="sm-btn" @click="viewBugDetail(b.id)">📋 详情</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <!-- Bug 详情弹窗 -->
+        <div v-if="showBugDetail" class="modal-overlay" @click.self="showBugDetail=false">
+          <div class="modal-box" style="max-width:600px">
+            <h3>Bug #{{ bugDetail.id }} 详情</h3>
+            <div class="bug-detail-grid">
+              <div><b>玩家:</b> {{ bugDetail.player_name || shortAddr(bugDetail.wallet) }}</div>
+              <div><b>等级:</b> {{ bugDetail.player_level || '-' }}</div>
+              <div><b>类型:</b> {{ bugDetail.type === 'auto' ? '自动捕获' : '手动反馈' }}</div>
+              <div><b>状态:</b> {{ bugStatusText(bugDetail.status) }}</div>
+              <div><b>时间:</b> {{ fmtDate(bugDetail.created_at) }}</div>
+              <div><b>页面:</b> {{ bugDetail.page_url || '-' }}</div>
+              <div v-if="bugDetail.error_message" style="grid-column:1/-1"><b>错误信息:</b><pre class="bug-pre">{{ bugDetail.error_message }}</pre></div>
+              <div v-if="bugDetail.error_stack" style="grid-column:1/-1"><b>堆栈:</b><pre class="bug-pre">{{ bugDetail.error_stack }}</pre></div>
+              <div v-if="bugDetail.description" style="grid-column:1/-1"><b>描述:</b><p>{{ bugDetail.description }}</p></div>
+              <div v-if="bugDetail.screenshot" style="grid-column:1/-1"><b>截图:</b><br/><img :src="bugDetail.screenshot" style="max-width:100%;border-radius:8px;margin-top:8px"/></div>
+              <div v-if="bugDetail.browser_info" style="grid-column:1/-1"><b>浏览器:</b> {{ bugDetail.browser_info }}</div>
+            </div>
+            <div style="text-align:right;margin-top:12px"><button class="gold-btn" @click="showBugDetail=false">关闭</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 数据监控 -->
+      <div v-if="activeTab === 'monitor'" class="tab-content">
+        <div class="section-title">📈 数据监控 <button class="gold-btn" @click="loadMonitor" style="margin-left:12px">刷新</button></div>
+        <div class="stat-cards">
+          <div class="stat-card"><div class="stat-value">{{ monitorData.totalPlayers }}</div><div class="stat-label">总玩家</div></div>
+          <div class="stat-card"><div class="stat-value">{{ monitorData.todayNew }}</div><div class="stat-label">今日新增</div></div>
+          <div class="stat-card"><div class="stat-value">{{ monitorData.todayActive }}</div><div class="stat-label">今日活跃</div></div>
+          <div class="stat-card"><div class="stat-value">{{ monitorData.todayLogins }}</div><div class="stat-label">今日登录次数</div></div>
+          <div class="stat-card"><div class="stat-value">{{ monitorData.avgLevel }}</div><div class="stat-label">平均等级</div></div>
+          <div class="stat-card"><div class="stat-value">{{ monitorData.maxLevel }}</div><div class="stat-label">最高等级</div></div>
+          <div class="stat-card"><div class="stat-value">{{ formatNum(monitorData.totalStones) }}</div><div class="stat-label">全服焰晶</div></div>
+          <div class="stat-card"><div class="stat-value">{{ monitorData.bugsPending }}/{{ monitorData.bugsTotal }}</div><div class="stat-label">待处理Bug</div></div>
+        </div>
+        <div class="chart-section">
+          <h3 class="section-title">📊 7日登录趋势</h3>
+          <div class="bar-chart">
+            <div v-for="d in loginTrend" :key="d.day" class="bar-item">
+              <div class="bar-fill" :style="{ height: barHeight(d.cnt) }"></div>
+              <div class="bar-label">{{ d.day?.slice(5) }}</div>
+              <div class="bar-value">{{ d.cnt }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="chart-section">
+          <h3 class="section-title">📊 等级分布</h3>
+          <div class="bar-chart">
+            <div v-for="d in levelDist" :key="d.range" class="bar-item">
+              <div class="bar-fill" :style="{ height: barHeight(d.cnt) }"></div>
+              <div class="bar-label">{{ d.range }}</div>
+              <div class="bar-value">{{ d.cnt }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 操作日志 -->
       <div v-if="activeTab === 'logs'" class="tab-content">
         <h3 class="section-title">📋 管理员操作日志</h3>
@@ -522,6 +612,8 @@ const tabs = [
   { key: 'airdrop', label: '🎁 批量空投' },
   { key: 'shopconfig', label: '🛒 商城配置' },
   { key: 'gachaconfig', label: '🎰 抽卡配置' },
+  { key: 'bugs', label: '🐛 Bug反馈' },
+  { key: 'monitor', label: '📈 数据监控' },
   { key: 'logs', label: '📋 操作日志' },
   { key: 'settings', label: '⚙️ 系统设置' },
 ]
@@ -536,6 +628,49 @@ async function apiFetch(path, opts = {}) {
   if (res.status === 403) { accessDenied.value = true; return null }
   if (!res.ok) { const t = await res.text(); alert('请求失败: ' + t); return null }
   return res.json()
+}
+
+// Bug 反馈
+const bugs = ref([])
+const bugStatusFilter = ref('')
+const showBugDetail = ref(false)
+const bugDetail = ref({})
+
+function bugStatusText(s) { return { pending: '待处理', resolved: '已解决', ignored: '已忽略' }[s] || s }
+
+async function loadBugs() {
+  const params = bugStatusFilter.value ? '?status=' + bugStatusFilter.value : ''
+  const data = await apiFetch('/admin/bug-reports' + params)
+  if (data) bugs.value = data.reports || data || []
+}
+
+async function updateBugStatus(id, status) {
+  await apiFetch('/admin/bug-reports/' + id + '/status', { method: 'POST', headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) })
+  loadBugs()
+}
+
+async function viewBugDetail(id) {
+  const data = await apiFetch('/admin/bug-reports/' + id)
+  if (data) { bugDetail.value = data.report || data; showBugDetail.value = true }
+}
+
+// 数据监控
+const monitorData = ref({ totalPlayers: 0, todayNew: 0, todayActive: 0, todayLogins: 0, avgLevel: 0, maxLevel: 0, totalStones: 0, totalRecharge: 0, bugsPending: 0, bugsTotal: 0 })
+const loginTrend = ref([])
+const levelDist = ref([])
+
+async function loadMonitor() {
+  const data = await apiFetch('/admin/monitor')
+  if (data) {
+    monitorData.value = data.overview || {}
+    loginTrend.value = data.loginTrend || []
+    levelDist.value = data.levelDistribution || []
+  }
+}
+
+function barHeight(cnt) {
+  const max = Math.max(...loginTrend.value.map(d => +d.cnt), ...levelDist.value.map(d => +d.cnt), 1)
+  return Math.max(10, (+cnt / max) * 120) + 'px'
 }
 
 // ===== Dashboard =====
@@ -868,6 +1003,8 @@ const loaders = {
   airdrop: () => {},
   shopconfig: loadShopConfig,
   gachaconfig: loadGachaConfig,
+  bugs: loadBugs,
+  monitor: loadMonitor,
   logs: () => loadLogs(1),
   settings: loadSettings,
 }
@@ -1203,4 +1340,24 @@ onMounted(async () => {
 .setting-input { background: #1a1a1a; border: 1px solid #333; color: #e0d5c0; padding: 8px; border-radius: 4px; font-size: 1em; }
 .modal-textarea { background: #1a1a1a; border: 1px solid #333; color: #e0d5c0; padding: 8px; border-radius: 4px; width: 100%; font-size: 0.95em; resize: vertical; }
 .save-btn { display: block; margin-top: 16px; }
+
+
+/* Bug 反馈 */
+.bug-type-auto { color: #ff9800; }
+.bug-type-manual { color: #4caf50; }
+.status-pending { color: #ff9800; font-weight: bold; }
+.status-resolved { color: #4caf50; }
+.status-ignored { color: #999; }
+.bug-desc { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bug-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; }
+.bug-pre { background: #1a1a2e; padding: 8px; border-radius: 6px; font-size: 11px; overflow-x: auto; max-height: 150px; white-space: pre-wrap; word-break: break-all; }
+.action-cell { white-space: nowrap; }
+.filter-bar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+
+/* 数据监控柱状图 */
+.bar-chart { display: flex; align-items: flex-end; gap: 12px; padding: 16px 0; min-height: 160px; }
+.bar-item { display: flex; flex-direction: column; align-items: center; flex: 1; }
+.bar-fill { width: 100%; max-width: 40px; background: linear-gradient(180deg, #ff6a00, #ff2d55); border-radius: 4px 4px 0 0; transition: height 0.3s; min-height: 4px; }
+.bar-label { font-size: 11px; color: #aaa; margin-top: 4px; }
+.bar-value { font-size: 12px; color: #ffddaa; font-weight: bold; }
 </style>
