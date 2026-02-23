@@ -92,13 +92,13 @@ const VIP_CONFIG = [
 
 // 签到奖励
 const SIGN_REWARDS = [
-  { day: 1, stones: 100 },
-  { day: 2, stones: 150 },
-  { day: 3, stones: 200 },
-  { day: 4, stones: 250 },
-  { day: 5, stones: 300 },
-  { day: 6, stones: 400 },
-  { day: 7, stones: 800 },
+  { day: 1, stones: 500 },
+  { day: 2, stones: 700 },
+  { day: 3, stones: 1000 },
+  { day: 4, stones: 1500 },
+  { day: 5, stones: 2000 },
+  { day: 6, stones: 3000 },
+  { day: 7, stones: 5000 },
 ];
 
 // 请求日志（只记录异常和慢请求）

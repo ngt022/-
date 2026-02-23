@@ -246,14 +246,14 @@ const spiritPills = [
   { id: 'spirit_large', name: '大灵力药水', img: img('/assets/images/pills/pill_xianling.png'), desc: '+3,000灵力', price: 8000, canMulti: true, buyType: 'pill' },
 ]
 const cultPills = [
-  { id: 'cult_small', name: '小修为丹', img: img('/assets/images/pills/pill_ningyuan.png'), desc: '+等级×20修为(日限5)', price: 1000, canMulti: true, buyType: 'pill' },
-  { id: 'cult_medium', name: '中修为丹', img: img('/assets/images/pills/pill_tianyuan.png'), desc: '+等级×80修为(日限3)', price: 5000, canMulti: true, buyType: 'pill' },
-  { id: 'cult_large', name: '大修为丹', img: img('/assets/images/pills/pill_niepan.png'), desc: '+等级×300修为(日限1)', price: 20000, canMulti: true, buyType: 'pill' },
+  { id: 'cult_small', name: '小修为丹', img: img('/assets/images/pills/pill_ningyuan.png'), desc: '+等级×10修为(日限5)', price: 2000, canMulti: true, buyType: 'pill' },
+  { id: 'cult_medium', name: '中修为丹', img: img('/assets/images/pills/pill_tianyuan.png'), desc: '+等级×40修为(日限3)', price: 10000, canMulti: true, buyType: 'pill' },
+  { id: 'cult_large', name: '大修为丹', img: img('/assets/images/pills/pill_niepan.png'), desc: '+等级×150修为(日限1)', price: 50000, canMulti: true, buyType: 'pill' },
 ]
 const expPills = [
-  { id: 'exp_1', name: '1级经验丹', img: img('/assets/images/pills/pill_wuxing.png'), desc: '直接升1级(日限5)', price: 50000, canMulti: true, buyType: 'pill' },
-  { id: 'exp_5', name: '5级经验丹', img: img('/assets/images/pills/pill_riyue.png'), desc: '直接升5级(日限3)', price: 200000, canMulti: true, buyType: 'pill' },
-  { id: 'exp_10', name: '10级经验丹', img: img('/assets/images/pills/pill_niepan.png'), desc: '直接升10级(日限1)', price: 500000, canMulti: true, buyType: 'pill' },
+  { id: 'exp_1', name: '1级经验丹', img: img('/assets/images/pills/pill_wuxing.png'), desc: '直接升1级(日限3)', price: 250000, canMulti: true, buyType: 'pill' },
+  { id: 'exp_5', name: '5级经验丹', img: img('/assets/images/pills/pill_riyue.png'), desc: '直接升5级(日限1)', price: 1000000, canMulti: true, buyType: 'pill' },
+  { id: 'exp_10', name: '10级经验丹', img: img('/assets/images/pills/pill_niepan.png'), desc: '直接升10级(日限1)', price: 3000000, canMulti: true, buyType: 'pill' },
 ]
 const attrPills = [
   { id: 'attr_attack', name: '攻击丹', img: img('/assets/images/pills/pill_leiling.png'), desc: '永久+10攻击(日限5)', price: 5000, canMulti: true, buyType: 'pill' },

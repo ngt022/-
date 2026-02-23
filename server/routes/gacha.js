@@ -595,8 +595,8 @@ router.post('/draw', auth, async (req, res) => {
     
     // 从配置获取费用
     const gachaCost = await getConfig('gacha_cost')
-    const normalCost = gachaCost?.normal || 100
-    const wishlistCost = gachaCost?.wishlist || 200
+    const normalCost = gachaCost?.normal || 300
+    const wishlistCost = gachaCost?.wishlist || 500
     
     // 计算费用
     const baseCost = wishlistEnabled ? count * wishlistCost : count * normalCost
