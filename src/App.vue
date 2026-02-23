@@ -84,6 +84,7 @@
             </div>
           </n-layout>
         </n-spin>
+      <BugReporter />
       </n-dialog-provider>
     </n-message-provider>
   </n-config-provider>
@@ -120,6 +121,7 @@ import { useGameConfigStore } from './stores/gameConfig'
   import { getRealmName } from './plugins/realm'
   import WorldChat from './components/WorldChat.vue'
   import GameScene from './components/GameScene.vue'
+  import BugReporter from "./components/BugReporter.vue"
 
   const router = useRouter()
   const route = useRoute()

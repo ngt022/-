@@ -4959,6 +4959,76 @@ app.post('/api/equipment/disassemble', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
+
+// === Bug 反馈系统 ===
+(async()=>{try{await pool.query(`CREATE TABLE IF NOT EXISTS bug_reports(
+  id SERIAL PRIMARY KEY, wallet TEXT, player_name TEXT, player_level INT,
+  type TEXT DEFAULT 'auto', error_message TEXT, error_stack TEXT,
+  description TEXT, screenshot TEXT, browser_info TEXT, page_url TEXT,
+  extra_data JSONB, status TEXT DEFAULT 'open', created_at TIMESTAMPTZ DEFAULT NOW()
+)`);logger.info('[BUG_REPORT] table ready');}catch(e){logger.error('[BUG_REPORT] init err',e.message);}})();
+
+const optAuth = async(req,res,next)=>{
+  const a=req.headers.authorization;
+  if(a&&a.startsWith('Bearer ')){try{req.user=jwt.verify(a.slice(7),JWT_SECRET);}catch{}}
+  next();
+};
+
+app.post('/api/bug-report', optAuth, async(req,res)=>{
+  try{
+    const{type,errorMessage,errorStack,description,screenshot,browserInfo,pageUrl,extraData}=req.body||{};
+    let wallet=null,pName=null,pLevel=null;
+    if(req.user){
+      wallet=req.user.wallet;
+      const p=await pool.query('SELECT name,level FROM players WHERE wallet=$1',[wallet]);
+      if(p.rows.length){pName=p.rows[0].name;pLevel=p.rows[0].level;}
+    }
+    let ss=screenshot||'';
+    if(ss.length>680000)ss=ss.substring(0,680000);
+    await pool.query(
+      'INSERT INTO bug_reports(wallet,player_name,player_level,type,error_message,error_stack,description,screenshot,browser_info,page_url,extra_data)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',
+      [wallet,pName,pLevel,type||'manual',errorMessage||'',errorStack||'',description||'',ss,browserInfo||'',pageUrl||'',JSON.stringify(extraData||{})]
+    );
+    logger.info('[BUG_REPORT]',wallet?wallet.slice(-6):'anon',type);
+    res.json({success:true});
+  }catch(e){logger.error('[BUG_REPORT]',e.message);res.status(500).json({error:'提交失败'});}
+});
+
+app.get('/api/admin/bug-reports', auth, async(req,res)=>{
+  try{
+    if(req.user.wallet.toLowerCase()!=='0xfad7eb0814b6838b05191a07fb987957d50c4ca9')return res.status(403).json({error:'无权限'});
+    const st=req.query.status||'all';
+    const lim=Math.min(parseInt(req.query.limit)||50,200);
+    let q='SELECT id,wallet,player_name,player_level,type,error_message,description,status,created_at FROM bug_reports';
+    const params=[];
+    if(st!=='all'){q+=' WHERE status=$1';params.push(st);}
+    q+=' ORDER BY created_at DESC LIMIT '+(params.length?'$2':'$1');
+    params.push(lim);
+    const r=await pool.query(q,params);
+    res.json({reports:r.rows});
+  }catch(e){res.status(500).json({error:e.message});}
+});
+
+app.get('/api/admin/bug-reports/:id', auth, async(req,res)=>{
+  try{
+    if(req.user.wallet.toLowerCase()!=='0xfad7eb0814b6838b05191a07fb987957d50c4ca9')return res.status(403).json({error:'无权限'});
+    const r=await pool.query('SELECT * FROM bug_reports WHERE id=$1',[req.params.id]);
+    if(!r.rows.length)return res.status(404).json({error:'不存在'});
+    res.json(r.rows[0]);
+  }catch(e){res.status(500).json({error:e.message});}
+});
+
+app.post('/api/admin/bug-reports/:id/status', auth, async(req,res)=>{
+  try{
+    if(req.user.wallet.toLowerCase()!=='0xfad7eb0814b6838b05191a07fb987957d50c4ca9')return res.status(403).json({error:'无权限'});
+    const{status}=req.body;
+    if(!['open','resolved','ignored'].includes(status))return res.status(400).json({error:'无效状态'});
+    await pool.query('UPDATE bug_reports SET status=$1 WHERE id=$2',[status,req.params.id]);
+    res.json({success:true});
+  }catch(e){res.status(500).json({error:e.message});}
+});
+// === Bug 反馈系统 END ===
+
 // === API 文档 ===
 app.get('/api/docs', (req, res) => {
   res.json({
