@@ -302,7 +302,7 @@
     <n-space vertical>
       <n-space justify="space-between">
         <n-select v-model:value="selectedQuality" :options="qualityOptions" style="width:150px" />
-        <n-button type="warning" :disabled="equipmentList.length === 0" @click="batchSellEquipments">一键卖出</n-button>
+        <n-button type="warning" :disabled="equipmentList.length === 0" @click="batchRecycleEquipments">♻️ 一键回收</n-button>
       </n-space>
       <n-pagination v-model:page="currentEquipmentPage" :page-size="equipmentPageSize" :item-count="filteredEquipmentList.length" v-if="equipmentList.length > 8" @update:page-size="onEquipmentPageSizeChange" :page-slot="7" />
       <div class="storage-grid" v-if="equipmentList.length">
@@ -313,7 +313,7 @@
           <span class="cell-label">{{ equipment.name }}</span>
           <span v-if="equipment.enhanceLevel" class="eq-enhance" style="position:static">+{{ equipment.enhanceLevel }}</span>
           <span class="cell-meta">{{ equipment.qualityInfo?.name }}</span>
-          <n-button size="tiny" type="warning" class="cell-sell-btn" @click.stop="sellEquipment(equipment)">卖</n-button>
+          <span class="cell-recycle-btn" @click.stop="recycleEquipment(equipment)">♻️</span>
         </div>
       </div>
       <n-empty description="没有任何装备" v-else />
@@ -365,7 +365,7 @@
         <n-space>
           <n-button @click="equipItem(selectedEquipment)" :disabled="playerStore.level < selectedEquipment?.requiredRealm" v-if="selectedEquipment?.id != playerStore.equippedArtifacts[selectedEquipment?.type]?.id">装备</n-button>
           <n-button @click="unequipItem(selectedEquipment)" :disabled="playerStore.level < selectedEquipment?.requiredRealm" v-else>卸下</n-button>
-          <n-button type="error" @click="sellEquipment(selectedEquipment)" v-if="selectedEquipment?.id != playerStore.equippedArtifacts[selectedEquipment?.type]?.id">出售</n-button>
+          <n-button type="info" @click="goAuction(selectedEquipment)" v-if="selectedEquipment?.id != playerStore.equippedArtifacts[selectedEquipment?.type]?.id">🏪 挂售焰市</n-button>
           <n-popconfirm @positive-click="recycleEquipment(selectedEquipment)" v-if="selectedEquipment?.id != playerStore.equippedArtifacts[selectedEquipment?.type]?.id">
             <template #trigger>
               <n-button type="warning">♻️ 回收</n-button>
@@ -430,7 +430,8 @@
 import img from '../utils/img.js'
 import { hasSeenGuide, markGuideSeen, guideTexts } from '../utils/guide.js'
 import GuideTooltip from '../components/GuideTooltip.vue'
-  import { usePlayerStore } from '../stores/player'
+  import { useRouter } from 'vue-router'
+import { usePlayerStore } from '../stores/player'
   import { useAuthStore } from '../stores/auth'
   import { ref, computed, onMounted } from 'vue'
   import { useMessage } from 'naive-ui'
@@ -554,7 +555,8 @@ import GuideTooltip from '../components/GuideTooltip.vue'
 
   const showGuide = ref(!hasSeenGuide("inventory"))
 const dismissGuide = () => { markGuideSeen("inventory"); showGuide.value = false }
-const playerStore = usePlayerStore()
+const router = useRouter()
+  const playerStore = usePlayerStore()
   const authStore = useAuthStore()
   const message = useMessage()
 
@@ -1088,6 +1090,35 @@ const playerStore = usePlayerStore()
     { label: '优品及以下', value: 'rare' },
     { label: '极品及以下', value: 'epic' },
   ]
+
+  // 跳转焰市挂售
+  const goAuction = (equipment) => {
+    showEquipmentDetailModal.value = false
+    // 跳转到拍卖页面
+    if (typeof router !== 'undefined' && router.push) {
+      router.push({ path: '/auction', query: { sell: equipment.id } })
+    } else {
+      window.location.hash = '#/auction?sell=' + equipment.id
+    }
+  }
+
+  // 装备批量回收（用 disassemble 接口）
+  const batchRecycleEquipments = async () => {
+    if (!authStore.isLoggedIn) { message.warning('请先登录'); return }
+    const quality = selectedQuality.value
+    if (!quality) { message.warning('请选择品质'); return }
+    try {
+      const resp = await authStore.apiPost('/recycle/batch', {
+        types: ['equipment'],
+        maxQuality: quality === 'all' ? 'uncommon' : quality
+      })
+      if (resp.success) {
+        playerStore.spiritStones = resp.spiritStones
+        await authStore.refreshPlayerData?.()
+        message.success('回收了 ' + resp.count + ' 件装备，获得 ' + resp.totalPrice + ' 焰晶')
+      }
+    } catch (e) { message.error(e.message || '批量回收失败') }
+  }
 
   // 单个物品回收
   const recycleItem = async (item, itemType) => {
