@@ -7,6 +7,15 @@
 
     <div class="home-content">
 
+      <!-- 0. 内测倒计时 -->
+      <div class="beta-banner" v-if="betaRemaining">
+        <div class="beta-inner">
+          <span class="beta-icon">🧪</span>
+          <span class="beta-text">内测进行中</span>
+          <span class="beta-timer">{{ betaRemaining }}</span>
+        </div>
+      </div>
+
       <!-- 1. 角色信息卡 -->
       <div class="char-card">
         <div class="char-card-inner">
@@ -170,6 +179,22 @@ const message = useMessage()
 const announcements = ref([])
 // 服务端数据
 const serverInfo = ref({ vipLevel: 0, sectName: '', signDays: 0, monthlyCard: false, ascensionCount: 0, mountName: '', titleName: '' })
+
+// 内测倒计时
+const BETA_END = new Date('2026-02-26T23:59:59+08:00').getTime()
+const betaRemaining = ref('')
+let betaTimer = null
+function updateBetaCountdown() {
+  const diff = BETA_END - Date.now()
+  if (diff <= 0) { betaRemaining.value = ''; clearInterval(betaTimer); return }
+  const d = Math.floor(diff / 86400000)
+  const h = Math.floor((diff % 86400000) / 3600000)
+  const m = Math.floor((diff % 3600000) / 60000)
+  const s = Math.floor((diff % 60000) / 1000)
+  betaRemaining.value = `${d}天 ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+}
+updateBetaCountdown()
+betaTimer = setInterval(updateBetaCountdown, 1000)
 
 onMounted(async () => {
   // 加载公告
@@ -524,4 +549,42 @@ const particleStyle = (i) => ({
 
 .home-footer { text-align: center; margin-top: 1.5rem; }
 .version { color: rgba(160,152,128,0.3); font-size: 0.75rem; }
+
+/* 内测倒计时横幅 */
+.beta-banner {
+  margin: 0 0 12px 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ff6a0088, #ff2d5588);
+  border: 1px solid #ff6a0066;
+  padding: 10px 16px;
+  animation: betaPulse 2s ease-in-out infinite;
+}
+@keyframes betaPulse {
+  0%, 100% { box-shadow: 0 0 8px #ff6a0044; }
+  50% { box-shadow: 0 0 16px #ff6a0088; }
+}
+.beta-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.beta-icon { font-size: 20px; }
+.beta-text {
+  font-size: 14px;
+  font-weight: bold;
+  color: #ffddaa;
+  letter-spacing: 1px;
+}
+.beta-timer {
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  background: #00000044;
+  padding: 4px 12px;
+  border-radius: 8px;
+  letter-spacing: 2px;
+}
 </style>
