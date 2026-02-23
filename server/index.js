@@ -381,8 +381,10 @@ app.use('/api/inventory', inventoryRoutes(pool, auth));
 // === 探索系统 ===
 import explorationRoutes from './routes/exploration.js';
 import gameBalanceRoutes from "./routes/game-balance.js";
+import gameConfigApiRoutes from './routes/game-config-api.js';
 app.use("/api/admin", gameBalanceRoutes);
 app.use('/api/exploration', explorationRoutes(pool, auth));
+app.use('/api/game', gameConfigApiRoutes);
 app.use('/api/gacha', gachaRoutes);
 app.use('/api/equipment', equipmentRoutes);
 // app.use('/api/pets', petsRoutes); // disabled: pets managed via game_data.items
