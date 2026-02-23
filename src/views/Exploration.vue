@@ -13,7 +13,7 @@
       <div class="map-title">
         <span class="map-icon">🗺️</span>
         <span>焰天圣域地图</span>
-        <span class="map-spirit">焰灵: {{ playerStore.spirit.toFixed(0) }}</span>
+        <span class="map-spirit">焰灵: {{ playerStore.spirit.toFixed(0) }}/{{ playerStore.getMaxSpirit() }}</span>
       </div>
       <div class="map-grid">
         <div

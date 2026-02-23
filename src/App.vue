@@ -223,6 +223,7 @@
     isLoading.value = false
     getMenuOptions()
     startAutoGain()
+    playerStore.startSpiritRegen()
 
     // 10秒自动云存档（仅在数据变更时）
     if (window.__autoSaveTimer) clearInterval(window.__autoSaveTimer)
