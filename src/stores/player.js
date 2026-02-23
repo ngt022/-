@@ -33,6 +33,10 @@ export const usePlayerStore = defineStore('player', {
     maxCultivation: 100, // 当前境界最大修为值
     spirit: 0, // 灵力值
     spiritRate: 1, // 灵力获取倍率
+    maxSpirit: 0, // 服务端下发焰灵上限
+    spiritRegenRate: 0, // 服务端下发恢复速率
+    cultivationCost: 0, // 服务端下发冥想消耗
+    cultivationGain: 0, // 服务端下发冥想收益
     _spiritRegenTimer: null, // 焰灵恢复定时器
     luck: 1, // 幸运值
     cultivationRate: 1, // 修炼速率
@@ -265,11 +269,11 @@ export const usePlayerStore = defineStore('player', {
     },
     // 焰灵上限
     getMaxSpirit() {
-      return 200 + this.level * 100
+      return this.maxSpirit || (200 + this.level * 100)
     },
     // 焰灵每秒恢复量
     getSpiritRegen() {
-      return 2 + this.level * 0.5
+      return this.spiritRegenRate || (2 + this.level * 0.5)
     },
     // 启动焰灵自然恢复
     startSpiritRegen() {
@@ -297,12 +301,12 @@ export const usePlayerStore = defineStore('player', {
           this._autoCultTimer = null
           return
         }
-        const cost = 5 + this.level * 3
+        const cost = this.cultivationCost || (5 + this.level * 3)
         if (this.spirit < cost) {
           this.stopAutoCultivation()
           return
         }
-        const gain = Math.max(1, Math.floor(this.level * 2))
+        const gain = this.cultivationGain || Math.max(1, Math.floor(this.level * 2))
         this.spirit -= cost
         this.cultivate(gain)
       }, 1000)

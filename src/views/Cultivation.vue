@@ -90,14 +90,14 @@ const playerStore = usePlayerStore()
   const autoGainInterval = 1000 // 自动获取焰灵的间隔（毫秒）
   const extraCultivationChance = 0.3 // 获得额外修为的基础概率
 
-  // 计算当前境界的修炼消耗（与player.js统一）
+  // 计算当前境界的修炼消耗（服务端下发优先）
   const getCurrentCultivationCost = () => {
-    return 5 + playerStore.level * 3
+    return playerStore.cultivationCost || (5 + playerStore.level * 3)
   }
 
-  // 计算当前境界的修炼获得
+  // 计算当前境界的修炼获得（服务端下发优先）
   const getCurrentCultivationGain = () => {
-    return Math.max(1, Math.floor(baseCultivationGain * playerStore.level * 2))
+    return playerStore.cultivationGain || Math.max(1, Math.floor(baseCultivationGain * playerStore.level * 2))
   }
 
   // 计算当前修炼消耗（作为计算属性）
