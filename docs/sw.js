@@ -1,4 +1,4 @@
-const CACHE_NAME = 'huozhiwenming-v20260223111825'
+const CACHE_NAME = 'huozhiwenming-v20260223112154'
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -47,19 +47,8 @@ self.addEventListener('fetch', e => {
     return
   }
   
-  // JS/CSS：网络优先，缓存兜底
-  if (/\.(js|css)$/.test(url.pathname)) {
-    e.respondWith(
-      fetch(e.request).then(resp => {
-        if (resp.ok) {
-          const clone = resp.clone()
-          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone))
-        }
-        return resp
-      }).catch(() => caches.match(e.request))
-    )
-    return
-  }
+  // JS/CSS：纯网络，不缓存（文件名自带hash，浏览器缓存即可）
+  if (/\.(js|css)$/.test(url.pathname)) return
   
   // HTML：网络优先
   e.respondWith(
