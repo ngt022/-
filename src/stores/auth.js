@@ -103,7 +103,21 @@ export const useAuthStore = defineStore('auth', {
 
     async saveToCloud(playerStore) {
       if (!this.isLoggedIn) return
-      const gameData = playerStore.$state
+      // 排除后端权威字段，防止前端初始值覆盖DB
+      const gameData = { ...playerStore.$state }
+      delete gameData.spirit
+      delete gameData.cultivation
+      delete gameData.level
+      delete gameData.realm
+      delete gameData.maxCultivation
+      delete gameData.maxSpirit
+      delete gameData.spiritRegenRate
+      delete gameData.cultivationCost
+      delete gameData.cultivationGain
+      delete gameData.lastTickTime
+      delete gameData._spiritRegenTimer
+      delete gameData._autoCultTimer
+      delete gameData._syncTimer
       const result = await this.apiPost('/game/save', {
         gameData,
         combatPower: (typeof playerStore.getCombatPower === 'function' ? playerStore.getCombatPower() : 0),
