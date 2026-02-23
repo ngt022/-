@@ -84,13 +84,18 @@ async function sendReport(data) {
   } catch { return { success: false } }
 }
 
-function handleError(msg, source, line, col, err) {
-  const key = String(msg) + (source || '')
+function handleError(event) {
+  const msg = event.message || event.error?.message || String(event)
+  const source = event.filename || ''
+  const line = event.lineno || 0
+  const col = event.colno || 0
+  const err = event.error
+  const key = msg + source
   const now = Date.now()
   if (recentErrors.has(key) && now - recentErrors.get(key) < DEDUP_MS) return
   recentErrors.set(key, now)
   autoError.value = {
-    message: String(msg),
+    message: msg,
     stack: err?.stack || `${source}:${line}:${col}`,
   }
 }
