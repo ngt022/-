@@ -421,11 +421,26 @@ import { useGameConfigStore } from './stores/gameConfig'
   })
 
   // 页面关闭/切后台时紧急存档（sendBeacon）
+  // spirit/cultivation/level/realm 由后端管理，不在此发送
   const emergencySave = () => {
     playerStore.updateOnlineTime()
-    // 云端数据未加载完时不存档，防止初始值覆盖DB
     if (authStore.isLoggedIn && window.__cloudLoaded) {
-      const gameData = playerStore.$state
+      // 只发非权威字段（装备、背包等前端管理的数据）
+      const gameData = { ...playerStore.$state }
+      // 删除后端权威字段，防止覆盖
+      delete gameData.spirit
+      delete gameData.cultivation
+      delete gameData.level
+      delete gameData.realm
+      delete gameData.maxCultivation
+      delete gameData.maxSpirit
+      delete gameData.spiritRegenRate
+      delete gameData.cultivationCost
+      delete gameData.cultivationGain
+      delete gameData.lastTickTime
+      delete gameData._spiritRegenTimer
+      delete gameData._autoCultTimer
+      delete gameData._syncTimer
       const body = JSON.stringify({
         gameData,
         combatPower: (typeof playerStore.getCombatPower === 'function' ? playerStore.getCombatPower() : 0),

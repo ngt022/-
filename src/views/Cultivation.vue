@@ -158,23 +158,47 @@ const playerStore = usePlayerStore()
     }
     if (data.type === 'success') {
       const { spiritCost, cultivationGain, doubleGainTimes } = data.result
-      // 扣除焰灵
-      playerStore.spirit -= spiritCost
-      // 增加修为
-      await playerStore.cultivate(cultivationGain)
-      if (doubleGainTimes > 0) {
-        showMessage('success', `福缘不错，获得${doubleGainTimes}次双倍焰力！`)
-      }
-      // 尝试突破
-      if (canBreakthrough()) {
-        const broke = await playerStore.tryBreakthrough()
-        if (broke) {
-          showMessage('success', `突破成功！恭喜进入${playerStore.realm}！`)
-        } else {
-          showMessage('info', '已达到突破条件，但突破失败，请继续努力！')
+      const token = localStorage.getItem('xx_token')
+      if (token) {
+        // 已登录：走后端批量冥想
+        try {
+          const times = Math.ceil(spiritCost / (playerStore.cultivationCost || 1))
+          const res = await fetch('/api/game/cultivate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ times: Math.min(times, 100) })
+          })
+          if (res.ok) {
+            const d = await res.json()
+            playerStore.spirit = d.spirit
+            playerStore.cultivation = d.cultivation
+            playerStore.level = d.level
+            playerStore.realm = d.realm
+            playerStore.maxCultivation = d.maxCultivation
+            if (d.broke) {
+              showMessage('success', `突破成功！恭喜进入${playerStore.realm}！`)
+            } else {
+              showMessage('success', `冥想${d.actualTimes}次成功！`)
+            }
+          }
+        } catch (e) {
+          showMessage('error', '冥想失败：' + e.message)
         }
       } else {
-        showMessage('success', '冥想成功！')
+        // 未登录：本地计算
+        playerStore.spirit -= spiritCost
+        await playerStore.cultivate(cultivationGain)
+        if (doubleGainTimes > 0) {
+          showMessage('success', `福缘不错，获得${doubleGainTimes}次双倍焰力！`)
+        }
+        if (canBreakthrough()) {
+          const broke = await playerStore.tryBreakthrough()
+          if (broke) {
+            showMessage('success', `突破成功！恭喜进入${playerStore.realm}！`)
+          }
+        } else {
+          showMessage('success', '冥想成功！')
+        }
       }
     }
   }
@@ -214,18 +238,21 @@ const playerStore = usePlayerStore()
   const cultivate = async () => {
     try {
       const currentCost = getCurrentCultivationCost()
-      if (playerStore.spirit >= currentCost) {
-        const oldRealm = playerStore.realm
-        playerStore.spirit -= currentCost
-        await playerStore.cultivate(calculateCultivationGain())
-        // 检查是否发生突破
-        if (playerStore.realm !== oldRealm) {
-          showMessage('success', `突破成功！恭喜进入${playerStore.realm}！`)
-        } else {
-          showMessage('success', '冥想成功！')
-        }
-      } else {
+      if (playerStore.spirit < currentCost) {
         showMessage('error', '焰灵不足！')
+        return
+      }
+      const oldRealm = playerStore.realm
+      // 本地预测扣除（展示用）
+      playerStore.spirit -= currentCost
+      // 调后端 API 执行冥想
+      const result = await playerStore.cultivate(currentCost)
+      if (result && result.broke) {
+        showMessage('success', `突破成功！恭喜进入${playerStore.realm}！`)
+      } else if (playerStore.realm !== oldRealm) {
+        showMessage('success', `突破成功！恭喜进入${playerStore.realm}！`)
+      } else {
+        showMessage('success', '冥想成功！')
       }
     } catch (error) {
       console.error('修炼出错：', error)

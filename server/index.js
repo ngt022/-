@@ -284,7 +284,7 @@ app.post('/api/game/save', auth, async (req, res) => {
       logger.info('[SAVE] spirit protected: frontend sent ' + newSpiritCheck + ' DB had ' + dbSpiritCheck);
     }
 
-    logger.info('[SAVE]', req.user.wallet.slice(-6), 'reqLv:', level, 'dbLv:', oldLevel, 'mergedLv:', mergedData.level, 'reqSpirit:', gameData?.spirit, 'dbSpirit:', dbGameData?.spirit, 'mergedSpirit:', mergedData.spirit, 'reqRealm:', realm, 'mergedRealm:', mergedData.realm);
+    logger.info(`[SAVE] ${req.user.wallet.slice(-6)} reqSpirit:${gameData?.spirit} dbSpirit:${dbGameData?.spirit} mergedSpirit:${mergedData.spirit} reqLv:${level} dbLv:${oldLevel} mergedLv:${mergedData.level}`);
     await pool.query(
       `UPDATE players SET game_data = $1, combat_power = $2, level = $3, realm = $4, 
        spirit_stones = $5, name = $6, state_version = state_version + 1, updated_at = NOW() WHERE wallet = $7`,
@@ -668,6 +668,56 @@ app.get('/api/recharge/history', auth, async (req, res) => {
   }
 });
 
+
+// ============================================================
+// 云端权威计算引擎 — spirit / cultivation / breakthrough
+// ============================================================
+function calcSpiritState(gd, level, now) {
+  const lv = level || 1;
+  const maxSpirit = 200 + lv * 100;
+  const regenRate = 2 + lv * 0.5;           // 每秒恢复
+  const cultCost = 5 + lv * 3;              // 冥想消耗
+  const cultGain = Math.max(1, Math.floor(lv * 2)); // 冥想获得
+
+  let spirit = Number(gd.spirit) || 0;
+  const lastTick = Number(gd.lastTickTime) || now;
+  const elapsed = Math.max(0, (now - lastTick) / 1000); // 秒
+
+  // 自动恢复（非冥想状态）
+  if (!gd.isAutoCultivating) {
+    spirit = Math.min(maxSpirit, spirit + elapsed * regenRate);
+  }
+
+  return { spirit, maxSpirit, regenRate, cultCost, cultGain, lastTick, elapsed };
+}
+
+// 执行一次冥想（后端权威）
+function doServerCultivate(gd, level, times = 1) {
+  const now = Date.now();
+  const st = calcSpiritState(gd, level, now);
+  let spirit = st.spirit;
+  let cultivation = Number(gd.cultivation) || 0;
+  let actualTimes = 0;
+
+  for (let i = 0; i < times; i++) {
+    if (spirit < st.cultCost) break;
+    spirit -= st.cultCost;
+    cultivation += st.cultGain;
+    actualTimes++;
+  }
+
+  return {
+    spirit: Math.max(0, spirit),
+    cultivation,
+    maxSpirit: st.maxSpirit,
+    regenRate: st.regenRate,
+    cultCost: st.cultCost,
+    cultGain: st.cultGain,
+    actualTimes,
+    lastTickTime: now
+  };
+}
+
 function sanitizePlayer(p) {
   // Recalc derived stats from equipment before sending to frontend
   if (!p.game_data || typeof p.game_data !== 'object') p.game_data = {};
@@ -678,10 +728,15 @@ function sanitizePlayer(p) {
   const lv = p.level || p.game_data.level || 1;
   p.game_data.level = lv;
   p.game_data.realm = p.realm || p.game_data.realm || '燃火一重';
-  p.game_data.maxSpirit = 200 + lv * 100;
-  p.game_data.spiritRegenRate = 2 + lv * 0.5;
-  p.game_data.cultivationCost = 5 + lv * 3;
-  p.game_data.cultivationGain = Math.max(1, Math.floor(lv * 2));
+  // 用云端引擎计算 spirit（基于时间差自动补发）
+  const now = Date.now();
+  const st = calcSpiritState(p.game_data, lv, now);
+  p.game_data.spirit = st.spirit;
+  p.game_data.maxSpirit = st.maxSpirit;
+  p.game_data.spiritRegenRate = st.regenRate;
+  p.game_data.cultivationCost = st.cultCost;
+  p.game_data.cultivationGain = st.cultGain;
+  p.game_data.lastTickTime = now;
   return {
     id: p.id, wallet: p.wallet, name: p.name, gameData: p.game_data,
     vipLevel: p.vip_level, totalRecharge: p.total_recharge,
@@ -691,6 +746,188 @@ function sanitizePlayer(p) {
     dailySignDate: p.daily_sign_date ? (p.daily_sign_date instanceof Date ? p.daily_sign_date.toISOString().split("T")[0] : String(p.daily_sign_date).split("T")[0]) : null, dailySignStreak: p.daily_sign_streak
   };
 }
+
+
+// === 心跳同步 API（前端每10秒调一次）===
+app.post('/api/game/tick', auth, async (req, res) => {
+  try {
+    const w = req.user.wallet;
+    const p = await pool.query('SELECT level, realm, game_data FROM players WHERE wallet = $1', [w]);
+    if (!p.rows.length) return res.status(404).json({ error: '玩家不存在' });
+
+    const row = p.rows[0];
+    const gd = typeof row.game_data === 'string' ? JSON.parse(row.game_data) : (row.game_data || {});
+    const lv = row.level || gd.level || 1;
+    const now = Date.now();
+    const st = calcSpiritState(gd, lv, now);
+
+    // 更新 DB
+    gd.spirit = st.spirit;
+    gd.lastTickTime = now;
+    await pool.query('UPDATE players SET game_data = $1, updated_at = NOW() WHERE wallet = $2',
+      [JSON.stringify(gd), w]);
+
+    res.json({
+      spirit: st.spirit,
+      maxSpirit: st.maxSpirit,
+      regenRate: st.regenRate,
+      cultivation: Number(gd.cultivation) || 0,
+      maxCultivation: Number(gd.maxCultivation) || 100,
+      level: lv,
+      realm: row.realm || gd.realm,
+      cultCost: st.cultCost,
+      cultGain: st.cultGain,
+      isAutoCultivating: !!gd.isAutoCultivating,
+      serverTime: now
+    });
+  } catch (e) {
+    logger.error('[TICK]', e.message);
+    res.status(500).json({ error: safeError(e) });
+  }
+});
+
+// === 冥想 API（单次/多次/持续）===
+app.post('/api/game/cultivate', auth, async (req, res) => {
+  try {
+    const w = req.user.wallet;
+    const { times = 1, mode = 'single' } = req.body || {};
+    // mode: 'single' = 点一次, 'auto_start' = 开始自动冥想, 'auto_stop' = 停止自动冥想
+
+    const p = await pool.query('SELECT level, realm, game_data, spirit_stones FROM players WHERE wallet = $1', [w]);
+    if (!p.rows.length) return res.status(404).json({ error: '玩家不存在' });
+
+    const row = p.rows[0];
+    const gd = typeof row.game_data === 'string' ? JSON.parse(row.game_data) : (row.game_data || {});
+    const lv = row.level || gd.level || 1;
+
+    if (mode === 'auto_start') {
+      gd.isAutoCultivating = true;
+      gd.lastTickTime = Date.now();
+      await pool.query('UPDATE players SET game_data = $1, updated_at = NOW() WHERE wallet = $2',
+        [JSON.stringify(gd), w]);
+      return res.json({ success: true, isAutoCultivating: true });
+    }
+
+    if (mode === 'auto_stop') {
+      // 停止前先结算：计算自动冥想期间的收益
+      const now = Date.now();
+      const lastTick = Number(gd.lastTickTime) || now;
+      const elapsed = Math.max(0, (now - lastTick) / 1000);
+      const cultCost = 5 + lv * 3;
+      const cultGain = Math.max(1, Math.floor(lv * 2));
+      // 自动冥想期间每秒尝试一次冥想
+      const autoTimes = Math.floor(elapsed);
+      let spirit = Number(gd.spirit) || 0;
+      let cultivation = Number(gd.cultivation) || 0;
+      let actualTimes = 0;
+      for (let i = 0; i < autoTimes; i++) {
+        if (spirit < cultCost) break;
+        spirit -= cultCost;
+        cultivation += cultGain;
+        actualTimes++;
+      }
+      gd.spirit = Math.max(0, spirit);
+      gd.cultivation = cultivation;
+      gd.isAutoCultivating = false;
+      gd.lastTickTime = now;
+
+      // 检查突破
+      let broke = false;
+      let newLevel = lv;
+      let newRealm = row.realm;
+      let newMaxCult = Number(gd.maxCultivation) || 100;
+      if (cultivation >= newMaxCult) {
+        try {
+          const cfgRes = await fetch('http://127.0.0.1:' + (process.env.PORT || 3017) + '/api/game/config').then(r => r.json());
+          const realms = cfgRes.realms;
+          const nextIdx = realms.findIndex(r => r.level === lv + 1);
+          if (nextIdx >= 0) {
+            newLevel = lv + 1;
+            newRealm = realms[nextIdx].name;
+            newMaxCult = realms[nextIdx].maxCultivation;
+            gd.cultivation = 0;
+            gd.maxCultivation = newMaxCult;
+            broke = true;
+            await pool.query('UPDATE players SET level = $1, realm = $2, game_data = $3, updated_at = NOW() WHERE wallet = $4',
+              [newLevel, newRealm, JSON.stringify(gd), w]);
+          }
+        } catch (e) { logger.error('[CULTIVATE] breakthrough check failed', e.message); }
+      }
+      if (!broke) {
+        await pool.query('UPDATE players SET game_data = $1, updated_at = NOW() WHERE wallet = $2',
+          [JSON.stringify(gd), w]);
+      }
+
+      return res.json({
+        success: true,
+        isAutoCultivating: false,
+        spirit: gd.spirit,
+        cultivation: gd.cultivation,
+        level: newLevel,
+        realm: newRealm,
+        maxCultivation: newMaxCult,
+        actualTimes,
+        broke,
+        serverTime: Date.now()
+      });
+    }
+
+    // 单次/多次冥想
+    const result = doServerCultivate(gd, lv, Math.min(times, 100));
+    gd.spirit = result.spirit;
+    gd.cultivation = result.cultivation;
+    gd.lastTickTime = result.lastTickTime;
+
+    // 检查突破
+    let broke = false;
+    let newLevel = lv;
+    let newRealm = row.realm;
+    let newMaxCult = Number(gd.maxCultivation) || 100;
+    if (result.cultivation >= newMaxCult) {
+      try {
+        const cfgRes = await fetch('http://127.0.0.1:' + (process.env.PORT || 3017) + '/api/game/config').then(r => r.json());
+        const realms = cfgRes.realms;
+        const nextIdx = realms.findIndex(r => r.level === lv + 1);
+        if (nextIdx >= 0) {
+          newLevel = lv + 1;
+          newRealm = realms[nextIdx].name;
+          newMaxCult = realms[nextIdx].maxCultivation;
+          gd.cultivation = 0;
+          gd.maxCultivation = newMaxCult;
+          broke = true;
+          await pool.query('UPDATE players SET level = $1, realm = $2, game_data = $3, updated_at = NOW() WHERE wallet = $4',
+            [newLevel, newRealm, JSON.stringify(gd), w]);
+          if (app.locals.broadcastEvent) {
+            const playerName = row.name || gd.name || '无名焰修';
+            app.locals.broadcastEvent(`\u26A1 ${playerName} 突破至 ${newRealm}！`, "breakthrough");
+          }
+        }
+      } catch (e) { logger.error('[CULTIVATE] breakthrough check failed', e.message); }
+    }
+    if (!broke) {
+      await pool.query('UPDATE players SET game_data = $1, updated_at = NOW() WHERE wallet = $2',
+        [JSON.stringify(gd), w]);
+    }
+
+    res.json({
+      success: true,
+      spirit: gd.spirit,
+      maxSpirit: result.maxSpirit,
+      cultivation: gd.cultivation,
+      maxCultivation: newMaxCult,
+      level: newLevel,
+      realm: newRealm,
+      cultCost: result.cultCost,
+      cultGain: result.cultGain,
+      actualTimes: result.actualTimes,
+      broke,
+      serverTime: Date.now()
+    });
+  } catch (e) {
+    logger.error('[CULTIVATE]', e.message);
+    res.status(500).json({ error: safeError(e) });
+  }
+});
 
 // === 突破 API ===
 app.post('/api/game/breakthrough', auth, async (req, res) => {

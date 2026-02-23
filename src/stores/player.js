@@ -261,11 +261,33 @@ export const usePlayerStore = defineStore('player', {
     },
   },
   actions: {
-    stopAutoCultivation() {
+    async stopAutoCultivation() {
       this.isAutoCultivating = false
       if (this._autoCultTimer) {
         clearInterval(this._autoCultTimer)
         this._autoCultTimer = null
+      }
+      // 已登录：通知后端结算自动冥想
+      const token = localStorage.getItem('xx_token')
+      if (token) {
+        try {
+          const res = await fetch('/api/game/cultivate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ mode: 'auto_stop' })
+          })
+          if (res.ok) {
+            const data = await res.json()
+            this.spirit = data.spirit
+            this.cultivation = data.cultivation
+            this.level = data.level
+            this.realm = data.realm
+            this.maxCultivation = data.maxCultivation
+            if (data.broke) {
+              this.breakthroughCount = (this.breakthroughCount || 0) + 1
+            }
+          }
+        } catch (e) { console.warn('[CULTIVATE] auto_stop failed:', e.message) }
       }
     },
     // 焰灵上限
@@ -278,26 +300,73 @@ export const usePlayerStore = defineStore('player', {
       const cfg = useGameConfigStore()
       return cfg.loaded ? cfg.getSpiritRegen(this.level) : (this.spiritRegenRate || (2 + this.level * 0.5))
     },
-    // 启动焰灵自然恢复
+    // 启动焰灵展示层（本地预测 + 后端同步）
     startSpiritRegen() {
       if (this._spiritRegenTimer) return
+      // 本地预测：每秒更新展示值
       this._spiritRegenTimer = setInterval(() => {
-        if (this.isAutoCultivating) return // 冥想中不恢复
+        if (this.isAutoCultivating) return
         const max = this.getMaxSpirit()
         if (this.spirit < max) {
           this.spirit = Math.min(max, this.spirit + this.getSpiritRegen())
         }
       }, 1000)
+      // 后端同步：每10秒从服务端获取权威值校正
+      this._syncTimer = setInterval(() => {
+        this.syncFromServer()
+      }, 10000)
     },
     stopSpiritRegen() {
       if (this._spiritRegenTimer) {
         clearInterval(this._spiritRegenTimer)
         this._spiritRegenTimer = null
       }
+      if (this._syncTimer) {
+        clearInterval(this._syncTimer)
+        this._syncTimer = null
+      }
     },
-    startAutoCultivation() {
+    // 从后端同步权威数据
+    async syncFromServer() {
+      const token = localStorage.getItem('xx_token')
+      if (!token) return
+      try {
+        const res = await fetch('/api/game/tick', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }
+        })
+        if (!res.ok) return
+        const data = await res.json()
+        // 用服务端权威值校正本地展示
+        this.spirit = data.spirit
+        this.maxSpirit = data.maxSpirit
+        this.spiritRegenRate = data.regenRate
+        this.cultivation = data.cultivation
+        this.maxCultivation = data.maxCultivation
+        this.level = data.level
+        this.realm = data.realm
+        this.cultivationCost = data.cultCost
+        this.cultivationGain = data.cultGain
+        this.isAutoCultivating = data.isAutoCultivating
+      } catch (e) {
+        console.warn('[SYNC] tick failed:', e.message)
+      }
+    },
+    async startAutoCultivation() {
       if (this.isAutoCultivating) return
+      const token = localStorage.getItem('xx_token')
+      if (token) {
+        // 已登录：通知后端开始自动冥想
+        try {
+          await fetch('/api/game/cultivate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ mode: 'auto_start' })
+          })
+        } catch (e) { console.warn('[CULTIVATE] auto_start failed:', e.message) }
+      }
       this.isAutoCultivating = true
+      // 本地展示预测：每秒扣spirit加cultivation
       this._autoCultTimer = setInterval(() => {
         if (!this.isAutoCultivating) {
           clearInterval(this._autoCultTimer)
@@ -311,7 +380,7 @@ export const usePlayerStore = defineStore('player', {
         }
         const gain = useGameConfigStore().getCultivationGain(this.level)
         this.spirit -= cost
-        this.cultivate(gain)
+        this.cultivation += gain
       }, 1000)
     },
     toggleAutoCultivation() {
@@ -510,11 +579,38 @@ export const usePlayerStore = defineStore('player', {
     },
     // 修炼增加修为
     async cultivate(amount) {
-      // 确保amount是数字类型
+      const token = localStorage.getItem('xx_token')
+      if (token) {
+        // 已登录：走后端冥想 API
+        try {
+          const res = await fetch('/api/game/cultivate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ times: 1 })
+          })
+          if (res.ok) {
+            const data = await res.json()
+            this.spirit = data.spirit
+            this.maxSpirit = data.maxSpirit
+            this.cultivation = data.cultivation
+            this.maxCultivation = data.maxCultivation
+            this.level = data.level
+            this.realm = data.realm
+            this.cultivationCost = data.cultCost
+            this.cultivationGain = data.cultGain
+            this.totalCultivationTime += data.actualTimes
+            if (data.broke) {
+              this.breakthroughCount = (this.breakthroughCount || 0) + 1
+            }
+            return data
+          }
+        } catch (e) { console.warn('[CULTIVATE] failed:', e.message) }
+      }
+      // 未登录：本地计算
       const numAmount = Number(String(amount).replace(/[^0-9.-]/g, '')) || 0
       this.cultivation = Number(String(this.cultivation).replace(/[^0-9.-]/g, '')) || 0
       this.cultivation += numAmount
-      this.totalCultivationTime += 1 // 增加修炼时间统计
+      this.totalCultivationTime += 1
       if (this.cultivation >= this.maxCultivation) {
         await this.tryBreakthrough()
       }
