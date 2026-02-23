@@ -303,6 +303,8 @@ export const usePlayerStore = defineStore('player', {
     // 启动焰灵展示层（本地预测 + 后端同步）
     startSpiritRegen() {
       if (this._spiritRegenTimer) return
+      // 启动时立即同步一次，拿到离线恢复后的权威值
+      this.syncFromServer()
       // 本地预测：每秒更新展示值
       this._spiritRegenTimer = setInterval(() => {
         if (this.isAutoCultivating) return
