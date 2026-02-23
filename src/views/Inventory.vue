@@ -2,13 +2,14 @@
   <div class="storage-container">
     <game-guide>
       <p>🎒 共<strong>13个装备栏位</strong>：焰杖、头部、衣服、裤子、鞋子、肩甲、手套、护腕、焰心链、符文戒×2、腰带、焰器</p>
-      <p>🎨 6个品质：<strong>凡品→下品→中品→上品→极品→仙品</strong></p>
+      <p>🎨 6个品质：<strong>凡品→良品→优品→极品→仙品→神品</strong></p>
       <p>🔥 <strong>淬火</strong>：消耗淬火石强化装备，每级+10%属性，最高100级</p>
       <p>✨ <strong>铭符</strong>：消耗符文石重随机属性，±30%浮动，30%概率换属性</p>
       <p>⚡ 一键穿戴/卸下快速管理装备</p>
       <p>🐾 <strong>焰兽</strong>：出战获得全属性加成，消耗精华升级，同名同品质焰兽可升星</p>
       <p>🌿 <strong>焰草</strong>：焰炼材料，5个品质（普通→仙品），品质越高效果倍率越大</p>
       <p>💊 <strong>焰丹</strong>：服用获得临时buff，效果随境界提升</p>
+      <p>♻️ <strong>回收</strong>：所有物品可回收换焰晶，一键批量回收更方便</p>
     </game-guide>
     <!-- 顶部操作栏 -->
     <div class="storage-header">

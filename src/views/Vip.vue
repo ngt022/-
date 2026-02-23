@@ -4,7 +4,7 @@
           <p>👑 充值ROON提升<strong>VIP等级</strong>（共6级），享受各种特权</p>
           <p>⚡ VIP特权：冥想加速、抽卡折扣(最高7折)、额外掉落、离线收益加成</p>
           <p>📜 <strong>薪火令</strong>(月卡)：10 ROON/30天，每日领5000焰晶+冥想加速20%+免费抽卡1次</p>
-          <p>📅 <strong>每日燃火</strong>(签到)：连续7天递增焰晶奖励</p>
+          <p>📅 <strong>每日燃火</strong>(签到)：7天递增 500→700→1000→1500→2000→3000→5000 焰晶</p>
         </game-guide>
         <!-- 当前VIP -->
         <n-card v-if="authStore.isLoggedIn">

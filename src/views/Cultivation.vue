@@ -4,9 +4,9 @@
       <game-guide>
         <p>🧘 <strong>冥想</strong>消耗焰灵获得焰力，焰力达到上限后可<strong>突破焰阶</strong></p>
         <p>⬆️ 突破提升境界，解锁新地点和功能，共14大境界126级</p>
-        <p>⚡ <strong>焰修速率</strong>越高，每次冥想获得焰力越多</p>
-        <p>🎲 幸运值×30%概率获得<strong>双倍焰力</strong></p>
-        <p>🤖 <strong>一键冥想</strong>一次性消耗所有焰灵转化为焰力</p>
+        <p>⚡ 焰灵自动恢复，速率随等级提升（每秒 2+等级×0.5）</p>
+        <p>🔮 VIP/月卡/修炼加速卡可叠加冥想加成，最高2.7倍</p>
+        <p>🤖 <strong>一键冥想</strong>一次性消耗所有焰灵转化为焰力（服务端计算，防作弊）</p>
         <p>💤 离线最多累积<strong>12小时</strong>收益（焰力+焰晶+焰灵）</p>
       </game-guide>
       <n-alert type="info" show-icon>

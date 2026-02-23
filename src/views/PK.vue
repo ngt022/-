@@ -3,7 +3,7 @@
     <game-guide>
       <p>⚔️ 和其他在线玩家<strong>实时对战</strong></p>
       <p>🤖 自动回合制战斗，<strong>属性决定胜负</strong></p>
-      <p>🏆 胜利获得<strong>500焰晶</strong>奖励</p>
+      <p>🏆 胜利获得<strong>焰晶</strong>奖励，排行榜展示最强修士</p>
       <p>💡 提升装备、焰兽、焰丹buff来增强战力</p>
     </game-guide>
     <n-card>
