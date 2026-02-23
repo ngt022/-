@@ -1383,22 +1383,34 @@ app.get('/api/pk/history', auth, async (req, res) => {
   }
 });
 
-// PK 战绩统计
-app.get('/api/pk/stats', auth, async (req, res) => {
+
+// PK 排行榜
+app.get('/api/pk/rankings', auth, async (req, res) => {
   try {
-    const wallet = req.user.wallet.toLowerCase();
-    const total = await pool.query('SELECT COUNT(*) FROM pk_records WHERE wallet_a = $1 OR wallet_b = $1', [wallet]);
-    const wins = await pool.query('SELECT COUNT(*) FROM pk_records WHERE winner_wallet = $1', [wallet]);
-    const totalReward = await pool.query('SELECT COALESCE(SUM(reward), 0) as total FROM pk_records WHERE winner_wallet = $1', [wallet]);
-    res.json({
-      total: parseInt(total.rows[0].count),
-      wins: parseInt(wins.rows[0].count),
-      losses: parseInt(total.rows[0].count) - parseInt(wins.rows[0].count),
-      totalReward: parseInt(totalReward.rows[0].total)
-    });
-  } catch (e) {
-    res.status(500).json({ error: safeError(e) });
-  }
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const result = await pool.query(
+      "SELECT r.wallet, r.rank_score, r.rank_tier, r.wins, r.losses, r.win_streak, r.max_win_streak, p.name, p.level, p.realm FROM pk_rankings r JOIN players p ON p.wallet = r.wallet ORDER BY r.rank_score DESC LIMIT $1",
+      [limit]
+    );
+    const myRank = await pool.query(
+      "SELECT rank_score, rank_tier, wins, losses, draws, win_streak, max_win_streak, (SELECT count(*)+1 FROM pk_rankings WHERE rank_score > r.rank_score) as rank_pos FROM pk_rankings r WHERE wallet=$1",
+      [req.user.wallet]
+    );
+    res.json({ rankings: result.rows, myRanking: myRank.rows[0] || null });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/pk/my-stats', auth, async (req, res) => {
+  try {
+    const w = req.user.wallet;
+    await pool.query('INSERT INTO pk_rankings (wallet) VALUES ($1) ON CONFLICT DO NOTHING', [w]);
+    const ranking = await pool.query('SELECT * FROM pk_rankings WHERE wallet=$1', [w]);
+    const recent = await pool.query(
+      "SELECT name_a, name_b, winner, winner_wallet, reward, bet_amount, score_change_a, score_change_b, wallet_a, wallet_b, created_at FROM pk_records WHERE wallet_a=$1 OR wallet_b=$1 ORDER BY created_at DESC LIMIT 10",
+      [w]
+    );
+    res.json({ ranking: ranking.rows[0], recentMatches: recent.rows });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // === 公告系统 ===
@@ -1803,6 +1815,64 @@ function runPkBattle(statsA, statsB) {
   return { rounds, winner, finalHpA: Math.max(0, hpA), finalHpB: Math.max(0, hpB) };
 }
 
+// === 天梯排位积分计算 ===
+const RANK_TIERS = [
+  { name: 'bronze', min: 0 },
+  { name: 'silver', min: 1000 },
+  { name: 'gold', min: 2000 },
+  { name: 'diamond', min: 3000 },
+  { name: 'emperor', min: 4000 }
+];
+function getRankTier(score) {
+  for (let i = RANK_TIERS.length - 1; i >= 0; i--) {
+    if (score >= RANK_TIERS[i].min) return RANK_TIERS[i].name;
+  }
+  return 'bronze';
+}
+
+async function updateRankings(walletA, walletB, winner) {
+  try {
+    await pool.query('INSERT INTO pk_rankings (wallet) VALUES ($1) ON CONFLICT DO NOTHING', [walletA]);
+    await pool.query('INSERT INTO pk_rankings (wallet) VALUES ($1) ON CONFLICT DO NOTHING', [walletB]);
+    const rA = (await pool.query('SELECT rank_score, win_streak FROM pk_rankings WHERE wallet=$1', [walletA])).rows[0];
+    const rB = (await pool.query('SELECT rank_score, win_streak FROM pk_rankings WHERE wallet=$1', [walletB])).rows[0];
+    const diff = rB.rank_score - rA.rank_score;
+    const baseGain = 30;
+    if (winner === 'A') {
+      const bonus = Math.floor(Math.max(0, diff) / 100) * 5;
+      const streak = rA.win_streak >= 10 ? 20 : rA.win_streak >= 5 ? 10 : rA.win_streak >= 3 ? 5 : 0;
+      const gainA = Math.min(40, baseGain + bonus + streak);
+      const lossB = Math.min(30, Math.max(15, baseGain - bonus));
+      await pool.query('UPDATE pk_rankings SET rank_score=GREATEST(0,rank_score+$1), rank_tier=$2, wins=wins+1, win_streak=win_streak+1, max_win_streak=GREATEST(max_win_streak,win_streak+1), last_pk_at=NOW(), updated_at=NOW() WHERE wallet=$3', [gainA, getRankTier(rA.rank_score+gainA), walletA]);
+      await pool.query('UPDATE pk_rankings SET rank_score=GREATEST(0,rank_score-$1), rank_tier=$2, losses=losses+1, win_streak=0, last_pk_at=NOW(), updated_at=NOW() WHERE wallet=$3', [lossB, getRankTier(Math.max(0,rB.rank_score-lossB)), walletB]);
+      return { scoreChangeA: gainA, scoreChangeB: -lossB };
+    } else if (winner === 'B') {
+      const bonus = Math.floor(Math.max(0, -diff) / 100) * 5;
+      const streak = rB.win_streak >= 10 ? 20 : rB.win_streak >= 5 ? 10 : rB.win_streak >= 3 ? 5 : 0;
+      const gainB = Math.min(40, baseGain + bonus + streak);
+      const lossA = Math.min(30, Math.max(15, baseGain - bonus));
+      await pool.query('UPDATE pk_rankings SET rank_score=GREATEST(0,rank_score+$1), rank_tier=$2, wins=wins+1, win_streak=win_streak+1, max_win_streak=GREATEST(max_win_streak,win_streak+1), last_pk_at=NOW(), updated_at=NOW() WHERE wallet=$3', [gainB, getRankTier(rB.rank_score+gainB), walletB]);
+      await pool.query('UPDATE pk_rankings SET rank_score=GREATEST(0,rank_score-$1), rank_tier=$2, losses=losses+1, win_streak=0, last_pk_at=NOW(), updated_at=NOW() WHERE wallet=$3', [lossA, getRankTier(Math.max(0,rA.rank_score-lossA)), walletA]);
+      return { scoreChangeA: -lossA, scoreChangeB: gainB };
+    } else {
+      await pool.query('UPDATE pk_rankings SET draws=draws+1, win_streak=0, last_pk_at=NOW(), updated_at=NOW() WHERE wallet=$1', [walletA]);
+      await pool.query('UPDATE pk_rankings SET draws=draws+1, win_streak=0, last_pk_at=NOW(), updated_at=NOW() WHERE wallet=$1', [walletB]);
+      return { scoreChangeA: 0, scoreChangeB: 0 };
+    }
+  } catch(e) { logger.error('[RANKINGS]', e.message); return { scoreChangeA: 0, scoreChangeB: 0 }; }
+}
+
+const BET_OPTIONS = [0, 100, 500, 1000, 5000];
+const BET_TAX_RATE = 0.1;
+
+// 赌注冻结辅助函数
+async function freezeBet(wallet, amount) {
+  await pool.query("UPDATE players SET spirit_stones = spirit_stones - $1, game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::bigint,0) - $1)::bigint)) WHERE wallet=$2", [amount, wallet]);
+}
+async function unfreezeOrAwardBet(wallet, amount) {
+  await pool.query("UPDATE players SET spirit_stones = spirit_stones + $1, game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::bigint,0) + $1)::bigint)) WHERE wallet=$2", [amount, wallet]);
+}
+
 function broadcast(data) {
   const msg = JSON.stringify(data);
   wss.clients.forEach(c => { try { if (c.readyState === 1) c.send(msg); } catch(e) {} });
@@ -1943,23 +2013,59 @@ wss.on('connection', (ws, req) => {
         const targetWs = getWsByWallet(data.targetWallet);
         if (!targetWs) return ws.send(JSON.stringify({ type: 'pk_error', msg: '对方已离线' }));
 
+        // 处理赌注
+        const betAmount = data.betAmount || 0;
+        if (betAmount > 0) {
+          const player = await pool.query('SELECT spirit_stones, game_data FROM players WHERE wallet=$1', [userInfo.wallet]);
+          if (!player.rows.length) return ws.send(JSON.stringify({ type: 'pk_error', msg: '玩家数据错误' }));
+          const gd = typeof player.rows[0].game_data === 'string' ? JSON.parse(player.rows[0].game_data) : player.rows[0].game_data;
+          const stones = gd?.spiritStones ?? player.rows[0].spirit_stones ?? 0;
+          if (stones < betAmount) {
+            return ws.send(JSON.stringify({ type: 'pk_error', msg: `焰晶不足，需要${betAmount}焰晶` }));
+          }
+          // 冻结赌注
+          const newStones = stones - betAmount;
+          gd.spiritStones = newStones;
+          await pool.query('UPDATE players SET game_data=$1, spirit_stones=$2 WHERE wallet=$3',
+            [JSON.stringify(gd), newStones, userInfo.wallet]);
+        }
+
         const challengeId = ++pkIdCounter;
         pkChallenges.set(challengeId, {
           from: userInfo.wallet, to: data.targetWallet,
           fromName: userInfo.name, toName: onlineClients.get(targetWs)?.name || '无名焰修',
-          fromStats: userInfo.stats || {}, timestamp: now
+          fromStats: userInfo.stats || {}, timestamp: now, betAmount: betAmount
         });
-        // 30秒后自动过期
-        setTimeout(() => pkChallenges.delete(challengeId), 30000);
+        // 30秒后自动过期，退还赌注
+        setTimeout(async () => {
+          const ch = pkChallenges.get(challengeId);
+          if (ch && ch.betAmount > 0) {
+            // 退还挑战者赌注
+            try {
+              const player = await pool.query('SELECT spirit_stones, game_data FROM players WHERE wallet=$1', [ch.from]);
+              if (player.rows.length) {
+                const gd = typeof player.rows[0].game_data === 'string' ? JSON.parse(player.rows[0].game_data) : player.rows[0].game_data;
+                const newStones = (gd?.spiritStones ?? player.rows[0].spirit_stones ?? 0) + ch.betAmount;
+                gd.spiritStones = newStones;
+                await pool.query('UPDATE players SET game_data=$1, spirit_stones=$2 WHERE wallet=$3',
+                  [JSON.stringify(gd), newStones, ch.from]);
+                const fromWs = getWsByWallet(ch.from);
+                if (fromWs) fromWs.send(JSON.stringify({ type: 'pk_bet_refund', amount: ch.betAmount }));
+              }
+            } catch (e) { logger.error('Bet refund error:', e.message); }
+          }
+          pkChallenges.delete(challengeId);
+        }, 30000);
 
         targetWs.send(JSON.stringify({
           type: 'pk_challenged', challengeId,
           from: userInfo.wallet.slice(0, 6) + '...' + userInfo.wallet.slice(-4),
           fromName: userInfo.name,
           fromLevel: userInfo.level || 1,
-          fromCombatPower: userInfo.combatPower || 0
+          fromCombatPower: userInfo.combatPower || 0,
+          betAmount: betAmount
         }));
-        ws.send(JSON.stringify({ type: 'pk_challenge_sent', challengeId }));
+        ws.send(JSON.stringify({ type: 'pk_challenge_sent', challengeId, betAmount }));
       }
 
       // 接受挑战
@@ -1972,7 +2078,60 @@ wss.on('connection', (ws, req) => {
         pkChallenges.delete(data.challengeId);
 
         const fromWs = getWsByWallet(challenge.from);
-        if (!fromWs) return ws.send(JSON.stringify({ type: 'pk_error', msg: '挑战者已离线' }));
+        if (!fromWs) {
+          // 退还赌注
+          if (challenge.betAmount > 0) {
+            try {
+              const player = await pool.query('SELECT spirit_stones, game_data FROM players WHERE wallet=$1', [challenge.from]);
+              if (player.rows.length) {
+                const gd = typeof player.rows[0].game_data === 'string' ? JSON.parse(player.rows[0].game_data) : player.rows[0].game_data;
+                const newStones = (gd?.spiritStones ?? player.rows[0].spirit_stones ?? 0) + challenge.betAmount;
+                gd.spiritStones = newStones;
+                await pool.query('UPDATE players SET game_data=$1, spirit_stones=$2 WHERE wallet=$3',
+                  [JSON.stringify(gd), newStones, challenge.from]);
+              }
+            } catch (e) { logger.error('Bet refund error:', e.message); }
+          }
+          return ws.send(JSON.stringify({ type: 'pk_error', msg: '挑战者已离线' }));
+        }
+
+        // 检查并冻结被挑战者的赌注
+        if (challenge.betAmount > 0) {
+          const player = await pool.query('SELECT spirit_stones, game_data FROM players WHERE wallet=$1', [userInfo.wallet]);
+          if (!player.rows.length) {
+            // 退还挑战者赌注
+            try {
+              const gd = typeof player.rows[0].game_data === 'string' ? JSON.parse(player.rows[0].game_data) : player.rows[0].game_data;
+              const newStones = (gd?.spiritStones ?? player.rows[0].spirit_stones ?? 0) + challenge.betAmount;
+              gd.spiritStones = newStones;
+              await pool.query('UPDATE players SET game_data=$1, spirit_stones=$2 WHERE wallet=$3',
+                [JSON.stringify(gd), newStones, challenge.from]);
+            } catch (e) { logger.error('Bet refund error:', e.message); }
+            return ws.send(JSON.stringify({ type: 'pk_error', msg: '玩家数据错误' }));
+          }
+          const gd = typeof player.rows[0].game_data === 'string' ? JSON.parse(player.rows[0].game_data) : player.rows[0].game_data;
+          const stones = gd?.spiritStones ?? player.rows[0].spirit_stones ?? 0;
+          if (stones < challenge.betAmount) {
+            // 退还挑战者赌注
+            try {
+              const chPlayer = await pool.query('SELECT spirit_stones, game_data FROM players WHERE wallet=$1', [challenge.from]);
+              if (chPlayer.rows.length) {
+                const chGd = typeof chPlayer.rows[0].game_data === 'string' ? JSON.parse(chPlayer.rows[0].game_data) : chPlayer.rows[0].game_data;
+                const newStones = (chGd?.spiritStones ?? chPlayer.rows[0].spirit_stones ?? 0) + challenge.betAmount;
+                chGd.spiritStones = newStones;
+                await pool.query('UPDATE players SET game_data=$1, spirit_stones=$2 WHERE wallet=$3',
+                  [JSON.stringify(chGd), newStones, challenge.from]);
+                fromWs.send(JSON.stringify({ type: 'pk_bet_refund', amount: challenge.betAmount, reason: '对方焰晶不足' }));
+              }
+            } catch (e) { logger.error('Bet refund error:', e.message); }
+            return ws.send(JSON.stringify({ type: 'pk_error', msg: `你只有${stones}焰晶，不足以支付${challenge.betAmount}赌注` }));
+          }
+          // 冻结被挑战者赌注
+          const newStones = stones - challenge.betAmount;
+          gd.spiritStones = newStones;
+          await pool.query('UPDATE players SET game_data=$1, spirit_stones=$2 WHERE wallet=$3',
+            [JSON.stringify(gd), newStones, userInfo.wallet]);
+        }
 
         // 设置冷却
         pkCooldown.set(challenge.from, Date.now());
@@ -1992,9 +2151,44 @@ wss.on('connection', (ws, req) => {
         // 跑战斗
         const result = runPkBattle(statsA, statsB);
         const winnerWallet = result.winner === 'A' ? challenge.from : result.winner === 'B' ? userInfo.wallet : null;
+        const loserWallet = result.winner === 'A' ? userInfo.wallet : challenge.from;
         const winnerName = result.winner === 'A' ? challenge.fromName : result.winner === 'B' ? userInfo.name : null;
+        const loserName = result.winner === 'A' ? userInfo.name : challenge.fromName;
 
-        // 发放奖励
+        // 赌注结算
+        let betWin = 0;
+        let betTax = 0;
+        if (winnerWallet && challenge.betAmount > 0) {
+          const totalBet = challenge.betAmount * 2;
+          betTax = Math.floor(totalBet * 0.05); // 5%手续费
+          betWin = totalBet - betTax;
+          try {
+            const player = await pool.query('SELECT spirit_stones, game_data FROM players WHERE wallet=$1', [winnerWallet]);
+            if (player.rows.length) {
+              const gd = typeof player.rows[0].game_data === 'string' ? JSON.parse(player.rows[0].game_data) : player.rows[0].game_data;
+              const newStones = (gd?.spiritStones ?? player.rows[0].spirit_stones ?? 0) + betWin;
+              gd.spiritStones = newStones;
+              await pool.query('UPDATE players SET game_data=$1, spirit_stones=$2 WHERE wallet=$3',
+                [JSON.stringify(gd), newStones, winnerWallet]);
+            }
+          } catch (e) { logger.error('Bet payout error:', e.message); }
+        } else if (!winnerWallet && challenge.betAmount > 0) {
+          // 平局退还赌注
+          for (const w of [challenge.from, userInfo.wallet]) {
+            try {
+              const player = await pool.query('SELECT spirit_stones, game_data FROM players WHERE wallet=$1', [w]);
+              if (player.rows.length) {
+                const gd = typeof player.rows[0].game_data === 'string' ? JSON.parse(player.rows[0].game_data) : player.rows[0].game_data;
+                const newStones = (gd?.spiritStones ?? player.rows[0].spirit_stones ?? 0) + challenge.betAmount;
+                gd.spiritStones = newStones;
+                await pool.query('UPDATE players SET game_data=$1, spirit_stones=$2 WHERE wallet=$3',
+                  [JSON.stringify(gd), newStones, w]);
+              }
+            } catch (e) { logger.error('Bet refund error:', e.message); }
+          }
+        }
+
+        // 基础奖励发放
         if (winnerWallet) {
           try {
             await pool.query(
@@ -2004,16 +2198,17 @@ wss.on('connection', (ws, req) => {
               [PK_REWARD, winnerWallet]
             );
           } catch {}
-          broadcastEvent(`${winnerName} 在切磋中击败了 ${result.winner === 'A' ? challenge.toName : challenge.fromName}，获得 ${PK_REWARD} 焰晶！`, 'pk');
+          broadcastEvent(`${winnerName} 在切磋中击败了 ${loserName}，获得 ${PK_REWARD} 焰晶！`, 'pk');
         }
 
-        // 持久化 PK 记录
+                // 持久化 PK 记录
         try {
           await pool.query(
-            `INSERT INTO pk_records (wallet_a, wallet_b, name_a, name_b, winner, winner_wallet, rounds_data, reward)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            `INSERT INTO pk_records (wallet_a, wallet_b, name_a, name_b, winner, winner_wallet, rounds_data, reward, bet_amount, score_change_a, score_change_b)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
             [challenge.from, userInfo.wallet, challenge.fromName, userInfo.name,
-             result.winner, winnerWallet, JSON.stringify(result.rounds), winnerWallet ? PK_REWARD : 0]
+             result.winner, winnerWallet, JSON.stringify(result.rounds), winnerWallet ? PK_REWARD : 0,
+             challenge.betAmount || 0, scoreChangeA, scoreChangeB]
           );
         } catch {}
 
@@ -2026,7 +2221,12 @@ wss.on('connection', (ws, req) => {
           finalHpA: result.finalHpA, finalHpB: result.finalHpB,
           maxHpA: statsA.health, maxHpB: statsB.health,
           state_version_a: playerAData.stateVersion,
-          state_version_b: playerBData.stateVersion
+          state_version_b: playerBData.stateVersion,
+          betAmount: challenge.betAmount || 0,
+          betWin: betWin,
+          betTax: betTax,
+          scoreChangeA: scoreChangeA,
+          scoreChangeB: scoreChangeB
         };
         // 记录战斗日志
         logBattleTrace(pool, {
@@ -2090,8 +2290,21 @@ wss.on('connection', (ws, req) => {
         const challenge = pkChallenges.get(data.challengeId);
         if (challenge) {
           pkChallenges.delete(data.challengeId);
+          // 退还挑战者赌注
+          if (challenge.betAmount > 0) {
+            try {
+              const player = await pool.query('SELECT spirit_stones, game_data FROM players WHERE wallet=$1', [challenge.from]);
+              if (player.rows.length) {
+                const gd = typeof player.rows[0].game_data === 'string' ? JSON.parse(player.rows[0].game_data) : player.rows[0].game_data;
+                const newStones = (gd?.spiritStones ?? player.rows[0].spirit_stones ?? 0) + challenge.betAmount;
+                gd.spiritStones = newStones;
+                await pool.query('UPDATE players SET game_data=$1, spirit_stones=$2 WHERE wallet=$3',
+                  [JSON.stringify(gd), newStones, challenge.from]);
+              }
+            } catch (e) { logger.error('Bet refund error:', e.message); }
+          }
           const fromWs = getWsByWallet(challenge.from);
-          if (fromWs) fromWs.send(JSON.stringify({ type: 'pk_declined', by: userInfo?.name || '对方' }));
+          if (fromWs) fromWs.send(JSON.stringify({ type: 'pk_declined', by: userInfo?.name || '对方', betRefunded: challenge.betAmount || 0 }));
         }
       }
     } catch {}
