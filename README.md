@@ -87,6 +87,12 @@ PGPASSWORD='xxx' psql -h 127.0.0.1 -U roon_user -d xiuxian_test \
 # 装备数据迁移
 GAME_ENV=test node server/migrations/migrate-equipment.mjs
 
+# 测试服一键部署 (build + sync + restart)
+./deploy-test.sh
+
+# 正式服部署
+./promote.sh
+
 # 回归测试
 npx vitest run server/tests/regression.test.mjs
 ```
@@ -100,6 +106,13 @@ npx vitest run server/tests/regression.test.mjs
 - 幂等性重放返回缓存
 - Save 递增 state_version
 - 5 次连续读取属性一致
+n战斗系统测试：
+- combatBoost 增伤验证
+- finalDamageReduce 70% 上限
+- resistanceBoost 30% 上限
+- dodgeResist 抵消闪避
+- critDamageBoost 暴伤倍率
+- Boss/副本/PK 端点可用性
 
 ```bash
 npx vitest run
