@@ -144,13 +144,13 @@ describe('Dungeon daily', () => {
 // ============================================================
 
 describe('PK stats', () => {
-  it('/api/pk/stats returns stats object', async () => {
-    const r = await api('GET', '/api/pk/stats');
+  it('/api/pk/my-stats returns stats object', async () => {
+    const r = await api('GET', '/api/pk/my-stats');
     expect(r.status).toBe(200);
   });
 
-  it('/api/pk/history returns array', async () => {
-    const r = await api('GET', '/api/pk/history');
+  it('/api/pk/rankings returns rankings', async () => {
+    const r = await api('GET', '/api/pk/rankings');
     expect(r.status).toBe(200);
   });
 });
