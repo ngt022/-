@@ -43,7 +43,7 @@
         </div>
       </div>
       <n-descriptions bordered>
-        <n-descriptions-item label="焰灵获取速率">{{ baseGainRate * playerStore.spiritRate }} / 秒</n-descriptions-item>
+        <n-descriptions-item label="焰灵恢复速率">{{ playerStore.getSpiritRegen().toFixed(1) }} / 秒</n-descriptions-item>
         <n-descriptions-item label="冥想效率">{{ cultivationGain }} 焰力 / 次</n-descriptions-item>
         <n-descriptions-item label="突破所需焰力">
           {{ playerStore.maxCultivation }}
