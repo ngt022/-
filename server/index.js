@@ -451,7 +451,9 @@ app.post('/api/exploration/reward', auth, async (req, res) => {
 });
 
 // === 充值确认 ===
+const RECHARGE_ENABLED = process.env.RECHARGE_ENABLED !== 'false'; // 内测期间关闭
 app.post('/api/recharge/confirm', strictLimit, auth, async (req, res) => {
+  if (!RECHARGE_ENABLED) return res.status(403).json({ error: '内测期间充值系统暂时关闭，正式上线后开放' });
   try {
     const { txHash } = req.body;
     if (!txHash) return res.status(400).json({ error: '缺少txHash' });
@@ -1165,6 +1167,7 @@ app.get('/api/monthly-card/status', auth, async (req, res) => {
 
 // 购买月卡（链上验证）
 app.post('/api/monthly-card/buy', auth, async (req, res) => {
+  if (!RECHARGE_ENABLED) return res.status(403).json({ error: '内测期间充值系统暂时关闭，正式上线后开放' });
   try {
     const { txHash } = req.body;
     if (!txHash) return res.status(400).json({ error: '缺少txHash' });
