@@ -88,9 +88,9 @@ const playerStore = usePlayerStore()
   // 修炼相关数值
   const baseGainRate = 1 // 基础焰灵获取率
   const baseCultivationCost = 10 // 基础焰修消耗的焰灵
-  const baseCultivationGain = 1 // 基础修炼获得的修为
+  const baseCultivationGain = 1 // 基础修炼获得的焰修
   const autoGainInterval = 1000 // 自动获取焰灵的间隔（毫秒）
-  const extraCultivationChance = 0.3 // 获得额外修为的基础概率
+  const extraCultivationChance = 0.3 // 获得额外焰修的基础概率
 
   // 计算当前境界的修炼消耗（从配置中心读取）
   const getCurrentCultivationCost = () => {
@@ -128,12 +128,12 @@ const playerStore = usePlayerStore()
     return logRef.value?.addLog(type, content)
   }
 
-  // 计算实际获得的修为
+  // 计算实际获得的焰修
   const calculateCultivationGain = () => {
     let gain = cultivationGain.value
     // 活动加成
     if (eventMultiplier.value > 1) gain = Math.floor(gain * eventMultiplier.value)
-    // 根据幸运值计算是否获得额外修为
+    // 根据幸运值计算是否获得额外焰修
     if (Math.random() < extraCultivationChance * playerStore.luck) {
       gain *= 2
       showMessage('success', '福缘不错，获得双倍焰力！')

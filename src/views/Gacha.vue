@@ -9,7 +9,7 @@
       <p>🐾 焰兽概率：凡品50%、灵品28%、玄品16%、仙品5.8%、<strong>神品0.2%</strong></p>
       <p>💎 VIP可享抽卡折扣，最高7折</p>
       <p>🎯 开启<strong>心愿单</strong>可定向提升指定品质概率（费用翻倍）</p>
-      <p>🤖 可设置<strong>自动出售/放生</strong>低品质物品</p>
+      <p>🤖 可设置<strong>自动出售/回收</strong>低品质物品</p>
     </game-guide>
     <n-card :bordered="false" class="gacha-main-card">
       <div class="gacha-container">
@@ -117,7 +117,7 @@
                 <n-statistic label="消耗焰晶" :value="lastResult.cost" />
                 <n-statistic label="自动出售" :value="lastResult.autoSold?.count || 0" v-if="lastResult.autoSold?.count" />
                 <n-statistic label="获得淬火石" :value="lastResult.autoSold?.income || 0" v-if="lastResult.autoSold?.income" />
-                <n-statistic label="自动放生" :value="lastResult.autoReleased || 0" v-if="lastResult.autoReleased" />
+                <n-statistic label="自动回收" :value="lastResult.autoReleased || 0" v-if="lastResult.autoReleased" />
                 <n-statistic label="获得精华" :value="lastResult.petEssenceGained || 0" v-if="lastResult.petEssenceGained" />
               </n-space>
             </div>
@@ -293,7 +293,7 @@
                   </n-checkbox>
                 </n-space>
               </n-checkbox-group>
-              <n-divider>焰兽自动放生</n-divider>
+              <n-divider>焰兽自动回收</n-divider>
               <n-checkbox-group v-model:value="playerStore.autoReleaseRarities" @update:value="handleAutoReleaseChange">
                 <n-space wrap>
                   <n-checkbox value="all" :disabled="!!playerStore.autoReleaseRarities?.length && !playerStore.autoReleaseRarities.includes('all')">全部品质</n-checkbox>
@@ -475,7 +475,7 @@ const equipmentTypes = {
 
 const equipmentTypes2 = ['weapon','head','body','legs','feet','shoulder','hands','wrist','necklace','ring1','ring2','belt','artifact']
 
-// 宠物品质配置
+// 焰兽品质配置
 const petRarities = {
   divine: { name: '神品', color: '#FF0000', probability: 0.002, essenceBonus: 50 },
   celestial: { name: '仙品', color: '#FFD700', probability: 0.0581, essenceBonus: 30 },
@@ -644,7 +644,7 @@ const performGacha = async (times) => {
         message.success(`自动出售了 ${data.autoSold.count} 件装备，获得 ${data.autoSold.income} 淬火石`)
       }
       if (data.autoReleased) {
-        message.success(`自动放生了 ${data.autoReleased} 只焰兽`)
+        message.success(`自动回收了 ${data.autoReleased} 只焰兽`)
       }
       
     } catch (e) {

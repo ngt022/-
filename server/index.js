@@ -1398,7 +1398,7 @@ const SECT_TASK_POOL = {
     { title: '焰气采集', description: '采集天地焰气，为焰盟积蓄力量', reward_contribution: 10, reward_stones: 200 },
     { title: '巡山护法', description: '巡视焰盟山门，驱逐妖兽', reward_contribution: 15, reward_stones: 300 },
     { title: '阵法维护', description: '维护焰盟护山大阵', reward_contribution: 12, reward_stones: 250 },
-    { title: '丹药炼制', description: '为焰盟炼制基础焰丹', reward_contribution: 20, reward_stones: 400 },
+    { title: '焰丹炼制', description: '为焰盟炼制基础焰丹', reward_contribution: 20, reward_stones: 400 },
     { title: '弟子指导', description: '指导新入门弟子修炼', reward_contribution: 8, reward_stones: 150 },
     { title: '焰田耕种', description: '打理焰盟焰田', reward_contribution: 10, reward_stones: 200 },
   ],
@@ -2293,7 +2293,7 @@ app.post('/api/boss/attack', auth, idempotent(pool, 'boss_attack'), async (req, 
     const p = player.rows[0];
     const gameData = typeof p.game_data === 'string' ? JSON.parse(p.game_data) : (p.game_data || {});
     const spirit = gameData.spirit || 0;
-    if (spirit < 10) { await client.query('ROLLBACK'); return res.status(400).json({ error: '灵力不足，需要10灵力' }); }
+    if (spirit < 10) { await client.query('ROLLBACK'); return res.status(400).json({ error: '焰灵不足，需要10焰灵' }); }
     gameData.spirit = spirit - 10;
     // 使用 stats-service 计算最终属性
     const bonuses = await getMountTitleBonuses(client, wallet);
@@ -4363,7 +4363,7 @@ app.post('/api/pill/use', auth, async (req, res) => {
     
     const items = gd.items || [];
     const pillIdx = items.findIndex(i => String(i.id) === String(pillId) && i.type === 'pill');
-    if (pillIdx === -1) return res.json({ success: false, message: '丹药不存在' });
+    if (pillIdx === -1) return res.json({ success: false, message: '焰丹不存在' });
     
     const pill = items[pillIdx];
     const now = Date.now();
@@ -4373,7 +4373,7 @@ app.post('/api/pill/use', auth, async (req, res) => {
     gd.activeEffects = gd.activeEffects.filter(e => e.endTime > now);
     const existing = gd.activeEffects.find(e => e.type === pill.effect.type);
     if (existing) {
-      return res.json({ success: false, message: '已有相同效果的丹药在生效中，不能叠加' });
+      return res.json({ success: false, message: '已有相同效果的焰丹在生效中，不能叠加' });
     }
     
     // 添加效果
@@ -4443,7 +4443,7 @@ app.post('/api/pet/release', auth, async (req, res) => {
     items.splice(idx, 1);
     gd.items = items;
     await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
-    res.json({ success: true, message: '放生成功，获得' + essenceGain + '精华', items: gd.items, petEssence: gd.petEssence, activePet: gd.activePet });
+    res.json({ success: true, message: '回收成功，获得' + essenceGain + '精华', items: gd.items, petEssence: gd.petEssence, activePet: gd.activePet });
   } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
@@ -4468,7 +4468,7 @@ app.post('/api/pet/release-batch', auth, async (req, res) => {
     });
     gd.petEssence = (gd.petEssence || 0) + essenceTotal;
     await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
-    res.json({ success: true, message: '放生' + count + '只，获得' + essenceTotal + '精华', count, items: gd.items, petEssence: gd.petEssence });
+    res.json({ success: true, message: '回收' + count + '只，获得' + essenceTotal + '精华', count, items: gd.items, petEssence: gd.petEssence });
   } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
@@ -4609,7 +4609,7 @@ app.post('/api/equip/enhance', auth, idempotent(pool, 'enhance'), async (req, re
     const gd = typeof r.rows[0].game_data === 'string' ? JSON.parse(r.rows[0].game_data) : (r.rows[0].game_data || {});
     const stones = gd.reinforceStones || 0;
     const cost = 1;
-    if (stones < cost) { await client.query('ROLLBACK'); return res.json({ success: false, message: '强化石不足' }); }
+    if (stones < cost) { await client.query('ROLLBACK'); return res.json({ success: false, message: '淬火石不足' }); }
     let equip = null; let inSlot = null;
     if (slot && gd.equippedArtifacts && gd.equippedArtifacts[slot] && String(gd.equippedArtifacts[slot].id) === String(equipId)) {
       equip = gd.equippedArtifacts[slot]; inSlot = slot;
@@ -4643,7 +4643,7 @@ app.post('/api/equip/enhance', auth, idempotent(pool, 'enhance'), async (req, re
       recalcDerivedStats(gd);
       await client.query('UPDATE players SET game_data=$1, state_version=$2 WHERE wallet=$3', [JSON.stringify(gd), newVersion, w]);
       await client.query('COMMIT');
-      res.json({ success: false, message: '强化失败，强化石已消耗', reinforceStones: gd.reinforceStones, state_version: newVersion, computed_at: new Date().toISOString() });
+      res.json({ success: false, message: '淬火失败，淬火石已消耗', reinforceStones: gd.reinforceStones, state_version: newVersion, computed_at: new Date().toISOString() });
     }
   } catch (e) {
     await client.query('ROLLBACK').catch(() => {});
@@ -4671,7 +4671,7 @@ app.post('/api/equip/disassemble', auth, async (req, res) => {
     items.splice(idx, 1);
     gd.items = items;
     await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
-    res.json({ success: true, message: '分解成功，获得' + stoneGainTotal + '强化石', reinforceStones: gd.reinforceStones, items: gd.items });
+    res.json({ success: true, message: '分解成功，获得' + stoneGainTotal + '淬火石', reinforceStones: gd.reinforceStones, items: gd.items });
   } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
@@ -4928,7 +4928,7 @@ app.post('/api/recycle', auth, async (req, res) => {
       }
       // 不能回收出战宠物
       if (item.type === 'pet' && gd.activePet && String(gd.activePet.id) === String(itemId)) {
-        return res.status(400).json({ error: '请先收回出战宠物' });
+        return res.status(400).json({ error: '请先收回出战焰兽' });
       }
       price = getRecyclePrice(item);
       removedName = item.name || '物品';

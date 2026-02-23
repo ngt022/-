@@ -288,7 +288,7 @@
         <p style="color:#a09880;margin-bottom:16px">向所有玩家发放资源，通过邮件附件形式发送</p>
         <div class="settings-grid">
           <label>焰晶<input type="number" v-model.number="airdropData.spiritStones" class="setting-input" min="0" /></label>
-          <label>强化石<input type="number" v-model.number="airdropData.reinforceStones" class="setting-input" min="0" /></label>
+          <label>淬火石<input type="number" v-model.number="airdropData.reinforceStones" class="setting-input" min="0" /></label>
           <label>精炼石<input type="number" v-model.number="airdropData.refinementStones" class="setting-input" min="0" /></label>
           <label>焰兽精华<input type="number" v-model.number="airdropData.petEssence" class="setting-input" min="0" /></label>
         </div>
@@ -304,8 +304,8 @@
       <div v-if="activeTab === 'shopconfig'" class="tab-content">
         <h3 class="section-title">🛒 材料价格配置</h3>
         <div class="settings-grid">
-          <label>强化石(单个)<input type="number" v-model.number="shopConfig.reinforce_stone" class="setting-input" /></label>
-          <label>强化石(10连)<input type="number" v-model.number="shopConfig.reinforce_stone_10" class="setting-input" /></label>
+          <label>淬火石(单个)<input type="number" v-model.number="shopConfig.reinforce_stone" class="setting-input" /></label>
+          <label>淬火石(10连)<input type="number" v-model.number="shopConfig.reinforce_stone_10" class="setting-input" /></label>
           <label>精炼石(单个)<input type="number" v-model.number="shopConfig.refine_stone" class="setting-input" /></label>
           <label>精炼石(10连)<input type="number" v-model.number="shopConfig.refine_stone_10" class="setting-input" /></label>
         </div>

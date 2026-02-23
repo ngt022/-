@@ -289,7 +289,7 @@ const shortcuts = [
   { icon: '🎒', label: '储藏室', path: '/inventory' },
   { icon: '🎰', label: '抽卡', path: '/gacha' },
   { icon: '🏔️', label: '焚天塔', path: '/dungeon' },
-  { icon: '🧪', label: '炼丹', path: '/alchemy' },
+  { icon: '🧪', label: '焰炼', path: '/alchemy' },
   { icon: '🗺️', label: '探索', path: '/exploration' },
   { icon: '🏪', label: '商店', path: '/shop' },
   { icon: '👤', label: '个人', path: '/profile' },

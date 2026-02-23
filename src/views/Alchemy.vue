@@ -3,7 +3,7 @@
     <n-space vertical>
       <game-guide>
         <p>🧪 收集<strong>丹方残页</strong>→凑齐后自动解锁配方</p>
-        <p>🌿 用焰草按配方炼丹，共12种丹方（一品→八品）</p>
+        <p>🌿 用焰草按配方焰炼，共12种丹方（一品→八品）</p>
         <p>🎲 成功率受品阶影响：一品90%→八品20%，<strong>幸运值和焰炼加成</strong>可提升</p>
         <p>💊 服用焰丹获得临时buff，效果随境界提升（每级+10%）</p>
         <p>📍 丹方残页和焰草主要通过<strong>探索</strong>获得</p>
@@ -46,11 +46,11 @@
       <n-space vertical v-else>
         <n-empty description="暂未掌握任何焰方" />
       </n-space>
-      <!-- 炼丹确认弹窗 -->
+      <!-- 焰炼确认弹窗 -->
     <n-modal
       v-model:show="showCraftConfirm"
       preset="card"
-      :title="selectedRecipe ? '确认炼制：' + selectedRecipe.name : '炼丹'"
+      :title="selectedRecipe ? '确认炼制：' + selectedRecipe.name : '焰炼'"
       style="width: 90%; max-width: 500px"
       :closable="false"
       :mask-closable="false"

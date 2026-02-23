@@ -26,9 +26,9 @@
         </n-tabs>
       </n-tab-pane>
 
-      <!-- 💊 丹药商城 -->
-      <n-tab-pane name="pill" tab="💊 丹药">
-        <div class="section-title">🔮 灵力药水</div>
+      <!-- 💊 焰丹商城 -->
+      <n-tab-pane name="pill" tab="💊 焰丹">
+        <div class="section-title">🔮 焰灵药水</div>
         <div class="item-grid">
           <div v-for="p in spiritPills" :key="p.id" class="item-card pill-card" @click="openPillBuy(p)">
             <img v-if="p.img" :src="p.img" class="shop-item-img" /><div v-else class="item-icon">{{ p.icon }}</div>
@@ -241,9 +241,9 @@ const equipSlots = [
 
 // 丹药
 const spiritPills = [
-  { id: 'spirit_small', name: '小灵力药水', img: img('/assets/images/pills/pill_juling.png'), desc: '+200灵力', price: 500, canMulti: true, buyType: 'pill' },
-  { id: 'spirit_medium', name: '中灵力药水', img: img('/assets/images/pills/pill_juqi.png'), desc: '+800灵力', price: 2000, canMulti: true, buyType: 'pill' },
-  { id: 'spirit_large', name: '大灵力药水', img: img('/assets/images/pills/pill_xianling.png'), desc: '+3,000灵力', price: 8000, canMulti: true, buyType: 'pill' },
+  { id: 'spirit_small', name: '小焰灵药水', img: img('/assets/images/pills/pill_juling.png'), desc: '+200焰灵', price: 500, canMulti: true, buyType: 'pill' },
+  { id: 'spirit_medium', name: '中焰灵药水', img: img('/assets/images/pills/pill_juqi.png'), desc: '+800焰灵', price: 2000, canMulti: true, buyType: 'pill' },
+  { id: 'spirit_large', name: '大焰灵药水', img: img('/assets/images/pills/pill_xianling.png'), desc: '+3,000焰灵', price: 8000, canMulti: true, buyType: 'pill' },
 ]
 const cultPills = [
   { id: 'cult_small', name: '小修为丹', img: img('/assets/images/pills/pill_ningyuan.png'), desc: '+等级×10修为(日限5)', price: 2000, canMulti: true, buyType: 'pill' },
@@ -320,12 +320,12 @@ const materialItems = [
   { id: 'refine_1', name: '符文石 x1', img: img('/assets/images/equip/artifact.png'), desc: '重置副属性', price: 1500, canMulti: true, buyType: 'material' },
   { id: 'refine_10', name: '符文石 x10', img: img('/assets/images/equip/artifact.png'), desc: '批量购买9折', price: 13500, canMulti: true, buyType: 'material', discount: '9折' },
   { id: 'pet_essence', name: '焰兽精华', img: img('/assets/images/menu/menu_gacha.png'), desc: '+100精华', price: 2000, canMulti: true, buyType: 'material' },
-  { id: 'pet_ticket', name: '宠物召唤券', img: img('/assets/images/menu/menu_gacha.png'), desc: '等同一次宠物抽卡', price: 5000, canMulti: true, buyType: 'material' },
+  { id: 'pet_ticket', name: '焰兽召唤券', img: img('/assets/images/menu/menu_gacha.png'), desc: '等同一次焰兽抽卡', price: 5000, canMulti: true, buyType: 'material' },
 ]
 
 // 礼包
 const packItems = [
-  { id: 'pack_starter', name: '🌟 新手礼包', img: img('/assets/images/menu/menu_shop.png'), desc: '中品武器+中品衣服+淬火石x10+中灵力药水x5', price: 10000, buyType: 'pack' },
+  { id: 'pack_starter', name: '🌟 新手礼包', img: img('/assets/images/menu/menu_shop.png'), desc: '中品武器+中品衣服+淬火石x10+中焰灵药水x5', price: 10000, buyType: 'pack' },
   { id: 'pack_advanced', name: '🌙 进阶礼包', img: img('/assets/images/menu/menu_shop.png'), desc: '上品武器+上品衣服+符文石x20+中修为丹x5', price: 50000, buyType: 'pack' },
   { id: 'pack_supreme', name: '☀️ 至尊礼包', img: img('/assets/images/menu/menu_shop.png'), desc: '极品全套装备(13件)+淬火石x50+符文石x30', price: 200000, buyType: 'pack' },
   { id: 'pack_mythic', name: '🔥 仙品礼包', img: img('/assets/images/menu/menu_shop.png'), desc: '仙品武器+仙品衣服+仙品焰器+5级经验丹x2', price: 500000, buyType: 'pack' },
@@ -378,7 +378,7 @@ const openEquipBuy = (quality, slot) => {
 const openPillBuy = (pill) => {
   buyTarget.value = pill
   buyCount.value = 1
-  buyModalTitle.value = '购买丹药'
+  buyModalTitle.value = '购买焰丹'
   showBuyModal.value = true
 }
 
@@ -492,7 +492,7 @@ const confirmBuy = async () => {
         }
         if (items.pets && items.pets.length) {
           items.pets.forEach(p => playerStore.items.push({ ...p, type: 'pet' }))
-          message.success('获得宠物：' + items.pets.map(p => p.name).join(', '))
+          message.success('获得焰兽：' + items.pets.map(p => p.name).join(', '))
         } else {
           message.success('购买成功')
         }

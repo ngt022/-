@@ -466,7 +466,7 @@ const handleDefeat = () => {
     const cultivationLossRate = Math.random() * 0.4 + 0.1 // 随机10%到50%
     const cultivationLoss = Math.floor(playerStore.cultivation * cultivationLossRate)
     playerStore.cultivation = Math.max(0, playerStore.cultivation - cultivationLoss)
-    message.error(`战斗失败！损失了${cultivationLoss}点修为。`)
+    message.error(`战斗失败！损失了${cultivationLoss}点焰修。`)
   } else {
     // 跌落境界作为惩罚
     const randomGradeLoss = Math.floor(Math.random() * 3) + 1 // 随机损失1-3个境界
@@ -474,8 +474,8 @@ const handleDefeat = () => {
     const newLevel = Math.max(1, oldLevel - randomGradeLoss) // 降低境界
     const actualLoss = oldLevel - newLevel
     playerStore.level = newLevel
-    playerStore.cultivation = 0 // 移除所有灵力
-    playerStore.maxCultivation = getRealmName(newLevel).maxCultivation // 降低所需最大灵力值
+    playerStore.cultivation = 0 // 移除所有焰修
+    playerStore.maxCultivation = getRealmName(newLevel).maxCultivation // 降低所需最大焰修值
     message.error(`战斗失败！跌落了${actualLoss}个境界（${getRealmName(oldLevel).name} → ${getRealmName(newLevel).name}）`)
     // 同步到服务器
     playerStore.saveData()

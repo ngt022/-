@@ -7,7 +7,7 @@
       <p>✨ <strong>铭符</strong>：消耗符文石重随机属性，±30%浮动，30%概率换属性</p>
       <p>⚡ 一键穿戴/卸下快速管理装备</p>
       <p>🐾 <strong>焰兽</strong>：出战获得全属性加成，消耗精华升级，同名同品质焰兽可升星</p>
-      <p>🌿 <strong>焰草</strong>：炼丹材料，5个品质（普通→仙品），品质越高效果倍率越大</p>
+      <p>🌿 <strong>焰草</strong>：焰炼材料，5个品质（普通→仙品），品质越高效果倍率越大</p>
       <p>💊 <strong>焰丹</strong>：服用获得临时buff，效果随境界提升</p>
     </game-guide>
     <!-- 顶部操作栏 -->
@@ -73,7 +73,7 @@
             <n-checkbox value="equipment">装备</n-checkbox>
             <n-checkbox value="pet">焰兽</n-checkbox>
             <n-checkbox value="herb">焰草</n-checkbox>
-            <n-checkbox value="pill">丹药</n-checkbox>
+            <n-checkbox value="pill">焰丹</n-checkbox>
           </n-space>
         </n-checkbox-group>
         <n-select v-model:value="recycleMaxQuality" :options="recycleQualityOptions" placeholder="回收该品质及以下" />
@@ -379,8 +379,8 @@
   </n-modal>
 
   <!-- 强化确认弹窗 -->
-  <!-- 丹药详情弹窗 -->
-  <n-modal v-model:show="showPillDetailModal" preset="card" title="丹药详情" style="width:90%;max-width:400px">
+  <!-- 焰丹详情弹窗 -->
+  <n-modal v-model:show="showPillDetailModal" preset="card" title="焰丹详情" style="width:90%;max-width:400px">
     <n-space vertical v-if="selectedPill">
       <div style="text-align:center;font-size:32px">💊</div>
       <div style="text-align:center;font-size:16px;font-weight:bold;color:#d4a843">{{ selectedPill.name }}</div>
@@ -848,7 +848,7 @@ const router = useRouter()
           if (resp.petEssence !== undefined) playerStore.petEssence = resp.petEssence
           if (resp.activePet !== undefined) playerStore.activePet = resp.activePet
         } else { message.error(resp.message) }
-      } catch (e) { message.error('放生失败') }
+      } catch (e) { message.error('回收失败') }
       showReleaseConfirm.value = false; showPetModal.value = false; petToRelease.value = null
     }
   }
@@ -864,7 +864,7 @@ const router = useRouter()
         if (resp.items) playerStore.items = resp.items
         if (resp.petEssence !== undefined) playerStore.petEssence = resp.petEssence
       } else { message.error(resp.message) }
-    } catch (e) { message.error('批量放生失败') }
+    } catch (e) { message.error('批量回收失败') }
     showBatchReleaseConfirm.value = false
   }
 
@@ -1027,8 +1027,8 @@ const router = useRouter()
           const loadResp = await authStore.apiGet('/game/load')
           if (loadResp.player?.game_data?.items) playerStore.items = loadResp.player.game_data.items
         }
-        message.success(`成功卖出${resp.count}件装备，获得${resp.totalStones}个淬火石`)
-      } catch (e) { message.error(e.message || '批量卖出失败') }
+        message.success(`成功回收${resp.count}件装备，获得${resp.totalStones}个淬火石`)
+      } catch (e) { message.error(e.message || '批量回收失败') }
     }
   }
 
@@ -1038,9 +1038,9 @@ const router = useRouter()
       playerStore.reinforceStones = resp.reinforceStones
       const idx = playerStore.items.findIndex(i => String(i.id) === String(equipment.id))
       if (idx > -1) playerStore.items.splice(idx, 1)
-      message.success(`成功卖出装备，获得${resp.stones}个淬火石`)
+      message.success(`成功回收装备，获得${resp.stones}个淬火石`)
       showEquipmentDetailModal.value = false
-    } catch (e) { message.error(e.message || '卖出失败') }
+    } catch (e) { message.error(e.message || '回收失败') }
   }
 
   // 官方回收（分解）

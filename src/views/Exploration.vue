@@ -227,22 +227,22 @@ const exploreLocation = async (location) => {
         if (result.event.effect) {
           const eff = result.event.effect
           if (eff.type === 'cultivation') {
-            showMessage('success', `[${result.event.name}]领悟石碑上的功法，获得${eff.amount}点修为`)
+            showMessage('success', `[${result.event.name}]领悟石碑上的功法，获得${eff.amount}点焰修`)
           } else if (eff.type === 'spirit') {
             showMessage('success', `[${result.event.name}]饮用灵泉，焰灵增加${eff.amount}点`)
           } else if (eff.type === 'double') {
-            showMessage('success', `[${result.event.name}]获得上古大能传承，修为增加${eff.cultivation}点，焰灵增加${eff.spirit}点`)
+            showMessage('success', `[${result.event.name}]获得上古大能传承，焰修增加${eff.cultivation}点，焰灵增加${eff.spirit}点`)
           } else if (eff.type === 'stones') {
             showMessage('success', `[${result.event.name}]发现宝藏，获得${eff.amount}颗焰晶`)
           } else if (eff.type === 'enlightenment') {
-            showMessage('success', `[${result.event.name}]突然顿悟，获得${eff.cultivation}点修为，焰灵获取速率提升5%`)
+            showMessage('success', `[${result.event.name}]突然顿悟，获得${eff.cultivation}点焰修，焰灵获取速率提升5%`)
           } else if (eff.type === 'damage') {
             if (eff.spirit && eff.cultivation) {
               showMessage('error', `[${result.event.name}]遭受心魔侵扰，损失${eff.spirit}点焰灵和修为`)
             } else if (eff.spirit) {
               showMessage('error', `[${result.event.name}]与黑焰兽激战，损失${eff.spirit}点焰灵`)
             } else if (eff.cultivation) {
-              showMessage('error', `[${result.event.name}]走火入魔，损失${eff.cultivation}点修为`)
+              showMessage('error', `[${result.event.name}]走火入魔，损失${eff.cultivation}点焰修`)
             }
           }
         }
@@ -258,7 +258,7 @@ const exploreLocation = async (location) => {
           // 焰草已在服务端添加到game_data，前端需要刷新数据
           await refreshPlayerData()
         } else if (reward.type === 'cultivation') {
-          showMessage('success', `[修为获取]获得${reward.amount}点修为`)
+          showMessage('success', `[修为获取]获得${reward.amount}点焰修`)
         } else if (reward.type === 'pill_fragment') {
           showMessage('success', `[丹方获取]获得${reward.amount}个丹方残页`)
           // 丹方碎片已在服务端添加到game_data，前端需要刷新数据
