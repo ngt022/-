@@ -143,6 +143,8 @@ const allLocations = computed(() =>
 const selectLocation = (loc) => {
   if (playerStore.level >= loc.minLevel) {
     selectedLocation.value = loc
+  } else {
+    window.$message?.warning(`需要达到 ${getRealmName(loc.minLevel).name} 才能探索此地`)
   }
 }
 
@@ -409,6 +411,7 @@ const clearLogPanel = () => {
   inset: 0;
   background-size: cover;
   background-position: center;
+  pointer-events: none;
 }
 .bg-newbie_village { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('/assets/images/area-xinhuocun.png') center/cover no-repeat; }
 .bg-celestial_mountain { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('/assets/images/area-chixiaofeng.png') center/cover no-repeat; }
