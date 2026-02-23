@@ -1060,7 +1060,7 @@ app.post('/api/game/breakthrough', auth, async (req, res) => {
     gd.cultivationGain = Math.max(1, Math.floor(newLevel * 2));
     
     await pool.query(
-      'UPDATE players SET game_data = , level = , realm = , state_version = state_version + 1, updated_at = NOW() WHERE wallet = ',
+      'UPDATE players SET game_data = $1, level = $2, realm = $3, state_version = state_version + 1, updated_at = NOW() WHERE wallet = $4',
       [JSON.stringify(gd), newLevel, nextRealm.name, w]
     );
     
