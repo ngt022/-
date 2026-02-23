@@ -201,9 +201,11 @@ import { useGameConfigStore } from './stores/gameConfig'
     isLoading.value = true
     // 加载服务端游戏配置
     await gameConfigStore.loadConfig()
-    // 先加载本地 IndexedDB 存档
-    await playerStore.initializePlayer()
-    // 再用云端数据覆盖（云端优先）
+    // 已登录用户：跳过 IndexedDB，直接用云端数据（避免旧数据覆盖）
+    // 未登录用户：从 IndexedDB 加载
+    if (!authStore.isLoggedIn) {
+      await playerStore.initializePlayer()
+    }
     if (authStore.isLoggedIn) {
       try {
         const cloudData = await authStore.loadFromCloud()
