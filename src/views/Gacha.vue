@@ -34,6 +34,9 @@
         <!-- 抽卡动画区 -->
         <div class="gacha-item-container">
           <div class="gacha-item-glow"></div>
+          <div class="gacha-pool-ring">
+            <div class="ring-text">{{ gachaType === 'equipment' ? '锻 造' : '召 唤' }}</div>
+          </div>
           <div
             class="gacha-item"
             :class="{ shake: isShaking, open: isOpening }"
@@ -49,14 +52,14 @@
               v-for="(item, index) in [1, 10, 50, 100]"
               :key="index"
               class="gacha-btn"
-              :class="{ 'gacha-btn-multi': item >= 10, 'gacha-btn-mega': item >= 50 }"
+              :class="{ 'gacha-btn-multi': item >= 10, 'gacha-btn-mega': item >= 50, 'gacha-btn-100': item === 100 }"
               @click="performGacha(item)"
               :disabled="
-                playerStore.spiritStones < Math.floor((playerStore.wishlistEnabled ? item * 300 : item * 150) * (authStore.isLoggedIn ? vipDiscounts[authStore.vipLevel]||1 : 1)) || isDrawing
+                playerStore.spiritStones < Math.floor((playerStore.wishlistEnabled ? item * 500 : item * 300) * (authStore.isLoggedIn ? vipDiscounts[authStore.vipLevel]||1 : 1)) || isDrawing
               "
             >
               <span class="gacha-btn-label">抽{{ item }}次</span>
-              <span class="gacha-btn-cost">💎 {{ Math.floor((playerStore.wishlistEnabled ? item * 300 : item * 150) * (authStore.isLoggedIn ? vipDiscounts[authStore.vipLevel]||1 : 1)) }}</span>
+              <span class="gacha-btn-cost">💎 {{ Math.floor((playerStore.wishlistEnabled ? item * 500 : item * 300) * (authStore.isLoggedIn ? vipDiscounts[authStore.vipLevel]||1 : 1)) }}</span>
             </button>
           </div>
           <div class="gacha-tool-row">
@@ -145,11 +148,11 @@
                 class="gacha-btn gacha-btn-multi"
                 @click="performGacha(gachaNumber)"
                 :disabled="
-                  playerStore.spiritStones < Math.floor((playerStore.wishlistEnabled ? gachaNumber * 300 : gachaNumber * 150) * (authStore.isLoggedIn ? vipDiscounts[authStore.vipLevel]||1 : 1)) || isDrawing
+                  playerStore.spiritStones < Math.floor((playerStore.wishlistEnabled ? gachaNumber * 500 : gachaNumber * 300) * (authStore.isLoggedIn ? vipDiscounts[authStore.vipLevel]||1 : 1)) || isDrawing
                 "
               >
                 <span class="gacha-btn-label">再抽{{ gachaNumber }}次</span>
-                <span class="gacha-btn-cost">💎 {{ Math.floor((playerStore.wishlistEnabled ? gachaNumber * 300 : gachaNumber * 150) * (authStore.isLoggedIn ? vipDiscounts[authStore.vipLevel]||1 : 1)) }}</span>
+                <span class="gacha-btn-cost">💎 {{ Math.floor((playerStore.wishlistEnabled ? gachaNumber * 500 : gachaNumber * 300) * (authStore.isLoggedIn ? vipDiscounts[authStore.vipLevel]||1 : 1)) }}</span>
               </button>
             </n-space>
             <div class="result-grid">
@@ -547,7 +550,7 @@ const performGacha = async (times) => {
   gachaNumber.value = times
   showResult.value = false
   
-  const baseCost = playerStore.wishlistEnabled ? times * 300 : times * 150
+  const baseCost = playerStore.wishlistEnabled ? times * 500 : times * 300
   const discount = vipDiscounts[authStore.vipLevel] || 1
   const cost = Math.floor(baseCost * discount)
   
@@ -1990,4 +1993,97 @@ const handleAutoReleaseChange = values => {
     background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(250,248,245,0.98)) !important;
   }
 }
+
+/* === 卡池环形装饰 === */
+.gacha-pool-ring {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  border: 2px solid rgba(212,168,67,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: ring-rotate 12s linear infinite;
+  z-index: 0;
+}
+.gacha-pool-ring::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1px dashed rgba(212,168,67,0.15);
+  animation: ring-rotate 20s linear infinite reverse;
+}
+.gacha-pool-ring::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(153,50,204,0.2);
+  animation: ring-rotate 8s linear infinite;
+}
+.ring-text {
+  position: absolute;
+  bottom: -28px;
+  font-size: 13px;
+  color: rgba(212,168,67,0.6);
+  letter-spacing: 8px;
+  font-weight: 600;
+}
+@keyframes ring-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* === 按钮网格优化 === */
+.gacha-btn-row {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px !important;
+  width: 100%;
+  max-width: 360px;
+}
+.gacha-btn {
+  width: 100%;
+  justify-content: center;
+}
+.gacha-btn-100 {
+  background: linear-gradient(135deg, #8b2fc9, #c850c0, #ff6ec7, #c850c0, #8b2fc9) !important;
+  background-size: 300% 300% !important;
+  border: 3px solid rgba(200,80,192,0.8) !important;
+  color: #fff !important;
+  animation: mega-shine 3s ease-in-out infinite, btn100-glow 2s ease-in-out infinite !important;
+}
+.gacha-btn-100:hover {
+  box-shadow: 0 12px 50px rgba(200,80,192,0.7), 0 0 80px rgba(200,80,192,0.3) !important;
+}
+@keyframes btn100-glow {
+  0%, 100% { box-shadow: 0 4px 30px rgba(200,80,192,0.5), inset 0 0 20px rgba(255,110,199,0.15); }
+  50% { box-shadow: 0 6px 40px rgba(200,80,192,0.7), inset 0 0 30px rgba(255,110,199,0.25), 0 0 40px rgba(200,80,192,0.3); }
+}
+
+/* === 焰晶显示优化 === */
+.spirit-stones {
+  background: linear-gradient(135deg, rgba(20,15,35,0.8), rgba(30,20,50,0.6)) !important;
+  border: 1px solid rgba(212,168,67,0.3) !important;
+  border-radius: 16px !important;
+  padding: 8px 24px !important;
+  backdrop-filter: blur(10px);
+}
+
+/* === 移动端按钮优化 === */
+@media (max-width: 480px) {
+  .gacha-btn-row {
+    max-width: 300px;
+    gap: 8px !important;
+  }
+  .gacha-btn { padding: 10px 16px !important; font-size: 13px !important; }
+  .gacha-btn-multi { padding: 12px 20px !important; font-size: 14px !important; }
+  .gacha-btn-mega, .gacha-btn-100 { padding: 14px 24px !important; font-size: 15px !important; }
+  .gacha-pool-ring { width: 140px; height: 140px; }
+  .gacha-item-container { width: 180px !important; height: 180px !important; }
+  .gacha-item { font-size: 70px !important; }
+}
+
 </style>
