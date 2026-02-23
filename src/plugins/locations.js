@@ -7,7 +7,7 @@ export const locations = [
     minLevel: 1,
     spiritCost: 50,
     rewards: [
-      { type: 'spirit_stone', chance: 0.3, amount: [5, 15] },
+      { type: 'spirit_stone', chance: 0.3, amount: [1, 2] },
       { type: 'herb', chance: 0.3, amount: [1, 2] },
       { type: 'cultivation', chance: 0.2, amount: [5, 10] },
       { type: 'pill_fragment', chance: 0.2, amount: [1, 1] }
@@ -21,7 +21,7 @@ export const locations = [
     minLevel: 10,
     spiritCost: 300,
     rewards: [
-      { type: 'spirit_stone', chance: 0.25, amount: [30, 60] },
+      { type: 'spirit_stone', chance: 0.25, amount: [20, 40] },
       { type: 'herb', chance: 0.3, amount: [15, 25] },
       { type: 'cultivation', chance: 0.25, amount: [150, 300] },
       { type: 'pill_fragment', chance: 0.2, amount: [6, 10] }
@@ -35,7 +35,7 @@ export const locations = [
     minLevel: 19,
     spiritCost: 500,
     rewards: [
-      { type: 'spirit_stone', chance: 0.25, amount: [50, 100] },
+      { type: 'spirit_stone', chance: 0.25, amount: [35, 70] },
       { type: 'herb', chance: 0.3, amount: [20, 35] },
       { type: 'cultivation', chance: 0.25, amount: [250, 500] },
       { type: 'pill_fragment', chance: 0.2, amount: [8, 12] }
@@ -49,7 +49,7 @@ export const locations = [
     minLevel: 28,
     spiritCost: 750,
     rewards: [
-      { type: 'spirit_stone', chance: 0.25, amount: [80, 150] },
+      { type: 'spirit_stone', chance: 0.25, amount: [50, 100] },
       { type: 'herb', chance: 0.3, amount: [30, 50] },
       { type: 'cultivation', chance: 0.25, amount: [400, 800] },
       { type: 'pill_fragment', chance: 0.2, amount: [10, 15] }
@@ -63,7 +63,7 @@ export const locations = [
     minLevel: 37,
     spiritCost: 1000,
     rewards: [
-      { type: 'spirit_stone', chance: 0.25, amount: [150, 300] },
+      { type: 'spirit_stone', chance: 0.25, amount: [80, 180] },
       { type: 'herb', chance: 0.3, amount: [50, 100] },
       { type: 'cultivation', chance: 0.25, amount: [800, 1500] },
       { type: 'pill_fragment', chance: 0.2, amount: [15, 20] }
