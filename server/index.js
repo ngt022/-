@@ -1854,6 +1854,13 @@ wss.on('connection', (ws, req) => {
         try {
           const decoded = jwt.verify(data.token, JWT_SECRET);
           userInfo = { wallet: decoded.wallet, name: data.name || '无名焰修' };
+          // 踢掉同钱包的旧连接（刷新页面时旧ws可能还没close）
+          for (const [oldWs, oldInfo] of onlineClients) {
+            if (oldInfo.wallet === userInfo.wallet && oldWs !== ws) {
+              onlineClients.delete(oldWs);
+              try { oldWs.close(1000, 'duplicate'); } catch {}
+            }
+          }
           onlineClients.set(ws, userInfo);
           broadcast({ type: 'online', count: wss.clients.size });
           broadcastEvent(`${userInfo.name} 进入了焰域`, 'join');
