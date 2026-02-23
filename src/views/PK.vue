@@ -40,7 +40,6 @@
       </n-modal>
 
       <!-- 战斗回放 -->
-            <!-- 战斗回放 -->
       <template v-if="battleResult">
         <div class="battle-replay">
           <!-- 战斗预告 -->
@@ -155,26 +154,6 @@
             我的战力：<n-text strong type="warning">{{ myCombatPower }}</n-text>
             <n-text depth="3" style="margin-left:12px">胜者获得 {{ PK_REWARD }} 焰晶</n-text>
           </n-alert>
-
-          <!-- 战绩统计 -->
-          <div class="stats-bar" v-if="pkStats">
-            <div class="stat-item">
-              <span class="stat-num">{{ pkStats.total }}</span>
-              <span class="stat-label">总场次</span>
-            </div>
-            <div class="stat-item win">
-              <span class="stat-num">{{ pkStats.wins }}</span>
-              <span class="stat-label">胜</span>
-            </div>
-            <div class="stat-item lose">
-              <span class="stat-num">{{ pkStats.losses }}</span>
-              <span class="stat-label">负</span>
-            </div>
-            <div class="stat-item reward">
-              <span class="stat-num">{{ pkStats.totalReward }}</span>
-              <span class="stat-label">焰晶收益</span>
-            </div>
-          </div>
 
           <n-tabs type="segment" v-model:value="activeTab">
             <n-tab-pane name="lobby" tab="⚔️ 大厅">
