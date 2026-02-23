@@ -394,7 +394,9 @@ export const usePlayerStore = defineStore('player', {
     },
     // 获取合并后的总属性（base + 装备 + buff）
     getTotalStats() {
-      const ab = this.artifactBonuses || {}
+      // baseAttributes 已包含 naked + 装备 + 宠物（后端 recalcAndPatch 计算）
+      // combatAttributes/combatResistance/specialAttributes 也已包含装备加成
+      // 这里只需加 buff + 坐骑/称号百分比
       
       // 计算 buff 加成
       const now = Date.now()
@@ -419,40 +421,39 @@ export const usePlayerStore = defineStore('player', {
       const pctHp = (mb.health_bonus || 0) + (tb.health_bonus || 0)
       const pctSpd = (mb.speed_bonus || 0) + (tb.speed_bonus || 0)
       
-      // 基础四维（base + 装备 + buff）
-      const rawHealth = (this.baseAttributes.health || 0) + (ab.health || 0) + buffHealth
-      const rawAttack = (this.baseAttributes.attack || 0) + (ab.attack || 0) + buffAttack
-      const rawDefense = (this.baseAttributes.defense || 0) + (ab.defense || 0) + buffDefense
-      const rawSpeed = (this.baseAttributes.speed || 0) + (ab.speed || 0) + buffSpeed
+      // 基础四维（baseAttributes 已含装备，只加 buff）
+      const rawHealth = (this.baseAttributes.health || 0) + buffHealth
+      const rawAttack = (this.baseAttributes.attack || 0) + buffAttack
+      const rawDefense = (this.baseAttributes.defense || 0) + buffDefense
+      const rawSpeed = (this.baseAttributes.speed || 0) + buffSpeed
       
       return {
-        // 最终四维 = raw * (1 + 坐骑% + 称号%)
         health: Math.floor(rawHealth * (1 + pctHp)),
         attack: Math.floor(rawAttack * (1 + pctAtk)),
         defense: Math.floor(rawDefense * (1 + pctDef)),
         speed: Math.floor(rawSpeed * (1 + pctSpd)),
-        // 战斗百分比 = combat + 装备 + buff
-        critRate: Math.min(1, (this.combatAttributes.critRate || 0) + (ab.critRate || 0) + buffCritRate),
-        comboRate: Math.min(1, (this.combatAttributes.comboRate || 0) + (ab.comboRate || 0) + buffComboRate),
-        counterRate: Math.min(1, (this.combatAttributes.counterRate || 0) + (ab.counterRate || 0)),
-        stunRate: Math.min(1, (this.combatAttributes.stunRate || 0) + (ab.stunRate || 0)),
-        dodgeRate: Math.min(1, (this.combatAttributes.dodgeRate || 0) + (ab.dodgeRate || 0) + buffDodgeRate),
-        vampireRate: Math.min(1, (this.combatAttributes.vampireRate || 0) + (ab.vampireRate || 0)),
-        // 抗性 = resistance + 装备
-        critResist: Math.min(1, (this.combatResistance.critResist || 0) + (ab.critResist || 0)),
-        comboResist: Math.min(1, (this.combatResistance.comboResist || 0) + (ab.comboResist || 0)),
-        counterResist: Math.min(1, (this.combatResistance.counterResist || 0) + (ab.counterResist || 0)),
-        stunResist: Math.min(1, (this.combatResistance.stunResist || 0) + (ab.stunResist || 0)),
-        dodgeResist: Math.min(1, (this.combatResistance.dodgeResist || 0) + (ab.dodgeResist || 0)),
-        vampireResist: Math.min(1, (this.combatResistance.vampireResist || 0) + (ab.vampireResist || 0)),
-        // 特殊属性 = special + 装备
-        healBoost: (this.specialAttributes.healBoost || 0) + (ab.healBoost || 0),
-        critDamageBoost: (this.specialAttributes.critDamageBoost || 0) + (ab.critDamageBoost || 0),
-        critDamageReduce: (this.specialAttributes.critDamageReduce || 0) + (ab.critDamageReduce || 0),
-        finalDamageBoost: (this.specialAttributes.finalDamageBoost || 0) + (ab.finalDamageBoost || 0),
-        finalDamageReduce: (this.specialAttributes.finalDamageReduce || 0) + (ab.finalDamageReduce || 0),
-        combatBoost: (this.specialAttributes.combatBoost || 0) + (ab.combatBoost || 0),
-        resistanceBoost: (this.specialAttributes.resistanceBoost || 0) + (ab.resistanceBoost || 0),
+        // 战斗百分比（已含装备，只加 buff）
+        critRate: Math.min(1, (this.combatAttributes.critRate || 0) + buffCritRate),
+        comboRate: Math.min(1, (this.combatAttributes.comboRate || 0) + buffComboRate),
+        counterRate: Math.min(1, (this.combatAttributes.counterRate || 0)),
+        stunRate: Math.min(1, (this.combatAttributes.stunRate || 0)),
+        dodgeRate: Math.min(1, (this.combatAttributes.dodgeRate || 0) + buffDodgeRate),
+        vampireRate: Math.min(1, (this.combatAttributes.vampireRate || 0)),
+        // 抗性
+        critResist: Math.min(1, (this.combatResistance.critResist || 0)),
+        comboResist: Math.min(1, (this.combatResistance.comboResist || 0)),
+        counterResist: Math.min(1, (this.combatResistance.counterResist || 0)),
+        stunResist: Math.min(1, (this.combatResistance.stunResist || 0)),
+        dodgeResist: Math.min(1, (this.combatResistance.dodgeResist || 0)),
+        vampireResist: Math.min(1, (this.combatResistance.vampireResist || 0)),
+        // 特殊属性
+        healBoost: (this.specialAttributes.healBoost || 0),
+        critDamageBoost: (this.specialAttributes.critDamageBoost || 0),
+        critDamageReduce: (this.specialAttributes.critDamageReduce || 0),
+        finalDamageBoost: (this.specialAttributes.finalDamageBoost || 0),
+        finalDamageReduce: (this.specialAttributes.finalDamageReduce || 0),
+        combatBoost: (this.specialAttributes.combatBoost || 0),
+        resistanceBoost: (this.specialAttributes.resistanceBoost || 0),
       }
     },
     // 计算离线收益（已登录走后端，未登录本地算）
