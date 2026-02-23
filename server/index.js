@@ -692,17 +692,18 @@ function calcSpiritState(gd, level, now) {
 }
 
 // 执行一次冥想（后端权威）
-function doServerCultivate(gd, level, times = 1) {
+function doServerCultivate(gd, level, times = 1, vipLevel = 0) {
   const now = Date.now();
   const st = calcSpiritState(gd, level, now);
   let spirit = st.spirit;
   let cultivation = Number(gd.cultivation) || 0;
   let actualTimes = 0;
+  const vipCultBoost = (VIP_CONFIG[vipLevel] || VIP_CONFIG[0]).cultivationBoost || 1;
 
   for (let i = 0; i < times; i++) {
     if (spirit < st.cultCost) break;
     spirit -= st.cultCost;
-    cultivation += st.cultGain;
+    cultivation += Math.floor(st.cultGain * vipCultBoost);
     actualTimes++;
   }
 
@@ -959,7 +960,8 @@ app.post('/api/game/cultivate', auth, async (req, res) => {
     }
 
     // 单次/多次冥想
-    const result = doServerCultivate(gd, lv, Math.min(times, 10000));
+    const vipLv = row.vip_level || 0;
+    const result = doServerCultivate(gd, lv, Math.min(times, 10000), vipLv);
     gd.spirit = result.spirit;
     gd.cultivation = result.cultivation;
     gd.lastTickTime = result.lastTickTime;
