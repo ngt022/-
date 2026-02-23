@@ -869,9 +869,13 @@ app.post('/api/game/tick', auth, async (req, res) => {
     const now = Date.now();
     const st = calcSpiritState(gd, lv, now);
     const vipCultBoost = (VIP_CONFIG[row.vip_level || 0] || VIP_CONFIG[0]).cultivationBoost || 1;
-    // cultivationBoost buff 加成 tick 自动冥想
-    let tickBuffBoost = 1;
-    if (isBuffActive(gd, 'cultivationBoost')) tickBuffBoost = 1.5;
+    // cultivationBoost buff + 月卡加成 tick
+    let tickBoost = 1;
+    if (isBuffActive(gd, 'cultivationBoost')) tickBoost *= 1.5;
+    try {
+      const mc = await pool.query('SELECT 1 FROM monthly_cards WHERE wallet= AND expires_at > NOW() LIMIT 1', [w]);
+      if (mc.rows.length > 0) tickBoost *= 1.2;
+    } catch {}
 
     // 更新 DB
     gd.spirit = st.spirit;
@@ -888,7 +892,7 @@ app.post('/api/game/tick', auth, async (req, res) => {
       level: lv,
       realm: row.realm || gd.realm,
       cultCost: st.cultCost,
-      cultGain: Math.floor(st.cultGain * vipCultBoost * mcBoost),
+      cultGain: Math.floor(st.cultGain * vipCultBoost * tickBoost),
       isAutoCultivating: !!gd.isAutoCultivating,
       serverTime: now
     });
