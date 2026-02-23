@@ -222,7 +222,6 @@
     }
     isLoading.value = false
     getMenuOptions()
-    startAutoGain()
     playerStore.startSpiritRegen()
 
     // 10秒自动云存档（仅在数据变更时）
@@ -360,17 +359,7 @@
     return result
   })
 
-  const startAutoGain = () => {
-    if (spiritWorker.value) return
-    spiritWorker.value = new Worker(new URL('./workers/spirit.js', import.meta.url))
-    spiritWorker.value.onmessage = e => {
-      if (e.data.type === 'gain') {
-        playerStore.totalCultivationTime += 1
-        playerStore.gainSpirit(baseGainRate)
-      }
-    }
-    spiritWorker.value.postMessage({ type: 'start' })
-  }
+  // startAutoGain removed - 焰灵恢复统一由 playerStore.startSpiritRegen() 处理
 
   // 强制黑色主题
   document.documentElement.removeAttribute('data-theme')
