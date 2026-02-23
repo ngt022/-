@@ -58,6 +58,7 @@
 import { hasSeenGuide, markGuideSeen, guideTexts } from "../utils/guide.js"
 import GuideTooltip from "../components/GuideTooltip.vue"
   import { usePlayerStore } from '../stores/player'
+  import { useGameConfigStore } from '../stores/gameConfig'
   import { ref, computed, onMounted, onUnmounted } from 'vue'
   import { NIcon } from 'naive-ui'
   import { BookOutline } from '@vicons/ionicons5'
@@ -68,6 +69,7 @@ import GuideTooltip from "../components/GuideTooltip.vue"
   const showGuide = ref(!hasSeenGuide("cultivation"))
 const dismissGuide = () => { markGuideSeen("cultivation"); showGuide.value = false }
 const playerStore = usePlayerStore()
+  const gameConfigStore = useGameConfigStore()
   const logRef = ref(null)
 
   const realmIcon = computed(() => getRealmImage(playerStore.level))
@@ -90,14 +92,14 @@ const playerStore = usePlayerStore()
   const autoGainInterval = 1000 // 自动获取焰灵的间隔（毫秒）
   const extraCultivationChance = 0.3 // 获得额外修为的基础概率
 
-  // 计算当前境界的修炼消耗（服务端下发优先）
+  // 计算当前境界的修炼消耗（从配置中心读取）
   const getCurrentCultivationCost = () => {
-    return playerStore.cultivationCost || (5 + playerStore.level * 3)
+    return gameConfigStore.getCultivationCost(playerStore.level)
   }
 
-  // 计算当前境界的修炼获得（服务端下发优先）
+  // 计算当前境界的修炼获得（从配置中心读取）
   const getCurrentCultivationGain = () => {
-    return playerStore.cultivationGain || Math.max(1, Math.floor(baseCultivationGain * playerStore.level * 2))
+    return gameConfigStore.getCultivationGain(playerStore.level)
   }
 
   // 计算当前修炼消耗（作为计算属性）

@@ -98,6 +98,7 @@
 <script setup>
   import { useRouter, useRoute } from 'vue-router'
   import { usePlayerStore } from './stores/player'
+import { useGameConfigStore } from './stores/gameConfig'
   import { useAuthStore } from './stores/auth'
   import { h, ref, watch, onMounted, computed } from 'vue'
   import { NIcon, darkTheme, createDiscreteApi } from 'naive-ui'
@@ -123,6 +124,7 @@
   const router = useRouter()
   const route = useRoute()
   const playerStore = usePlayerStore()
+  const gameConfigStore = useGameConfigStore()
   const authStore = useAuthStore()
   const { dialog } = createDiscreteApi(["dialog"])
   const spiritWorker = ref(null)
@@ -197,6 +199,8 @@
 
   const initGame = async () => {
     isLoading.value = true
+    // 加载服务端游戏配置
+    await gameConfigStore.loadConfig()
     // 先加载本地 IndexedDB 存档
     await playerStore.initializePlayer()
     // 再用云端数据覆盖（云端优先）

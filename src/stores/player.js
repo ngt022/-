@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { useGameConfigStore } from './gameConfig'
 import { GameDB } from './db'
 import { pillRecipes, tryCreatePill, calculatePillEffect } from '../plugins/pills'
 import { encryptData, decryptData, validateData } from '../plugins/crypto'
@@ -269,11 +270,13 @@ export const usePlayerStore = defineStore('player', {
     },
     // 焰灵上限
     getMaxSpirit() {
-      return this.maxSpirit || (200 + this.level * 100)
+      const cfg = useGameConfigStore()
+      return cfg.loaded ? cfg.getMaxSpirit(this.level) : (this.maxSpirit || (200 + this.level * 100))
     },
     // 焰灵每秒恢复量
     getSpiritRegen() {
-      return this.spiritRegenRate || (2 + this.level * 0.5)
+      const cfg = useGameConfigStore()
+      return cfg.loaded ? cfg.getSpiritRegen(this.level) : (this.spiritRegenRate || (2 + this.level * 0.5))
     },
     // 启动焰灵自然恢复
     startSpiritRegen() {
@@ -301,12 +304,12 @@ export const usePlayerStore = defineStore('player', {
           this._autoCultTimer = null
           return
         }
-        const cost = this.cultivationCost || (5 + this.level * 3)
+        const cost = useGameConfigStore().getCultivationCost(this.level)
         if (this.spirit < cost) {
           this.stopAutoCultivation()
           return
         }
-        const gain = this.cultivationGain || Math.max(1, Math.floor(this.level * 2))
+        const gain = useGameConfigStore().getCultivationGain(this.level)
         this.spirit -= cost
         this.cultivate(gain)
       }, 1000)
@@ -519,11 +522,11 @@ export const usePlayerStore = defineStore('player', {
     },
     // 尝试突破
     tryBreakthrough() {
-      // 境界等级对应的境界名称和修为上限
-      const realmsLength = getRealmLength()
+      const cfg = useGameConfigStore()
+      const realmsLength = cfg.loaded ? cfg.realms.length : getRealmLength()
       // 检查是否可以突破到下一个境界
       if (this.level < realmsLength) {
-        const nextRealm = getRealmName(this.level)
+        const nextRealm = cfg.loaded ? cfg.getRealmByLevel(this.level) : getRealmName(this.level)
         // 更新境界信息
         this.level += 1
         this.realm = nextRealm.name // 使用完整的境界名称（如：燃火一重）
