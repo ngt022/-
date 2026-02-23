@@ -76,23 +76,27 @@
               </div>
             </div>
 
-            <!-- 当前回合显示 -->
-            <div class="current-round" v-if="!battleEnded && currentAction">
-              <div class="action-display" :class="{ 'action-flash': actionFlash }">
-                <span class="action-attacker" :class="currentAction.attacker === 'A' ? 'side-a' : 'side-b'">
-                  {{ currentAction.attacker === 'A' ? battleResult.nameA : battleResult.nameB }}
+            <!-- 当前回合显示（双方同时） -->
+            <div class="current-round" v-if="!battleEnded && currentRound">
+              <div v-for="(a, i) in currentRound.actions" :key="i" class="action-display" :class="{ 'action-flash': actionFlash }">
+                <span class="action-attacker" :class="a.attacker === 'A' ? 'side-a' : 'side-b'">
+                  {{ a.attacker === 'A' ? battleResult.nameA : battleResult.nameB }}
+                </span>
+                <span class="action-arrow">→</span>
+                <span class="action-target" :class="a.attacker === 'A' ? 'side-b' : 'side-a'">
+                  {{ a.attacker === 'A' ? battleResult.nameB : battleResult.nameA }}
                 </span>
                 
-                <template v-if="currentAction.isDodged">
+                <template v-if="a.isDodged">
                   <span class="effect-text effect-dodge">💨 闪避!</span>
                 </template>
                 <template v-else>
-                  <span class="damage-number" :class="{ 'crit-dmg': currentAction.isCrit }">-{{ currentAction.damage }}</span>
-                  <span v-if="currentAction.isCrit" class="effect-text effect-crit">💥 暴击!</span>
-                  <span v-if="currentAction.isCombo" class="effect-text effect-combo">⚡ 连击!</span>
-                  <span v-if="currentAction.isCounter" class="effect-text effect-counter">🔄 反击!</span>
-                  <span v-if="currentAction.isStun" class="effect-text effect-stun">💫 眩晕!</span>
-                  <span v-if="currentAction.isVampire" class="effect-text effect-vampire">🩸 吸血 +{{ currentAction.vampireHeal }}!</span>
+                  <span class="damage-number" :class="{ 'crit-dmg': a.isCrit }">-{{ a.damage }}</span>
+                  <span v-if="a.isCrit" class="effect-text effect-crit">💥 暴击!</span>
+                  <span v-if="a.isCombo" class="effect-text effect-combo">⚡ 连击!</span>
+                  <span v-if="a.isCounter" class="effect-text effect-counter">🔄 反击!</span>
+                  <span v-if="a.isStun" class="effect-text effect-stun">💫 眩晕!</span>
+                  <span v-if="a.isVampire" class="effect-text effect-vampire">🩸 吸血 +{{ a.vampireHeal }}!</span>
                 </template>
               </div>
             </div>
@@ -293,41 +297,42 @@ const playNextAction = () => {
   
   const rounds = battleResult.value.rounds
   if (currentRoundIndex.value >= rounds.length) {
-    // 所有回合播放完毕，结束战斗
     endBattle()
     return
   }
   
   const round = rounds[currentRoundIndex.value]
-  if (currentActionIndex.value >= round.actions.length) {
-    // 当前回合动作播放完毕，进入下一回合
-    currentRoundIndex.value++
-    currentActionIndex.value = 0
-    animationTimer.value = setTimeout(playNextAction, 500)
-    return
-  }
-  
-  const action = round.actions[currentActionIndex.value]
   
   // 触发动作闪烁效果
   actionFlash.value = true
   setTimeout(() => { actionFlash.value = false }, 300)
   
-  // 计算伤害后的血量
-  if (!action.isDodged) {
-    if (action.attacker === 'A') {
-      currentHpB.value = Math.max(0, currentHpB.value - action.damage)
-    } else {
-      currentHpA.value = Math.max(0, currentHpA.value - action.damage)
+  // 一次性应用本回合所有 actions 的伤害
+  for (const action of round.actions) {
+    if (!action.isDodged) {
+      if (action.attacker === 'A') {
+        currentHpB.value = Math.max(0, currentHpB.value - action.damage)
+      } else {
+        currentHpA.value = Math.max(0, currentHpA.value - action.damage)
+      }
+    }
+    // 吸血回血
+    if (action.isVampire && action.vampireHeal) {
+      if (action.attacker === 'A') {
+        currentHpA.value = Math.min(battleResult.value.maxHpA, currentHpA.value + action.vampireHeal)
+      } else {
+        currentHpB.value = Math.min(battleResult.value.maxHpB, currentHpB.value + action.vampireHeal)
+      }
     }
   }
   
-  // 检查是否是最后一个动作
-  const isLastRound = currentRoundIndex.value === rounds.length - 1
-  const isLastAction = currentActionIndex.value === round.actions.length - 1
+  // 用后端记录的回合血量校正（更准确）
+  if (round.hpA !== undefined) currentHpA.value = round.hpA
+  if (round.hpB !== undefined) currentHpB.value = round.hpB
   
-  if (isLastRound && isLastAction) {
-    // 最后一击，显示击杀特写
+  const isLastRound = currentRoundIndex.value === rounds.length - 1
+  
+  if (isLastRound) {
     animationTimer.value = setTimeout(() => {
       showKillShot.value = true
       animationTimer.value = setTimeout(() => {
@@ -336,8 +341,7 @@ const playNextAction = () => {
       }, 1500)
     }, 800)
   } else {
-    // 继续下一个动作
-    currentActionIndex.value++
+    currentRoundIndex.value++
     animationTimer.value = setTimeout(playNextAction, 1500)
   }
 }
@@ -616,6 +620,9 @@ onUnmounted(() => {
   padding: 2px 8px; font-size: 12px;
 }
 .action-attacker { font-weight: bold; }
+.action-arrow { color: #666; margin: 0 6px; }
+.action-target { font-weight: bold; opacity: 0.7; }
+.action-display { margin-bottom: 8px; padding: 6px 10px; border-radius: 6px; background: rgba(255,255,255,0.03); }
 .side-a { color: #4caf50; }
 .side-b { color: #ff5722; }
 .action-dmg { color: #ff4444; font-weight: bold; }
