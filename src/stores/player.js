@@ -565,8 +565,20 @@ export const usePlayerStore = defineStore('player', {
     },
     // 保存数据到IndexedDB
     async saveData() {
-      // 标记数据已变更，由30秒定时器统一存档，避免竞态
-      this._dirty = true
+      // 已登录用户：2秒防抖立即云存档；未登录：不做任何事
+      const token = localStorage.getItem('xx_token')
+      if (!token) return
+      if (this._saveDebounceTimer) clearTimeout(this._saveDebounceTimer)
+      this._saveDebounceTimer = setTimeout(async () => {
+        this._saveDebounceTimer = null
+        try {
+          const { useAuthStore } = await import('./auth')
+          const authStore = useAuthStore()
+          if (authStore.isLoggedIn) {
+            authStore.saveToCloud(this).catch(e => console.warn('[SAVE] failed:', e.message))
+          }
+        } catch (e) { console.warn('[SAVE] error:', e.message) }
+      }, 2000)
     },
     // 导出存档数据
     async exportData() {

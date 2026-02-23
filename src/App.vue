@@ -232,15 +232,7 @@ import { useGameConfigStore } from './stores/gameConfig'
     getMenuOptions()
     playerStore.startSpiritRegen()
 
-    // 10秒自动云存档（仅在数据变更时）
-    if (window.__autoSaveTimer) clearInterval(window.__autoSaveTimer)
-    window.__autoSaveTimer = setInterval(() => {
-      if (authStore.isLoggedIn && playerStore._dirty) {
-        console.log('[AUTOSAVE] spirit=', playerStore.spirit, 'level=', playerStore.level, 'realm=', playerStore.realm)
-        playerStore._dirty = false
-        authStore.saveToCloud(playerStore).catch(() => {})
-      }
-    }, 10000)
+    // 云存档已改为操作触发（saveData 2秒防抖），不再需要定时器
     // 离线收益
     const reward = await playerStore.calculateOfflineReward()
     if (reward) {
