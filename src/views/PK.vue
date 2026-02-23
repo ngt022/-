@@ -21,7 +21,22 @@
           <n-text strong>{{ incomingChallenge?.fromName }}</n-text>
           <n-text depth="3">战力: {{ incomingChallenge?.fromCombatPower }}</n-text>
           <n-text type="warning">向你发起了焰武挑战！</n-text>
+          <div v-if="incomingChallenge?.betAmount > 0" style="color:#d4a843;margin-top:8px;font-size:14px">
+            💰 赌注: {{ incomingChallenge.betAmount }} 焰晶（赢家获得 {{ Math.floor(incomingChallenge.betAmount * 2 * 0.9) }}）
+          </div>
         </n-space>
+      </n-modal>
+
+      <!-- 赌注选择弹窗 -->
+      <n-modal v-model:show="showBetModal" preset="card" title="⚔️ 选择赌注" style="max-width:320px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <n-button v-for="b in [0, 100, 500, 1000, 5000]" :key="b"
+            :type="selectedBet === b ? 'warning' : 'default'"
+            @click="selectedBet = b">
+            {{ b === 0 ? '🤝 友谊赛（无赌注）' : '💰 ' + b + ' 焰晶' }}
+          </n-button>
+        </div>
+        <n-button type="primary" block style="margin-top:12px" @click="confirmChallenge">⚔️ 发起挑战</n-button>
       </n-modal>
 
       <!-- 战斗回放 -->
@@ -114,6 +129,13 @@
               <template v-else>
                 <span>🏆 {{ battleResult.winnerName }} 获胜！</span>
                 <n-text type="warning" style="font-size:12px">+{{ battleResult.reward }} 焰晶</n-text>
+                <div v-if="battleResult.betAmount > 0" style="margin-top:4px;font-size:13px">💰 {{ myBetResult }}</div>
+                <div v-if="myScoreChange !== 0" style="margin-top:4px;font-size:13px">
+                  <span :style="{color: myScoreChange > 0 ? '#4caf50' : '#f44336'}">{{ myScoreChange > 0 ? '📈 +' : '📉 ' }}{{ myScoreChange }} 排位分</span>
+                </div>
+              </template>
+              <template v-if="battleResult.winner === 'draw' && battleResult.betAmount > 0">
+                <div style="font-size:13px;margin-top:4px">💰 赌注已退还</div>
               </template>
             </div>
 
@@ -155,16 +177,14 @@
           </div>
 
           <n-tabs type="segment" v-model:value="activeTab">
-            <n-tab-pane name="lobby" tab="🏟️ 大厅">
+            <n-tab-pane name="lobby" tab="⚔️ 大厅">
               <n-button type="primary" block @click="refreshPlayers" :loading="refreshing" style="margin-top:12px">
                 🔄 刷新在线玩家
               </n-button>
-
               <div v-if="onlinePlayers.length === 0" style="text-align:center;padding:30px 0">
                 <span style="font-size:32px">🏜️</span>
                 <n-text depth="3" tag="div" style="margin-top:8px">暂无其他在线玩家</n-text>
               </div>
-
               <div v-for="p in onlinePlayers" :key="p.fullWallet" class="player-card" style="margin-top:10px">
                 <div class="player-left">
                   <div class="player-av">{{ p.name[0] }}</div>
@@ -179,20 +199,54 @@
               </div>
             </n-tab-pane>
 
-            <n-tab-pane name="history" tab="📜 战绩">
-              <div v-if="pkHistory.length === 0" style="text-align:center;padding:30px 0">
-                <n-text depth="3">暂无战绩记录</n-text>
+            <n-tab-pane name="rankings" tab="🏆 排行榜">
+              <div v-if="myRanking" style="text-align:center;padding:16px;background:rgba(255,255,255,0.03);border-radius:12px;margin-bottom:16px">
+                <div style="font-size:36px">{{ tierIcon(myRanking.rank_tier) }}</div>
+                <div style="font-size:18px;font-weight:bold;margin:4px 0">{{ tierName(myRanking.rank_tier) }}</div>
+                <div style="color:#d4a843">{{ myRanking.rank_score }} 分 · 排名 #{{ myRanking.rank_pos || '-' }}</div>
+                <div style="font-size:12px;color:#888;margin-top:4px">{{ myRanking.wins }}胜 {{ myRanking.losses }}负 {{ myRanking.draws }}平</div>
               </div>
-              <div v-for="r in pkHistory" :key="r.id" class="history-item" :class="'h-' + r.isMe">
-                <div class="h-left">
-                  <span class="h-result" :class="'hr-' + r.isMe">{{ r.isMe === 'win' ? '胜' : r.isMe === 'draw' ? '平' : '负' }}</span>
-                  <div class="h-info">
-                    <n-text strong>vs {{ r.opponent }}</n-text>
-                    <n-text depth="3" style="font-size:11px">{{ formatTime(r.created_at) }}</n-text>
-                  </div>
+              <div v-for="(r, i) in rankings" :key="r.wallet" style="display:flex;align-items:center;padding:10px;border-bottom:1px solid rgba(255,255,255,0.05);gap:10px">
+                <span style="width:24px;text-align:center;font-weight:bold" :style="{color: i<3 ? '#d4a843' : '#888'}">{{ i+1 }}</span>
+                <span style="font-size:20px">{{ tierIcon(r.rank_tier) }}</span>
+                <div style="flex:1">
+                  <div style="font-weight:bold">{{ r.name || '无名焰修' }} <span style="font-size:11px;color:#888">Lv.{{ r.level }}</span></div>
+                  <div style="font-size:11px;color:#888">{{ r.wins }}胜 {{ r.losses }}负 · 连胜{{ r.win_streak }}</div>
                 </div>
-                <n-text v-if="r.isMe === 'win'" type="warning" style="font-size:12px">+{{ r.reward }} 焰晶</n-text>
+                <span style="color:#d4a843;font-weight:bold">{{ r.rank_score }}</span>
               </div>
+              <div v-if="!rankings.length" style="text-align:center;color:#666;padding:40px">暂无排位数据</div>
+            </n-tab-pane>
+
+            <n-tab-pane name="stats" tab="📊 战绩">
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;margin-top:12px">
+                <div style="text-align:center;padding:12px;background:rgba(255,255,255,0.03);border-radius:8px">
+                  <div style="font-size:20px;font-weight:bold;color:#4caf50">{{ myPkStats.wins || 0 }}</div>
+                  <div style="font-size:11px;color:#888">胜场</div>
+                </div>
+                <div style="text-align:center;padding:12px;background:rgba(255,255,255,0.03);border-radius:8px">
+                  <div style="font-size:20px;font-weight:bold;color:#f44336">{{ myPkStats.losses || 0 }}</div>
+                  <div style="font-size:11px;color:#888">败场</div>
+                </div>
+                <div style="text-align:center;padding:12px;background:rgba(255,255,255,0.03);border-radius:8px">
+                  <div style="font-size:20px;font-weight:bold;color:#d4a843">{{ pkWinRate }}%</div>
+                  <div style="font-size:11px;color:#888">胜率</div>
+                </div>
+                <div style="text-align:center;padding:12px;background:rgba(255,255,255,0.03);border-radius:8px">
+                  <div style="font-size:20px;font-weight:bold;color:#ff9800">{{ myPkStats.max_win_streak || 0 }}</div>
+                  <div style="font-size:11px;color:#888">最高连胜</div>
+                </div>
+              </div>
+              <div style="font-weight:bold;margin-bottom:8px">最近对战</div>
+              <div v-for="m in recentMatches" :key="m.created_at" style="display:flex;align-items:center;padding:8px;border-bottom:1px solid rgba(255,255,255,0.05);gap:8px">
+                <span style="width:28px;text-align:center;font-weight:bold" :style="{color: isMatchWin(m) ? '#4caf50' : '#f44336'}">{{ isMatchWin(m) ? '胜' : '负' }}</span>
+                <div style="flex:1">
+                  <span>vs {{ getOpponent(m) }}</span>
+                  <span v-if="m.bet_amount > 0" style="color:#d4a843;font-size:11px;margin-left:6px">💰{{ m.bet_amount }}</span>
+                </div>
+                <span style="font-size:11px;color:#888">{{ formatMatchTime(m.created_at) }}</span>
+              </div>
+              <div v-if="!recentMatches.length" style="text-align:center;color:#666;padding:40px">暂无对战记录</div>
             </n-tab-pane>
           </n-tabs>
         </n-space>
@@ -384,27 +438,59 @@ let reconnectTimer = null
 
 const myCombatPower = playerStore.getCombatPower()
 const activeTab = ref('lobby')
-const pkStats = ref(null)
-const pkHistory = ref([])
+const showBetModal = ref(false)
+const selectedBet = ref(0)
+const challengeTarget = ref(null)
+const rankings = ref([])
+const myRanking = ref(null)
+const myPkStats = ref({})
+const recentMatches = ref([])
 
-const fetchPkData = async () => {
-  const token = localStorage.getItem('xx_token') || localStorage.getItem('roon_auth_token')
+const tierIcon = (t) => ({ bronze: '\u{1F949}', silver: '\u{1F948}', gold: '\u{1F947}', diamond: '\u{1F48E}', emperor: '\u{1F451}' }[t] || '\u{1F949}')
+const tierName = (t) => ({ bronze: '青铜', silver: '白银', gold: '黄金', diamond: '钻石', emperor: '焰皇' }[t] || '青铜')
+
+const pkWinRate = computed(() => {
+  const total = (myPkStats.value.wins || 0) + (myPkStats.value.losses || 0)
+  return total > 0 ? Math.round(myPkStats.value.wins / total * 100) : 0
+})
+
+const myScoreChange = computed(() => {
+  if (!battleResult.value || battleResult.value.scoreChangeA === undefined) return 0
+  const myWallet = localStorage.getItem('xx_wallet') || ''
+  return battleResult.value.walletA === myWallet ? (battleResult.value.scoreChangeA || 0) : (battleResult.value.scoreChangeB || 0)
+})
+
+const myBetResult = computed(() => {
+  if (!battleResult.value || !battleResult.value.betAmount) return ''
+  const myWallet = localStorage.getItem('xx_wallet') || ''
+  const isWinner = (battleResult.value.winner === 'A' && battleResult.value.walletA === myWallet) || (battleResult.value.winner === 'B' && battleResult.value.walletB === myWallet)
+  if (battleResult.value.winner === 'draw') return '平局，赌注已退还'
+  return isWinner ? '赢得 ' + battleResult.value.betWin + ' 焰晶' : '输掉 ' + battleResult.value.betAmount + ' 焰晶'
+})
+
+const isMatchWin = (m) => m.winner_wallet === (localStorage.getItem('xx_wallet') || '')
+const getOpponent = (m) => m.wallet_a === (localStorage.getItem('xx_wallet') || '') ? m.name_b : m.name_a
+const formatMatchTime = (t) => {
+  const d = new Date(t)
+  return (d.getMonth()+1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2,'0')
+}
+
+async function loadRankings() {
+  const token = localStorage.getItem('xx_token')
   if (!token) return
-  const headers = { 'Authorization': `Bearer ${token}` }
   try {
-    const [statsRes, histRes] = await Promise.all([
-      fetch('/api/pk/stats', { headers }),
-      fetch('/api/pk/history', { headers })
-    ])
-    pkStats.value = await statsRes.json()
-    const histData = await histRes.json()
-    pkHistory.value = histData.records || []
+    const res = await fetch('/api/pk/rankings', { headers: { 'Authorization': 'Bearer ' + token } })
+    if (res.ok) { const d = await res.json(); rankings.value = d.rankings || []; myRanking.value = d.myRanking || null }
   } catch {}
 }
 
-const formatTime = (t) => {
-  const d = new Date(t)
-  return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+async function loadMyStats() {
+  const token = localStorage.getItem('xx_token')
+  if (!token) return
+  try {
+    const res = await fetch('/api/pk/my-stats', { headers: { 'Authorization': 'Bearer ' + token } })
+    if (res.ok) { const d = await res.json(); myPkStats.value = d.ranking || {}; recentMatches.value = d.recentMatches || [] }
+  } catch {}
 }
 
 const getMyStats = () => {
@@ -469,12 +555,16 @@ const connectWs = () => {
         battleResult.value = data
         showChallengeModal.value = false
         challengeSent.value = false
-        fetchPkData() // 刷新战绩
         // 判断自己是否赢了
         const myWallet = localStorage.getItem('xx_wallet') || ''
-        if (data.winnerName && ((data.winner === 'A' && data.walletA === myWallet) || (data.winner === 'B' && data.walletB === myWallet))) {
+        const iAmWinner = data.winnerName && ((data.winner === 'A' && data.walletA === myWallet) || (data.winner === 'B' && data.walletB === myWallet))
+        if (iAmWinner) {
           sfx.victory()
           playerStore.spiritStones += PK_REWARD
+          // 赌注赢了
+          if (data.betAmount > 0 && data.betWin) {
+            playerStore.spiritStones += data.betWin
+          }
           playerStore.saveData()
         } else if (data.winner !== 'draw') {
           sfx.defeat()
@@ -508,10 +598,17 @@ const refreshPlayers = () => {
 }
 
 const sendChallenge = (player) => {
-  // 战斗时停止自动冥想
+  challengeTarget.value = player
+  selectedBet.value = 0
+  showBetModal.value = true
+}
+
+const confirmChallenge = () => {
   playerStore.stopAutoCultivation()
-  if (!ws || ws.readyState !== 1) return
-  ws.send(JSON.stringify({ type: 'pk_challenge', targetWallet: player.fullWallet }))
+  if (!ws || ws.readyState !== 1 || !challengeTarget.value) return
+  ws.send(JSON.stringify({ type: 'pk_challenge', targetWallet: challengeTarget.value.fullWallet, betAmount: selectedBet.value }))
+  showBetModal.value = false
+  challengeTarget.value = null
 }
 
 const acceptChallenge = () => {
@@ -534,6 +631,11 @@ const declineChallenge = () => {
   showChallengeModal.value = false
   incomingChallenge.value = null
 }
+
+watch(activeTab, (val) => {
+  if (val === 'rankings') loadRankings()
+  if (val === 'stats') loadMyStats()
+})
 
 onMounted(() => {
   connectWs()
