@@ -915,8 +915,44 @@ CREATE TABLE public.pk_records (
     winner_wallet character varying(42),
     rounds_data jsonb DEFAULT '[]'::jsonb,
     reward integer DEFAULT 0,
+    bet_amount integer DEFAULT 0,
+    score_change_a integer DEFAULT 0,
+    score_change_b integer DEFAULT 0,
     created_at timestamp with time zone DEFAULT now()
 );
+
+-- Name: pk_rankings; Type: TABLE; Schema: public; Owner: -
+CREATE TABLE public.pk_rankings (
+    id integer NOT NULL,
+    wallet character varying(42) NOT NULL,
+    rank_score integer DEFAULT 1000,
+    rank_tier character varying(20) DEFAULT 'silver',
+    season integer DEFAULT 1,
+    wins integer DEFAULT 0,
+    losses integer DEFAULT 0,
+    draws integer DEFAULT 0,
+    win_streak integer DEFAULT 0,
+    max_win_streak integer DEFAULT 0,
+    last_pk_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE SEQUENCE public.pk_rankings_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.pk_rankings_id_seq OWNED BY public.pk_rankings.id;
+ALTER TABLE ONLY public.pk_rankings ALTER COLUMN id SET DEFAULT nextval('public.pk_rankings_id_seq'::regclass);
+ALTER TABLE ONLY public.pk_rankings ADD CONSTRAINT pk_rankings_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.pk_rankings ADD CONSTRAINT pk_rankings_wallet_key UNIQUE (wallet);
+CREATE INDEX idx_pk_rankings_score ON public.pk_rankings(rank_score DESC);
+
+
 
 
 --
