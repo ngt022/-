@@ -22,10 +22,10 @@ const PILL_ITEMS = {
   exp_1:  { price:50000,  name:'1级经验丹', effect:'levelup', levels:1, dailyLimit:5 },
   exp_5:  { price:200000, name:'5级经验丹', effect:'levelup', levels:5, dailyLimit:3 },
   exp_10: { price:500000, name:'10级经验丹',effect:'levelup', levels:10, dailyLimit:1 },
-  attr_attack:  { price:5000, name:'攻击丹', effect:'attr', stat:'attack',  value:50, dailyLimit:10 },
-  attr_health:  { price:5000, name:'生命丹', effect:'attr', stat:'health',  value:500, dailyLimit:10 },
-  attr_defense: { price:5000, name:'防御丹', effect:'attr', stat:'defense', value:30, dailyLimit:10 },
-  attr_speed:   { price:5000, name:'速度丹', effect:'attr', stat:'speed',   value:20, dailyLimit:10 },
+  attr_attack:  { price:5000, name:'攻击丹', effect:'attr', stat:'attack',  value:10, dailyLimit:5 },
+  attr_health:  { price:5000, name:'生命丹', effect:'attr', stat:'health',  value:100, dailyLimit:5 },
+  attr_defense: { price:5000, name:'防御丹', effect:'attr', stat:'defense', value:8, dailyLimit:5 },
+  attr_speed:   { price:5000, name:'速度丹', effect:'attr', stat:'speed',   value:5, dailyLimit:5 },
 };
 
 // 材料价格从配置读取，这里保留默认价格配置
