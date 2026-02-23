@@ -13,12 +13,12 @@ const SLOT_NAMES = {
 };
 
 const PILL_ITEMS = {
-  spirit_small:  { price:500,   name:'小灵力药水', effect:'spirit',  value:500 },
-  spirit_medium: { price:2000,  name:'中灵力药水', effect:'spirit',  value:2500 },
-  spirit_large:  { price:8000,  name:'大灵力药水', effect:'spirit',  value:12000 },
-  cult_small:    { price:1000,  name:'小修为丹',   effect:'cultivation', multiplier:100 },
-  cult_medium:   { price:5000,  name:'中修为丹',   effect:'cultivation', multiplier:600 },
-  cult_large:    { price:20000, name:'大修为丹',   effect:'cultivation', multiplier:3000 },
+  spirit_small:  { price:500,   name:'小灵力药水', effect:'spirit',  value:200 },
+  spirit_medium: { price:2000,  name:'中灵力药水', effect:'spirit',  value:800 },
+  spirit_large:  { price:8000,  name:'大灵力药水', effect:'spirit',  value:3000 },
+  cult_small:    { price:1000,  name:'小修为丹',   effect:'cultivation', multiplier:20, dailyLimit:5 },
+  cult_medium:   { price:5000,  name:'中修为丹',   effect:'cultivation', multiplier:80, dailyLimit:3 },
+  cult_large:    { price:20000, name:'大修为丹',   effect:'cultivation', multiplier:300, dailyLimit:1 },
   exp_1:  { price:50000,  name:'1级经验丹', effect:'levelup', levels:1, dailyLimit:5 },
   exp_5:  { price:200000, name:'5级经验丹', effect:'levelup', levels:5, dailyLimit:3 },
   exp_10: { price:500000, name:'10级经验丹',effect:'levelup', levels:10, dailyLimit:1 },
