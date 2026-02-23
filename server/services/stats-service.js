@@ -216,6 +216,40 @@ export function computeFinalStats(gameData, opts = {}) {
     spiritRate: 1 + equip.spiritRate,
   };
   
+  // === 丹药 buff 加成 ===
+  const buffs = gameData?.buffs || {};
+  const pbv = gameData?.pillBuffValues || {};
+  const now = Date.now();
+
+  // combatBoost 丹药 (雷灵丹等): 全属性百分比加成
+  if (buffs.combatBoost && buffs.combatBoost > now && pbv.combatBoost) {
+    const boost = pbv.combatBoost;
+    finalStats.attack = Math.floor(finalStats.attack * (1 + boost));
+    finalStats.damage = Math.floor(finalStats.damage * (1 + boost));
+    finalStats.defense = Math.floor(finalStats.defense * (1 + boost));
+    finalStats.health = Math.floor(finalStats.health * (1 + boost));
+    finalStats.maxHealth = Math.floor(finalStats.maxHealth * (1 + boost));
+    finalStats.speed = Math.floor(finalStats.speed * (1 + boost));
+  }
+
+  // allAttributes 丹药 (仙灵丹/五行丹): 更强的全属性加成
+  if (buffs.allAttributes && buffs.allAttributes > now && pbv.allAttributes) {
+    const boost = pbv.allAttributes;
+    finalStats.attack = Math.floor(finalStats.attack * (1 + boost));
+    finalStats.damage = Math.floor(finalStats.damage * (1 + boost));
+    finalStats.defense = Math.floor(finalStats.defense * (1 + boost));
+    finalStats.health = Math.floor(finalStats.health * (1 + boost));
+    finalStats.maxHealth = Math.floor(finalStats.maxHealth * (1 + boost));
+    finalStats.speed = Math.floor(finalStats.speed * (1 + boost));
+    finalStats.critRate = clamp01(finalStats.critRate + boost * 0.1);
+    finalStats.comboRate = clamp01(finalStats.comboRate + boost * 0.05);
+  }
+
+  // spiritCap 丹药 (日月丹): 标记，供前端/焰灵系统读取
+  if (buffs.spiritCap && buffs.spiritCap > now && pbv.spiritCap) {
+    finalStats.spiritCapBoost = pbv.spiritCap;
+  }
+
   return finalStats;
 }
 

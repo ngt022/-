@@ -552,6 +552,14 @@ function isBuffActive(gameData, key) {
   return gameData?.buffs?.[key] && gameData.buffs[key] > Date.now();
 }
 
+// 获取丹药buff的数值（存在 buffs 里的 value 字段）
+function getPillBuffValue(gameData, key) {
+  if (!gameData?.buffs?.[key]) return 0;
+  if (gameData.buffs[key] <= Date.now()) return 0;
+  // 丹药buff存的是过期时间戳，value存在 pillBuffValues 里
+  return gameData?.pillBuffValues?.[key] || 0;
+}
+
 // === 每日签到 ===
 app.post('/api/sign/daily', auth, async (req, res) => {
   try {
@@ -693,6 +701,9 @@ function calcSpiritState(gd, level, now) {
 
 // 执行一次冥想（后端权威）
 function doServerCultivate(gd, level, times = 1, vipLevel = 0, mcBoost = 1) {
+  // 丹药: cultivationRate buff
+  const cultRateBuff = getPillBuffValue(gd, 'cultivationRate');
+  if (cultRateBuff > 0) mcBoost *= (1 + cultRateBuff);
   const now = Date.now();
   const st = calcSpiritState(gd, level, now);
   let spirit = st.spirit;

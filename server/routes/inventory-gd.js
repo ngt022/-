@@ -208,6 +208,9 @@ export default function(pool, auth) {
       if (effect.duration) {
         if (!gd.buffs) gd.buffs = {};
         gd.buffs[effect.type] = Date.now() + effect.duration;
+        // 存丹药buff数值，供后端读取
+        if (!gd.pillBuffValues) gd.pillBuffValues = {};
+        gd.pillBuffValues[effect.type] = effect.value || 0;
       }
 
       // 移除已使用的丹药
