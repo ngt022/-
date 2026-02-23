@@ -156,7 +156,13 @@ const isAutoExploring = ref(false) // 是否有地点正在自动探索
 
 // 显示消息并处理重复
 const showMessage = (type, content) => {
-  return logRef.value?.addLog(type, content)
+  if (logRef.value?.addLog) {
+    return logRef.value.addLog(type, content)
+  }
+  // fallback to global message
+  if (type === "error") window.$message?.error(content)
+  else if (type === "success") window.$message?.success(content)
+  else window.$message?.info(content)
 }
 
 // 探索指定地点
@@ -196,7 +202,11 @@ const exploreLocation = async (location) => {
     const result = await response.json()
     
     if (!response.ok) {
-      showMessage('error', result.error || '探索失败')
+      if (result.remainingSeconds) {
+        showMessage('error', `冷却中，${result.remainingSeconds}秒后可再次探索`)
+      } else {
+        showMessage('error', result.error || '探索失败')
+      }
       if (isAutoExploring.value && selectedLocation.value?.id === location.id) {
         stopAutoExploration(location)
       }
