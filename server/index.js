@@ -780,8 +780,18 @@ app.post('/api/game/offline-reward', auth, async (req, res) => {
     const baseStonesPerMin = Math.floor(lv * 2 + 5);
     const baseSpiritPerMin = Math.floor(lv * 3 + 10);
 
-    const cultGained = Math.floor(baseCultPerMin * cappedMin * vipBoost);
-    const stonesGained = Math.floor(baseStonesPerMin * cappedMin * vipBoost);
+    // buff 加成（离线期间如果 buff 还在有效期内）
+    const cultBuffBoost = isBuffActive(gd, 'cultivationBoost') ? 1.5 : 1;
+    const stoneBuffBoost = isBuffActive(gd, 'doubleCrystal') ? 2 : 1;
+    // 月卡冥想加速
+    let offlineMcBoost = 1;
+    try {
+      const mc = await pool.query('SELECT 1 FROM monthly_cards WHERE wallet=$1 AND expires_at > NOW() LIMIT 1', [w]);
+      if (mc.rows.length > 0) offlineMcBoost = 1.2;
+    } catch {}
+
+    const cultGained = Math.floor(baseCultPerMin * cappedMin * vipBoost * cultBuffBoost * offlineMcBoost);
+    const stonesGained = Math.floor(baseStonesPerMin * cappedMin * vipBoost * stoneBuffBoost);
     const spiritGained = Math.floor(baseSpiritPerMin * cappedMin * vipBoost);
 
     // 更新数据
@@ -848,6 +858,9 @@ app.post('/api/game/tick', auth, async (req, res) => {
     const now = Date.now();
     const st = calcSpiritState(gd, lv, now);
     const vipCultBoost = (VIP_CONFIG[row.vip_level || 0] || VIP_CONFIG[0]).cultivationBoost || 1;
+    // cultivationBoost buff 加成 tick 自动冥想
+    let tickBuffBoost = 1;
+    if (isBuffActive(gd, 'cultivationBoost')) tickBuffBoost = 1.5;
 
     // 更新 DB
     gd.spirit = st.spirit;
@@ -968,6 +981,8 @@ app.post('/api/game/cultivate', auth, async (req, res) => {
       const mc = await pool.query('SELECT 1 FROM monthly_cards WHERE wallet=$1 AND expires_at > NOW() LIMIT 1', [w]);
       if (mc.rows.length > 0) mcBoost = 1.2;
     } catch {}
+    // cultivationBoost buff (商城修炼加速卡)
+    if (isBuffActive(gd, 'cultivationBoost')) mcBoost *= 1.5;
     const result = doServerCultivate(gd, lv, Math.min(times, 10000), vipLv, mcBoost);
     gd.spirit = result.spirit;
     gd.cultivation = result.cultivation;
