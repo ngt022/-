@@ -199,11 +199,24 @@ app.post('/api/auth/login', authLimit, async (req, res) => {
         'INSERT INTO players (wallet) VALUES ($1) RETURNING *',
         [wallet.toLowerCase()]
       );
-      // 新玩家欢迎邮件
+      // 新玩家欢迎邮件 + 内测赠送
+      const betaBonus = !RECHARGE_ENABLED ? 100000 : 0;
+      const welcomeStones = 10000 + betaBonus;
+      const welcomeMsg = betaBonus > 0
+        ? '欢迎加入焰修世界！🧪 内测期间赠送100,000焰晶，祝你修炼顺利！提示：1.先去修炼积累焰力 2.去探索获取资源 3.去焰运阁抽装备 4.记得每日签到！'
+        : '欢迎加入焰修世界！这是你的新手礼物，祝你修炼顺利！提示：1.先去修炼积累焰力 2.去探索获取资源 3.去焰运阁抽装备 4.记得每日签到！';
       await pool.query(
-        `INSERT INTO player_mail (to_wallet, from_type, from_name, title, content, rewards) VALUES ($1, 'system', '系统', '🔥 欢迎来到火之文明！', '欢迎加入焰修世界！这是你的新手礼物，祝你修炼顺利！提示：1.先去修炼积累焰力 2.去探索获取资源 3.去焰运阁抽装备 4.记得每日签到！', $2)`,
-        [wallet.toLowerCase(), JSON.stringify({spiritStones: 10000, reinforceStones: 20})]
+        `INSERT INTO player_mail (to_wallet, from_type, from_name, title, content, rewards) VALUES ($1, 'system', '系统', '🔥 欢迎来到火之文明！', $2, $3)`,
+        [wallet.toLowerCase(), welcomeMsg, JSON.stringify({spiritStones: welcomeStones, reinforceStones: 20})]
       );
+      if (betaBonus > 0) {
+        await pool.query(
+          `UPDATE players SET spirit_stones = spirit_stones + $1,
+           game_data = jsonb_set(COALESCE(game_data, '{}'::jsonb), '{spiritStones}', to_jsonb(($1)::bigint))
+           WHERE wallet = $2`,
+          [betaBonus, wallet.toLowerCase()]
+        );
+      }
     }
 
     const player = result.rows[0];
