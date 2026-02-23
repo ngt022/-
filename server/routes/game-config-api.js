@@ -88,12 +88,12 @@ const locations = [
 const equipmentSlots = ['weapon','head','body','legs','feet','ring','necklace','artifact'];
 const equipmentSlotNames = {weapon:'武器',head:'头盔',body:'铠甲',legs:'护腿',feet:'战靴',ring:'戒指',necklace:'项链',artifact:'法器'};
 const equipmentQualities = [
-  {id:'common',name:'凡品',color:'#9e9e9e',statMultiplier:1,sellPrice:20},
-  {id:'uncommon',name:'良品',color:'#4caf50',statMultiplier:1.5,sellPrice:50},
-  {id:'rare',name:'优品',color:'#2196f3',statMultiplier:2.5,sellPrice:200},
-  {id:'epic',name:'极品',color:'#9c27b0',statMultiplier:4,sellPrice:1000},
-  {id:'legendary',name:'仙品',color:'#ff9800',statMultiplier:7,sellPrice:5000},
-  {id:'mythic',name:'神品',color:'#f44336',statMultiplier:12,sellPrice:10000}
+  {id:'common',name:'凡品',color:'#9e9e9e',statMultiplier:1,sellPrice:100},
+  {id:'uncommon',name:'良品',color:'#4caf50',statMultiplier:1.5,sellPrice:150},
+  {id:'rare',name:'优品',color:'#2196f3',statMultiplier:2.5,sellPrice:300},
+  {id:'epic',name:'极品',color:'#9c27b0',statMultiplier:4,sellPrice:800},
+  {id:'legendary',name:'仙品',color:'#ff9800',statMultiplier:7,sellPrice:3000},
+  {id:'mythic',name:'神品',color:'#f44336',statMultiplier:12,sellPrice:15000}
 ];
 
 // ========== 焰草配置 ==========
