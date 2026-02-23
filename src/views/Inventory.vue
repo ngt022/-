@@ -16,6 +16,7 @@
       <div class="storage-actions">
         <n-button type="primary" size="small" @click="oneKeyEquip">⚡ 一键穿戴</n-button>
         <n-button type="warning" size="small" @click="oneKeyUnequip">🔄 一键卸下</n-button>
+        <n-button type="error" size="small" @click="showBatchRecycleModal = true">♻️ 一键回收</n-button>
       </div>
     </div>
 
@@ -63,6 +64,27 @@
       <span v-else class="capacity-max">已满级</span>
     </div>
 
+    <!-- 一键回收弹窗 -->
+    <n-modal v-model:show="showBatchRecycleModal" preset="dialog" title="♻️ 一键回收" style="max-width:500px;width:90vw">
+      <n-space vertical>
+        <p style="color:#999">选择要回收的物品类型和最高品质：</p>
+        <n-checkbox-group v-model:value="recycleTypes">
+          <n-space>
+            <n-checkbox value="equipment">装备</n-checkbox>
+            <n-checkbox value="pet">焰兽</n-checkbox>
+            <n-checkbox value="herb">焰草</n-checkbox>
+            <n-checkbox value="pill">丹药</n-checkbox>
+          </n-space>
+        </n-checkbox-group>
+        <n-select v-model:value="recycleMaxQuality" :options="recycleQualityOptions" placeholder="回收该品质及以下" />
+        <p style="color:#d4a843;font-size:13px">⚠️ 已装备/出战的物品不会被回收</p>
+      </n-space>
+      <template #action>
+        <n-button @click="showBatchRecycleModal = false">取消</n-button>
+        <n-button type="error" @click="doBatchRecycle">确认回收</n-button>
+      </template>
+    </n-modal>
+
     <!-- 储藏室网格 -->
     <!-- 材料展示 -->
     <div class="material-section" v-if="activeFilter === 'material'">
@@ -108,6 +130,7 @@
         <span class="cell-label">{{ item._displayName || item.name }}</span>
         <span v-if="item._count > 1" class="cell-count">×{{ item._count }}</span>
         <span v-if="item._category === 'pill'" class="cell-use-hint">详情</span>
+        <span v-if="item._category === 'herb'" class="cell-recycle-btn" @click.stop="recycleItem(item, 'herb')">♻️</span>
       </div>
       <!-- 空格子填充 -->
       <div v-for="n in emptySlots" :key="'empty-' + n" class="storage-cell storage-cell-empty">
@@ -154,14 +177,14 @@
         🐾 焰兽
         <n-space style="display:inline-flex;margin-left:12px" size="small">
           <n-select v-model:value="selectedRarityToRelease" :options="options" placeholder="品阶" style="width:120px" size="small" />
-          <n-button size="small" @click="showBatchReleaseConfirm = true" :disabled="!playerStore.items.filter(item => item.type === 'pet').length">一键放生</n-button>
+          <n-button size="small" @click="showBatchReleaseConfirm = true" :disabled="!playerStore.items.filter(item => item.type === 'pet').length">一键回收</n-button>
         </n-space>
       </div>
-      <n-modal v-model:show="showBatchReleaseConfirm" preset="dialog" title="批量放生确认" style="max-width:600px;width:90vw">
-        <p>确定要放生{{ selectedRarityToRelease === 'all' ? '所有' : petRarities[selectedRarityToRelease].name }}品阶的未出战焰兽吗？此操作不可撤销。</p>
+      <n-modal v-model:show="showBatchReleaseConfirm" preset="dialog" title="批量回收确认" style="max-width:600px;width:90vw">
+        <p>确定要回收{{ selectedRarityToRelease === 'all' ? '所有' : petRarities[selectedRarityToRelease].name }}品阶的未出战焰兽吗？回收可获得焰晶。</p>
         <n-space justify="end" style="margin-top:16px">
           <n-button size="small" @click="showBatchReleaseConfirm = false">取消</n-button>
-          <n-button size="small" type="error" @click="batchReleasePets">确认放生</n-button>
+          <n-button size="small" type="error" @click="batchReleasePets">确认回收</n-button>
         </n-space>
       </n-modal>
       <n-pagination v-if="filteredPets.length > 12" v-model:page="currentPage" :page-size="pageSize" :item-count="filteredPets.length" @update:page-size="onPageSizeChange" :page-slot="7" style="margin:8px 0" />
@@ -257,14 +280,14 @@
           <n-button size="small" type="warning" @click="evolvePet(selectedPet)" :disabled="!selectedFoodPet">升星</n-button>
         </n-space>
         <n-space justify="space-between">
-          <span>放生焰兽</span>
-          <n-button size="small" type="error" @click="confirmReleasePet(selectedPet)">放生焰兽</n-button>
-          <n-modal v-model:show="showReleaseConfirm" preset="dialog" title="焰兽放生" style="max-width:600px;width:90vw">
+          <span>回收焰兽</span>
+          <n-button size="small" type="error" @click="confirmReleasePet(selectedPet)">回收焰兽</n-button>
+          <n-modal v-model:show="showReleaseConfirm" preset="dialog" title="焰兽回收" style="max-width:600px;width:90vw">
             <template v-if="petToRelease">
-              <p>确定要放生 {{ petToRelease.name }} 吗？此操作不可撤销。</p>
+              <p>确定要回收 {{ petToRelease.name }} 吗？此操作不可撤销。</p>
               <n-space justify="end" style="margin-top:16px">
                 <n-button size="small" @click="cancelReleasePet">取消</n-button>
-                <n-button size="small" type="error" @click="releasePet">确认放生</n-button>
+                <n-button size="small" type="error" @click="releasePet">确认回收</n-button>
               </n-space>
               <GuideTooltip v-if="showGuide" v-bind="guideTexts.inventory || {}" @dismiss="dismissGuide" />
 </template>
@@ -370,6 +393,7 @@
       <n-space justify="end" style="margin-top:12px">
         <n-button @click="showPillDetailModal = false">关闭</n-button>
         <n-button type="success" @click="usePill(selectedPill); showPillDetailModal = false">服用</n-button>
+        <n-button type="warning" @click="recycleItem(selectedPill, 'item'); showPillDetailModal = false">♻️ 回收</n-button>
       </n-space>
     </n-space>
   </n-modal>
@@ -832,7 +856,7 @@ const playerStore = usePlayerStore()
   const batchReleasePets = async () => {
     try {
       const authStore = useAuthStore()
-      const resp = await authStore.apiPost('/pet/release-batch', { rarity: selectedRarityToRelease.value })
+      const resp = await authStore.apiPost('/recycle/batch', { types: ['pet'], maxQuality: selectedRarityToRelease.value === 'all' ? 'mystic' : selectedRarityToRelease.value })
       if (resp.success) {
         message.success(resp.message)
         if (resp.items) playerStore.items = resp.items
@@ -1053,6 +1077,57 @@ const playerStore = usePlayerStore()
   const showEquipmentDetailModal = ref(false)
   const selectedPill = ref(null)
   const showPillDetailModal = ref(false)
+
+  // 一键回收
+  const showBatchRecycleModal = ref(false)
+  const recycleTypes = ref(['equipment', 'pet', 'herb'])
+  const recycleMaxQuality = ref('uncommon')
+  const recycleQualityOptions = [
+    { label: '凡品及以下', value: 'common' },
+    { label: '良品及以下', value: 'uncommon' },
+    { label: '优品及以下', value: 'rare' },
+    { label: '极品及以下', value: 'epic' },
+  ]
+
+  // 单个物品回收
+  const recycleItem = async (item, itemType) => {
+    if (!authStore.isLoggedIn) { message.warning('请先登录'); return }
+    try {
+      const resp = await authStore.apiPost('/recycle', { itemId: item.id || item.herbId || item.herb_id, itemType })
+      if (resp.success) {
+        // 从本地移除
+        if (itemType === 'herb') {
+          const herbs = playerStore.herbs || []
+          const idx = herbs.findIndex(h => String(h.id || h.herbId) === String(item.id || item.herbId))
+          if (idx > -1) herbs.splice(idx, 1)
+        } else {
+          const idx = playerStore.items.findIndex(i => String(i.id) === String(item.id))
+          if (idx > -1) playerStore.items.splice(idx, 1)
+        }
+        playerStore.spiritStones = resp.spiritStones
+        message.success('回收 ' + resp.name + '，获得 ' + resp.price + ' 焰晶')
+      }
+    } catch (e) { message.error(e.message || '回收失败') }
+  }
+
+  // 批量回收
+  const doBatchRecycle = async () => {
+    if (!authStore.isLoggedIn) { message.warning('请先登录'); return }
+    if (!recycleTypes.value.length) { message.warning('请选择回收类型'); return }
+    try {
+      const resp = await authStore.apiPost('/recycle/batch', {
+        types: recycleTypes.value,
+        maxQuality: recycleMaxQuality.value
+      })
+      if (resp.success) {
+        playerStore.spiritStones = resp.spiritStones
+        // 重新加载玩家数据
+        await authStore.refreshPlayerData?.()
+        message.success('回收了 ' + resp.count + ' 件物品，获得 ' + resp.totalPrice + ' 焰晶')
+        showBatchRecycleModal.value = false
+      }
+    } catch (e) { message.error(e.message || '批量回收失败') }
+  }
   const selectedEquipment = ref(null)
   const showEnhanceConfirm = ref(false)
 
@@ -1399,4 +1474,20 @@ const playerStore = usePlayerStore()
 .material-name { font-size: 13px; color: #d4a843; font-weight: bold; }
 .material-count { font-size: 22px; color: #e0d0b0; font-weight: bold; margin: 4px 0; }
 .material-desc { font-size: 11px; color: #666; }
+
+/* 回收小按钮 */
+.cell-recycle-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  z-index: 2;
+}
+.cell-recycle-btn:hover {
+  opacity: 1;
+  transform: scale(1.2);
+}
 </style>

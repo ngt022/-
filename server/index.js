@@ -4862,6 +4862,158 @@ app.post('/api/equipment/reforge-confirm', auth, async (req, res) => {
 // ============ 卖装备 服务端验证 ============
 const qualityStoneMap = { mythic: 6, legendary: 5, epic: 4, rare: 3, uncommon: 2, common: 1 };
 
+// === 通用回收价格（焰晶） ===
+const RECYCLE_PRICES = {
+  // 装备按品质
+  equipment: { common: 50, uncommon: 80, rare: 150, epic: 400, legendary: 1500, mythic: 8000 },
+  // 宠物按稀有度
+  pet: { mortal: 30, spiritual: 80, mystic: 200, celestial: 800, divine: 5000 },
+  // 丹药按品阶
+  pill: { 1: 20, 2: 50, 3: 100, 4: 200, 5: 400, 6: 800, 7: 1500, 8: 3000 },
+  // 焰草按品质
+  herb: { common: 5, uncommon: 15, rare: 40, epic: 100, legendary: 300 },
+};
+
+function getRecyclePrice(item) {
+  if (!item) return 0;
+  const t = item.type;
+  // 装备（有 slot 或 quality 且不是 pet/pill）
+  if (t && t !== 'pet' && t !== 'pill' && item.quality) {
+    return RECYCLE_PRICES.equipment[item.quality] || 10;
+  }
+  // 宠物
+  if (t === 'pet') return RECYCLE_PRICES.pet[item.rarity] || 20;
+  // 丹药
+  if (t === 'pill') return RECYCLE_PRICES.pill[item.grade] || 20;
+  // 焰草（herbs 数组里的）
+  if (item.herbId || item.herb_id) return RECYCLE_PRICES.herb[item.quality] || 5;
+  return 10;
+}
+
+// POST /api/recycle — 单个物品回收
+app.post('/api/recycle', auth, async (req, res) => {
+  try {
+    const wallet = req.user.wallet;
+    const { itemId, itemType } = req.body; // itemType: 'item' | 'herb' | 'pill'
+    if (!itemId) return res.status(400).json({ error: '缺少物品ID' });
+    const r = await pool.query('SELECT game_data, spirit_stones FROM players WHERE wallet = $1', [wallet]);
+    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = typeof r.rows[0].game_data === 'string' ? JSON.parse(r.rows[0].game_data) : (r.rows[0].game_data || {});
+    let price = 0;
+    let removedName = '';
+
+    if (itemType === 'herb') {
+      // 回收焰草
+      const herbs = gd.herbs || [];
+      const idx = herbs.findIndex(h => String(h.id || h.herbId || h.herb_id) === String(itemId));
+      if (idx < 0) return res.status(404).json({ error: '焰草不存在' });
+      price = getRecyclePrice(herbs[idx]);
+      removedName = herbs[idx].name || '焰草';
+      herbs.splice(idx, 1);
+      gd.herbs = herbs;
+    } else {
+      // 回收 items 里的（装备/宠物/丹药）
+      const items = gd.items || [];
+      const idx = items.findIndex(i => String(i.id) === String(itemId));
+      if (idx < 0) return res.status(404).json({ error: '物品不存在' });
+      const item = items[idx];
+      // 不能回收已装备的
+      const ea = gd.equippedArtifacts || {};
+      for (const [, eq] of Object.entries(ea)) {
+        if (eq && String(eq.id) === String(itemId)) return res.status(400).json({ error: '请先卸下装备' });
+      }
+      // 不能回收出战宠物
+      if (item.type === 'pet' && gd.activePet && String(gd.activePet.id) === String(itemId)) {
+        return res.status(400).json({ error: '请先收回出战宠物' });
+      }
+      price = getRecyclePrice(item);
+      removedName = item.name || '物品';
+      items.splice(idx, 1);
+      gd.items = items;
+    }
+
+    gd.spiritStones = (gd.spiritStones || 0) + price;
+    const newStones = (Number(r.rows[0].spirit_stones) || 0) + price;
+    await pool.query('UPDATE players SET game_data = $1, spirit_stones = $2 WHERE wallet = $3',
+      [JSON.stringify(gd), newStones, wallet]);
+    res.json({ success: true, price, name: removedName, spiritStones: newStones });
+  } catch (e) { logger.error('recycle error:', e); res.status(500).json({ error: safeError(e) }); }
+});
+
+// POST /api/recycle/batch — 一键回收（按类型+品质筛选）
+app.post('/api/recycle/batch', auth, async (req, res) => {
+  try {
+    const wallet = req.user.wallet;
+    const { types, maxQuality } = req.body;
+    // types: ['equipment','pet','herb','pill'], maxQuality: 回收该品质及以下
+    const r = await pool.query('SELECT game_data, spirit_stones FROM players WHERE wallet = $1', [wallet]);
+    if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
+    const gd = typeof r.rows[0].game_data === 'string' ? JSON.parse(r.rows[0].game_data) : (r.rows[0].game_data || {});
+
+    const equipQualityOrder = ['common','uncommon','rare','epic','legendary','mythic'];
+    const petRarityOrder = ['mortal','spiritual','mystic','celestial','divine'];
+    const maxEqIdx = maxQuality ? equipQualityOrder.indexOf(maxQuality) : 1; // 默认回收良品及以下
+    const maxPetIdx = maxQuality ? petRarityOrder.indexOf(maxQuality) : 1;
+
+    const equippedIds = new Set();
+    for (const [, eq] of Object.entries(gd.equippedArtifacts || {})) {
+      if (eq) equippedIds.add(String(eq.id));
+    }
+    const activePetId = gd.activePet ? String(gd.activePet.id) : null;
+
+    let totalPrice = 0, count = 0;
+    const recycled = [];
+
+    // 回收 items
+    if (types && (types.includes('equipment') || types.includes('pet') || types.includes('pill'))) {
+      gd.items = (gd.items || []).filter(item => {
+        if (!item) return true;
+        if (equippedIds.has(String(item.id))) return true;
+        if (item.type === 'pet' && activePetId === String(item.id)) return true;
+
+        let shouldRecycle = false;
+        if (item.type === 'pet' && types.includes('pet')) {
+          const ri = petRarityOrder.indexOf(item.rarity);
+          if (ri >= 0 && ri <= maxPetIdx) shouldRecycle = true;
+        } else if (item.type === 'pill' && types.includes('pill')) {
+          shouldRecycle = true; // 回收所有丹药（或可加品阶筛选）
+        } else if (item.type !== 'pet' && item.type !== 'pill' && types.includes('equipment')) {
+          const qi = equipQualityOrder.indexOf(item.quality);
+          if (qi >= 0 && qi <= maxEqIdx) shouldRecycle = true;
+        }
+
+        if (shouldRecycle) {
+          const p = getRecyclePrice(item);
+          totalPrice += p; count++;
+          recycled.push({ name: item.name, price: p });
+          return false;
+        }
+        return true;
+      });
+    }
+
+    // 回收焰草
+    if (types && types.includes('herb')) {
+      gd.herbs = (gd.herbs || []).filter(h => {
+        const qi = equipQualityOrder.indexOf(h.quality);
+        if (qi >= 0 && qi <= maxEqIdx) {
+          const p = getRecyclePrice(h);
+          totalPrice += p; count++;
+          recycled.push({ name: h.name || '焰草', price: p });
+          return false;
+        }
+        return true;
+      });
+    }
+
+    gd.spiritStones = (gd.spiritStones || 0) + totalPrice;
+    const newStones = (Number(r.rows[0].spirit_stones) || 0) + totalPrice;
+    await pool.query('UPDATE players SET game_data = $1, spirit_stones = $2 WHERE wallet = $3',
+      [JSON.stringify(gd), newStones, wallet]);
+    res.json({ success: true, totalPrice, count, recycled, spiritStones: newStones });
+  } catch (e) { logger.error('batch-recycle error:', e); res.status(500).json({ error: safeError(e) }); }
+});
+
 app.post('/api/equipment/sell', auth, async (req, res) => {
   try {
     const wallet = req.user.wallet;
