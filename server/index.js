@@ -713,7 +713,7 @@ function doServerCultivate(gd, level, times = 1, vipLevel = 0) {
     maxSpirit: st.maxSpirit,
     regenRate: st.regenRate,
     cultCost: st.cultCost,
-    cultGain: st.cultGain,
+    cultGain: Math.floor(st.cultGain * vipCultBoost),
     actualTimes,
     lastTickTime: now
   };
@@ -839,7 +839,7 @@ app.post('/api/game/offline-reward', auth, async (req, res) => {
 app.post('/api/game/tick', auth, async (req, res) => {
   try {
     const w = req.user.wallet;
-    const p = await pool.query('SELECT level, realm, game_data FROM players WHERE wallet = $1', [w]);
+    const p = await pool.query('SELECT level, realm, vip_level, game_data FROM players WHERE wallet = $1', [w]);
     if (!p.rows.length) return res.status(404).json({ error: '玩家不存在' });
 
     const row = p.rows[0];
@@ -847,6 +847,7 @@ app.post('/api/game/tick', auth, async (req, res) => {
     const lv = row.level || gd.level || 1;
     const now = Date.now();
     const st = calcSpiritState(gd, lv, now);
+    const vipCultBoost = (VIP_CONFIG[row.vip_level || 0] || VIP_CONFIG[0]).cultivationBoost || 1;
 
     // 更新 DB
     gd.spirit = st.spirit;
@@ -863,7 +864,7 @@ app.post('/api/game/tick', auth, async (req, res) => {
       level: lv,
       realm: row.realm || gd.realm,
       cultCost: st.cultCost,
-      cultGain: st.cultGain,
+      cultGain: Math.floor(st.cultGain * vipCultBoost),
       isAutoCultivating: !!gd.isAutoCultivating,
       serverTime: now
     });
@@ -880,7 +881,7 @@ app.post('/api/game/cultivate', auth, async (req, res) => {
     const { times = 1, mode = 'single' } = req.body || {};
     // mode: 'single' = 点一次, 'auto_start' = 开始自动冥想, 'auto_stop' = 停止自动冥想
 
-    const p = await pool.query('SELECT level, realm, game_data, spirit_stones FROM players WHERE wallet = $1', [w]);
+    const p = await pool.query('SELECT level, realm, vip_level, game_data, spirit_stones FROM players WHERE wallet = $1', [w]);
     if (!p.rows.length) return res.status(404).json({ error: '玩家不存在' });
 
     const row = p.rows[0];
