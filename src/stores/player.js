@@ -302,7 +302,7 @@ export const usePlayerStore = defineStore('player', {
           this.stopAutoCultivation()
           return
         }
-        const gain = Math.floor(1 * Math.pow(1.2, this.level - 1))
+        const gain = Math.max(1, Math.floor(this.level * 2))
         this.spirit -= cost
         this.cultivate(gain)
       }, 1000)
