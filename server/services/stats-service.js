@@ -20,20 +20,34 @@ const DEBUG = process.env.DEBUG_BATTLE_TRACE === 'true';
 // Each realm tier has 9 sub-levels (一层 to 九层)
 // ============================================================
 const REALM_BASE_STATS = [
-  // 燃火期 (0-8)
+  // 燃火期 (1-9, index 0-8)
   ...Array.from({length: 9}, (_, i) => ({ attack: 10 + i*5, health: 100 + i*50, defense: 5 + i*3, speed: 10 + i*2 })),
-  // 灵火期 (9-17)
+  // 灵火期 (10-18, index 9-17)
   ...Array.from({length: 9}, (_, i) => ({ attack: 55 + i*8, health: 550 + i*80, defense: 32 + i*5, speed: 28 + i*3 })),
-  // 地火期 (18-26)
+  // 地火期 (19-27, index 18-26)
   ...Array.from({length: 9}, (_, i) => ({ attack: 127 + i*12, health: 1270 + i*120, defense: 77 + i*8, speed: 55 + i*4 })),
-  // 天火期 (27-35)
+  // 天火期 (28-36, index 27-35)
   ...Array.from({length: 9}, (_, i) => ({ attack: 235 + i*18, health: 2350 + i*180, defense: 149 + i*12, speed: 91 + i*5 })),
-  // 焰皇期 (36-44)
+  // 焰皇期 (37-45, index 36-44)
   ...Array.from({length: 9}, (_, i) => ({ attack: 397 + i*25, health: 3970 + i*250, defense: 257 + i*16, speed: 136 + i*6 })),
-  // 焰帝期 (45-53)
+  // 焰帝期 (46-54, index 45-53)
   ...Array.from({length: 9}, (_, i) => ({ attack: 622 + i*35, health: 6220 + i*350, defense: 401 + i*22, speed: 190 + i*8 })),
-  // 焰神期 (54-62)
+  // 焰神期 (55-63, index 54-62)
   ...Array.from({length: 9}, (_, i) => ({ attack: 937 + i*50, health: 9370 + i*500, defense: 599 + i*30, speed: 262 + i*10 })),
+  // 焰圣期 (64-72, index 63-71)
+  ...Array.from({length: 9}, (_, i) => ({ attack: 1387 + i*70, health: 13870 + i*700, defense: 869 + i*40, speed: 352 + i*12 })),
+  // 焰尊期 (73-81, index 72-80)
+  ...Array.from({length: 9}, (_, i) => ({ attack: 2017 + i*95, health: 20170 + i*950, defense: 1229 + i*55, speed: 460 + i*15 })),
+  // 焰祖期 (82-90, index 81-89)
+  ...Array.from({length: 9}, (_, i) => ({ attack: 2872 + i*130, health: 28720 + i*1300, defense: 1724 + i*75, speed: 595 + i*18 })),
+  // 焰仙期 (91-99, index 90-98)
+  ...Array.from({length: 9}, (_, i) => ({ attack: 4042 + i*175, health: 40420 + i*1750, defense: 2399 + i*100, speed: 757 + i*22 })),
+  // 焰王期 (100-108, index 99-107)
+  ...Array.from({length: 9}, (_, i) => ({ attack: 5617 + i*235, health: 56170 + i*2350, defense: 3299 + i*135, speed: 955 + i*27 })),
+  // 焰道期 (109-117, index 108-116)
+  ...Array.from({length: 9}, (_, i) => ({ attack: 7732 + i*315, health: 77320 + i*3150, defense: 4514 + i*180, speed: 1198 + i*33 })),
+  // 焰天期 (118-126, index 117-125)
+  ...Array.from({length: 9}, (_, i) => ({ attack: 10567 + i*420, health: 105670 + i*4200, defense: 6134 + i*240, speed: 1495 + i*40 })),
 ];
 
 /**
@@ -41,25 +55,16 @@ const REALM_BASE_STATS = [
  * This replaces the old _nakedBase snapshot approach.
  */
 function deriveNakedBase(gameData) {
-  const realmIndex = gameData.realmIndex || 0;
   const level = gameData.level || 1;
+  const idx = level - 1; // level 1 = index 0
   
-  // Use realm table if available
-  if (realmIndex < REALM_BASE_STATS.length) {
-    const base = REALM_BASE_STATS[realmIndex];
-    // Level within realm adds small incremental bonus
-    const levelBonus = Math.floor(level * 0.5);
-    return {
-      attack: base.attack + levelBonus,
-      health: base.health + levelBonus * 5,
-      defense: base.defense + levelBonus,
-      speed: base.speed + Math.floor(levelBonus * 0.3)
-    };
+  if (idx >= 0 && idx < REALM_BASE_STATS.length) {
+    return { ...REALM_BASE_STATS[idx] };
   }
   
-  // Fallback for very high realms: use existing _nakedBase or defaults
-  if (gameData._nakedBase) {
-    return { ...gameData._nakedBase };
+  // 超出表范围：用最后一级的值
+  if (REALM_BASE_STATS.length > 0) {
+    return { ...REALM_BASE_STATS[REALM_BASE_STATS.length - 1] };
   }
   return { attack: 10, health: 100, defense: 5, speed: 10 };
 }
