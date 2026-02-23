@@ -167,7 +167,7 @@ const buyMonthlyCard = async () => {
     const data = await res.json()
     if (!res.ok) throw new Error(data.error)
 
-    message.success('薪火令开通成功！每日可领取 3000 焰晶')
+    message.success('薪火令开通成功！每日可领取 5000 焰晶')
     await loadMonthlyCard()
   } catch (e) {
     message.error(e.message || '购买失败')

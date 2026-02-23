@@ -597,9 +597,24 @@ router.post('/draw', auth, async (req, res) => {
     const gachaCost = await getConfig('gacha_cost')
     const normalCost = gachaCost?.normal || 300
     const wishlistCost = gachaCost?.wishlist || 500
+
+    // 月卡免费抽卡检查
+    let freeDraws = 0;
+    try {
+      const mcCheck = await pool.query('SELECT 1 FROM monthly_cards WHERE wallet=$1 AND expires_at > NOW() LIMIT 1', [wallet]);
+      if (mcCheck.rows.length > 0) {
+        const today = new Date().toISOString().split('T')[0];
+        const usedKey = 'freeGachaUsed_' + today;
+        const used = gameData[usedKey] || 0;
+        if (used < 1 && count === 1) {
+          freeDraws = 1;
+        }
+      }
+    } catch {}
     
     // 计算费用
-    const baseCost = wishlistEnabled ? count * wishlistCost : count * normalCost
+    let baseCost = wishlistEnabled ? count * wishlistCost : count * normalCost;
+    if (freeDraws > 0) baseCost = 0
     const vipDiscount = VIP_DISCOUNTS[Math.min(vipLevel, 5)]
     const cost = Math.floor(baseCost * vipDiscount)
     

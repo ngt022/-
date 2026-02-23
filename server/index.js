@@ -692,7 +692,7 @@ function calcSpiritState(gd, level, now) {
 }
 
 // 执行一次冥想（后端权威）
-function doServerCultivate(gd, level, times = 1, vipLevel = 0) {
+function doServerCultivate(gd, level, times = 1, vipLevel = 0, mcBoost = 1) {
   const now = Date.now();
   const st = calcSpiritState(gd, level, now);
   let spirit = st.spirit;
@@ -703,7 +703,7 @@ function doServerCultivate(gd, level, times = 1, vipLevel = 0) {
   for (let i = 0; i < times; i++) {
     if (spirit < st.cultCost) break;
     spirit -= st.cultCost;
-    cultivation += Math.floor(st.cultGain * vipCultBoost);
+    cultivation += Math.floor(st.cultGain * vipCultBoost * mcBoost);
     actualTimes++;
   }
 
@@ -713,7 +713,7 @@ function doServerCultivate(gd, level, times = 1, vipLevel = 0) {
     maxSpirit: st.maxSpirit,
     regenRate: st.regenRate,
     cultCost: st.cultCost,
-    cultGain: Math.floor(st.cultGain * vipCultBoost),
+    cultGain: Math.floor(st.cultGain * vipCultBoost * mcBoost),
     actualTimes,
     lastTickTime: now
   };
@@ -864,7 +864,7 @@ app.post('/api/game/tick', auth, async (req, res) => {
       level: lv,
       realm: row.realm || gd.realm,
       cultCost: st.cultCost,
-      cultGain: Math.floor(st.cultGain * vipCultBoost),
+      cultGain: Math.floor(st.cultGain * vipCultBoost * mcBoost),
       isAutoCultivating: !!gd.isAutoCultivating,
       serverTime: now
     });
@@ -962,7 +962,13 @@ app.post('/api/game/cultivate', auth, async (req, res) => {
 
     // 单次/多次冥想
     const vipLv = row.vip_level || 0;
-    const result = doServerCultivate(gd, lv, Math.min(times, 10000), vipLv);
+    // 月卡冥想加速
+    let mcBoost = 1;
+    try {
+      const mc = await pool.query('SELECT 1 FROM monthly_cards WHERE wallet=$1 AND expires_at > NOW() LIMIT 1', [w]);
+      if (mc.rows.length > 0) mcBoost = 1.2;
+    } catch {}
+    const result = doServerCultivate(gd, lv, Math.min(times, 10000), vipLv, mcBoost);
     gd.spirit = result.spirit;
     gd.cultivation = result.cultivation;
     gd.lastTickTime = result.lastTickTime;
