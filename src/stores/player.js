@@ -265,11 +265,11 @@ export const usePlayerStore = defineStore('player', {
     },
     // 焰灵上限
     getMaxSpirit() {
-      return 100 + this.level * 50
+      return 200 + this.level * 100
     },
     // 焰灵每秒恢复量
     getSpiritRegen() {
-      return 1 + this.level * 0.2
+      return 2 + this.level * 0.5
     },
     // 启动焰灵自然恢复
     startSpiritRegen() {
@@ -297,7 +297,7 @@ export const usePlayerStore = defineStore('player', {
           this._autoCultTimer = null
           return
         }
-        const cost = Math.floor(10 * Math.pow(1.5, this.level - 1))
+        const cost = 5 + this.level * 3
         if (this.spirit < cost) {
           this.stopAutoCultivation()
           return
