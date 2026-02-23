@@ -6,7 +6,7 @@
         <p>⬆️ 突破提升境界，解锁新地点和功能，共14大境界126级</p>
         <p>⚡ <strong>焰修速率</strong>越高，每次冥想获得焰力越多</p>
         <p>🎲 幸运值×30%概率获得<strong>双倍焰力</strong></p>
-        <p>🤖 开启<strong>自动冥想</strong>可挂机，每秒自动冥想一次</p>
+        <p>🤖 <strong>一键冥想</strong>一次性消耗所有焰灵转化为焰力</p>
         <p>💤 离线最多累积<strong>12小时</strong>收益（焰力+焰晶+焰灵）</p>
       </game-guide>
       <n-alert type="info" show-icon>
@@ -22,8 +22,8 @@
         <n-button type="primary" size="large" block @click="cultivate" :disabled="playerStore.spirit < cultivationCost">
           焰心冥想 (消耗 {{ cultivationCost }} 焰灵)
         </n-button>
-        <n-button :type="isAutoCultivating ? 'warning' : 'success'" size="large" block @click="toggleAutoCultivation">
-          {{ isAutoCultivating ? '停止自动冥想' : '开始自动冥想' }}
+        <n-button type="success" size="large" block @click="oneClickCultivate" :disabled="playerStore.spirit < cultivationCost">
+          一键冥想 (消耗全部焰灵)
         </n-button>
         <n-button
           type="info"
@@ -122,7 +122,6 @@ const playerStore = usePlayerStore()
   }
 
   // 自动修炼状态（从 store 读取）
-  const isAutoCultivating = computed(() => playerStore.isAutoCultivating)
 
   // 显示消息并处理重复
   const showMessage = (type, content) => {
@@ -260,9 +259,56 @@ const playerStore = usePlayerStore()
     }
   }
 
-  // 切换自动修炼（委托给 store）
-  const toggleAutoCultivation = () => {
-    playerStore.toggleAutoCultivation()
+  // 一键冥想：一次性消耗所有焰灵
+  const oneClickCultivate = async () => {
+    const cost = cultivationCost.value
+    if (playerStore.spirit < cost) {
+      showMessage('error', '焰灵不足！')
+      return
+    }
+    const times = Math.floor(playerStore.spirit / cost)
+    if (times <= 0) return
+    const token = localStorage.getItem('xx_token')
+    if (token) {
+      try {
+        const res = await fetch('/api/game/cultivate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ times: Math.min(times, 1000) })
+        })
+        if (res.ok) {
+          const d = await res.json()
+          playerStore.spirit = d.spirit
+          playerStore.cultivation = d.cultivation
+          playerStore.level = d.level
+          playerStore.realm = d.realm
+          playerStore.maxCultivation = d.maxCultivation
+          playerStore.maxSpirit = d.maxSpirit
+          if (d.broke) {
+            showMessage('success', `冥想${d.actualTimes}次，突破成功！恭喜进入${playerStore.realm}！`)
+          } else {
+            showMessage('success', `一键冥想${d.actualTimes}次，获得${d.actualTimes * d.cultGain}焰力！`)
+          }
+        }
+      } catch (e) {
+        showMessage('error', '冥想失败：' + e.message)
+      }
+    } else {
+      // 未登录本地计算
+      let count = 0
+      while (playerStore.spirit >= cost && count < times) {
+        playerStore.spirit -= cost
+        playerStore.cultivation += cultivationGain.value
+        count++
+      }
+      if (playerStore.cultivation >= playerStore.maxCultivation) {
+        await playerStore.tryBreakthrough()
+        showMessage('success', `冥想${count}次，突破成功！`)
+      } else {
+        showMessage('success', `一键冥想${count}次！`)
+      }
+      playerStore.saveData()
+    }
   }
 
   // 组件卸载时只清理 Worker，不停自动冥想

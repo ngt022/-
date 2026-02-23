@@ -873,7 +873,7 @@ app.post('/api/game/cultivate', auth, async (req, res) => {
     }
 
     // 单次/多次冥想
-    const result = doServerCultivate(gd, lv, Math.min(times, 100));
+    const result = doServerCultivate(gd, lv, Math.min(times, 10000));
     gd.spirit = result.spirit;
     gd.cultivation = result.cultivation;
     gd.lastTickTime = result.lastTickTime;
