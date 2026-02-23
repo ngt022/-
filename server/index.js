@@ -92,13 +92,13 @@ const VIP_CONFIG = [
 
 // 签到奖励
 const SIGN_REWARDS = [
-  { day: 1, stones: 500, reinforceStones: 2, refinementStones: 0, items: '淬火石x2' },
-  { day: 2, stones: 800, reinforceStones: 0, refinementStones: 2, items: '符文石x2' },
-  { day: 3, stones: 1200, reinforceStones: 5, refinementStones: 0, items: '淬火石x5' },
-  { day: 4, stones: 1500, reinforceStones: 0, refinementStones: 5, items: '符文石x5' },
-  { day: 5, stones: 2000, reinforceStones: 10, refinementStones: 5, items: '淬火石x10+符文石x5' },
-  { day: 6, stones: 3000, reinforceStones: 5, refinementStones: 10, items: '淬火石x5+符文石x10' },
-  { day: 7, stones: 8000, reinforceStones: 20, refinementStones: 15, petEssence: 50, items: '淬火石x20+符文石x15+精华x50' },
+  { day: 1, stones: 100 },
+  { day: 2, stones: 150 },
+  { day: 3, stones: 200 },
+  { day: 4, stones: 250 },
+  { day: 5, stones: 300 },
+  { day: 6, stones: 400 },
+  { day: 7, stones: 800 },
 ];
 
 // 请求日志（只记录异常和慢请求）
