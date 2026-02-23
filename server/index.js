@@ -891,9 +891,11 @@ app.post('/api/game/tick', auth, async (req, res) => {
       if (mc.rows.length > 0) tickBoost *= 1.2;
     } catch {}
 
-    // 更新 DB
+    // 更新数据 + 重算属性
     gd.spirit = st.spirit;
     gd.lastTickTime = now;
+    gd.level = lv;
+    recalcDerivedStats(gd);
     await pool.query('UPDATE players SET game_data = $1, updated_at = NOW() WHERE wallet = $2',
       [JSON.stringify(gd), w]);
 
@@ -908,7 +910,13 @@ app.post('/api/game/tick', auth, async (req, res) => {
       cultCost: st.cultCost,
       cultGain: Math.floor(st.cultGain * vipCultBoost * tickBoost),
       isAutoCultivating: !!gd.isAutoCultivating,
-      serverTime: now
+      serverTime: now,
+      // 属性同步
+      baseAttributes: gd.baseAttributes,
+      combatAttributes: gd.combatAttributes,
+      combatResistance: gd.combatResistance,
+      specialAttributes: gd.specialAttributes,
+      _nakedBase: gd._nakedBase,
     });
   } catch (e) {
     logger.error('[TICK]', e.message);

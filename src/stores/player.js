@@ -350,6 +350,12 @@ export const usePlayerStore = defineStore('player', {
         this.cultivationCost = data.cultCost
         this.cultivationGain = data.cultGain
         this.isAutoCultivating = data.isAutoCultivating
+        // 属性同步
+        if (data.baseAttributes) this.baseAttributes = data.baseAttributes
+        if (data.combatAttributes) this.combatAttributes = data.combatAttributes
+        if (data.combatResistance) this.combatResistance = data.combatResistance
+        if (data.specialAttributes) this.specialAttributes = data.specialAttributes
+        if (data._nakedBase) this._nakedBase = data._nakedBase
       } catch (e) {
         console.warn('[SYNC] tick failed:', e.message)
       }
