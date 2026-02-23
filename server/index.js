@@ -276,7 +276,15 @@ app.post('/api/game/save', auth, async (req, res) => {
     // Sync column-level fields into game_data so they survive serverManagedFields merge
     mergedData.vipLevel = current.rows[0].vip_level || 0;
 
-    logger.info('[SAVE]', req.user.wallet.slice(-6), 'cult:', dbCult, '->', mergedData.cultivation, 'lv:', level);
+    // Spirit 保护：前端发来的 spirit 远小于 DB 值时保留 DB 值（防止初始值覆盖）
+    const dbSpiritCheck = Number(dbGameData.spirit) || 0;
+    const newSpiritCheck = Number(mergedData.spirit) || 0;
+    if (dbSpiritCheck > 50 && newSpiritCheck < dbSpiritCheck * 0.1) {
+      mergedData.spirit = dbSpiritCheck;
+      logger.info('[SAVE] spirit protected: frontend sent ' + newSpiritCheck + ' DB had ' + dbSpiritCheck);
+    }
+
+    logger.info('[SAVE]', req.user.wallet.slice(-6), 'reqLv:', level, 'dbLv:', oldLevel, 'mergedLv:', mergedData.level, 'reqSpirit:', gameData?.spirit, 'dbSpirit:', dbGameData?.spirit, 'mergedSpirit:', mergedData.spirit, 'reqRealm:', realm, 'mergedRealm:', mergedData.realm);
     await pool.query(
       `UPDATE players SET game_data = $1, combat_power = $2, level = $3, realm = $4, 
        spirit_stones = $5, name = $6, state_version = state_version + 1, updated_at = NOW() WHERE wallet = $7`,
@@ -341,6 +349,13 @@ app.post('/api/game/save-beacon', async (req, res) => {
 
     // Sync column-level fields into game_data
     mergedData.vipLevel = current.rows[0].vip_level || 0;
+
+    // Spirit 保护 (beacon): 前端发来的 spirit 远小于 DB 值时保留 DB 值
+    const dbSpiritCheckB = Number(dbGameData.spirit) || 0;
+    const newSpiritCheckB = Number(mergedData.spirit) || 0;
+    if (dbSpiritCheckB > 50 && newSpiritCheckB < dbSpiritCheckB * 0.1) {
+      mergedData.spirit = dbSpiritCheckB;
+    }
 
     await pool.query(
       `UPDATE players SET game_data = $1, combat_power = $2, level = $3, realm = $4,

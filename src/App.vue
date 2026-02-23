@@ -234,6 +234,7 @@ import { useGameConfigStore } from './stores/gameConfig'
     if (window.__autoSaveTimer) clearInterval(window.__autoSaveTimer)
     window.__autoSaveTimer = setInterval(() => {
       if (authStore.isLoggedIn && playerStore._dirty) {
+        console.log('[AUTOSAVE] spirit=', playerStore.spirit, 'level=', playerStore.level, 'realm=', playerStore.realm)
         playerStore._dirty = false
         authStore.saveToCloud(playerStore).catch(() => {})
       }
@@ -422,7 +423,8 @@ import { useGameConfigStore } from './stores/gameConfig'
   // 页面关闭/切后台时紧急存档（sendBeacon）
   const emergencySave = () => {
     playerStore.updateOnlineTime()
-    if (authStore.isLoggedIn) {
+    // 云端数据未加载完时不存档，防止初始值覆盖DB
+    if (authStore.isLoggedIn && window.__cloudLoaded) {
       const gameData = playerStore.$state
       const body = JSON.stringify({
         gameData,
