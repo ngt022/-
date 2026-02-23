@@ -1,7 +1,7 @@
 <template>
-  <div class="world-chat-wrapper" :class="{ minimized: isMinimized }">
+  <div class="world-chat-wrapper" :class="{ minimized: isMinimized }" :style="posStyle">
     <!-- 最小化状态 -->
-    <div v-if="isMinimized" class="chat-toggle" @click="isMinimized = false">
+    <div v-if="isMinimized" class="chat-toggle" @mousedown="startDragToggle" @touchstart.passive="startDragToggle">
       <span class="toggle-icon">💬</span>
       <span v-if="unreadCount > 0" class="unread-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
       <span class="online-dot"></span>
@@ -10,7 +10,7 @@
 
     <!-- 展开状态 -->
     <div v-else class="chat-panel">
-      <div class="chat-header">
+      <div class="chat-header" @mousedown="startDrag" @touchstart.passive="startDrag" style="cursor:move;user-select:none">
         <span class="header-title">🌍 焰域频道</span>
         <span class="header-online">在线 {{ onlineCount }}</span>
         <span class="header-close" @click="isMinimized = true">✕</span>
@@ -55,7 +55,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { usePlayerStore } from '../stores/player'
 
@@ -206,6 +206,70 @@ watch(() => authStore.isLoggedIn, (loggedIn) => {
   }
 })
 
+
+// === 拖拽逻辑 ===
+const posX = ref(null)
+const posY = ref(null)
+const posStyle = computed(() => {
+  if (posX.value === null) return {}
+  return { left: posX.value + 'px', bottom: posY.value + 'px' }
+})
+
+let dragging = false
+let dragStartX = 0, dragStartY = 0
+let startPosX = 0, startPosY = 0
+let dragMoved = false
+
+function getPos() {
+  const el = document.querySelector('.world-chat-wrapper')
+  if (!el) return { x: 16, y: 72 }
+  const rect = el.getBoundingClientRect()
+  return { x: rect.left, y: window.innerHeight - rect.bottom }
+}
+
+function startDrag(e) {
+  const ev = e.touches ? e.touches[0] : e
+  dragging = true
+  dragMoved = false
+  const pos = getPos()
+  startPosX = posX.value ?? pos.x
+  startPosY = posY.value ?? pos.y
+  dragStartX = ev.clientX
+  dragStartY = ev.clientY
+  document.addEventListener('mousemove', onDrag)
+  document.addEventListener('mouseup', stopDrag)
+  document.addEventListener('touchmove', onDrag, { passive: false })
+  document.addEventListener('touchend', stopDrag)
+}
+
+function startDragToggle(e) {
+  startDrag(e)
+  // 如果没拖动就当点击
+}
+
+function onDrag(e) {
+  if (!dragging) return
+  const ev = e.touches ? e.touches[0] : e
+  const dx = ev.clientX - dragStartX
+  const dy = ev.clientY - dragStartY
+  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragMoved = true
+  posX.value = Math.max(0, Math.min(window.innerWidth - 60, startPosX + dx))
+  posY.value = Math.max(0, Math.min(window.innerHeight - 60, startPosY - dy))
+  if (e.cancelable) e.preventDefault()
+}
+
+function stopDrag() {
+  dragging = false
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', stopDrag)
+  document.removeEventListener('touchmove', onDrag)
+  document.removeEventListener('touchend', stopDrag)
+  // toggle 点击：没拖动就展开
+  if (!dragMoved && isMinimized.value) {
+    isMinimized.value = false
+  }
+}
+
 onMounted(() => { connect() })
 onUnmounted(() => {
   if (ws) ws.close()
@@ -219,6 +283,7 @@ onUnmounted(() => {
   bottom: 72px;
   left: 16px;
   z-index: 9999;
+  transition: none;
 }
 
 .chat-toggle {
