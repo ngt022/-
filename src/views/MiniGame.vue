@@ -187,8 +187,10 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { usePlayerStore } from '../stores/player'
 
 const authStore = useAuthStore()
+const playerStore = usePlayerStore()
 const gameState = ref('idle') // idle, playing, ended
 const loading = ref(false)
 
@@ -387,6 +389,8 @@ const endGame = async () => {
       reward.value = res.reward
       remainingPlays.value = res.remainingPlays
       bestScore.value = res.bestScore
+      // 更新前端焰晶显示
+      playerStore.spiritStones = (playerStore.spiritStones || 0) + res.reward
     } else {
       alert(res.message)
     }
