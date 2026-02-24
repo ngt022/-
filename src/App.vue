@@ -513,27 +513,7 @@ if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
 
   // 点击其他地方关闭子菜单
   // 成就定期检查（每30秒）
-  // 登录后检查一次成就（不循环，已弹过的不再弹）
-  let achChecked = false
-  watch(() => authStore.isLoggedIn, (v) => {
-    if (v && !achChecked) {
-      achChecked = true
-      setTimeout(() => {
-        const newAchs = checkAchievements(playerStore)
-        if (newAchs.length > 0) {
-          // 过滤掉已弹过的
-          const shown = JSON.parse(localStorage.getItem('xx_ach_shown') || '[]')
-          const unshown = newAchs.filter(a => !shown.includes(a.id))
-          if (unshown.length > 0) {
-            achPopupData.value = unshown[0]
-            showAchPopup.value = true
-            shown.push(...unshown.map(a => a.id))
-            localStorage.setItem('xx_ach_shown', JSON.stringify(shown))
-          }
-        }
-      }, 5000)
-    }
-  }, { immediate: true })
+  // 成就弹窗：不自动检查，由具体操作触发（如突破、探索等）
 
   const closeSubMenu = () => {
     expandedTab.value = null
