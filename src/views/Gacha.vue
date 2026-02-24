@@ -86,7 +86,7 @@
                 @click="flipSingleCard(i)">
                 <div class="flip-card-inner">
                   <div class="flip-card-back">
-                    <span class="card-back-icon">✦</span>
+                    <img class="card-back-img" src="/assets/images/card-back.webp" alt="" />
                   </div>
                   <div class="flip-card-front" :style="{ borderColor: card.color }">
                     <div class="card-glow" :style="{ background: card.color + '30' }"></div>
@@ -1121,13 +1121,9 @@ const handleAutoReleaseChange = values => {
   background: linear-gradient(135deg, #1a1020, #0f0f20);
   border-color: rgba(212,168,67,0.3);
 }
-.card-back-icon {
-  font-size: 28px; color: rgba(212,168,67,0.4);
-  animation: back-shimmer 2s ease-in-out infinite;
-}
-@keyframes back-shimmer {
-  0%,100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
+.card-back-img {
+  width: 100%; height: 100%;
+  object-fit: cover; border-radius: 7px;
 }
 .card-glow {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
