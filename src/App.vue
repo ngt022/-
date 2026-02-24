@@ -29,11 +29,11 @@
                 <div class="header-title">火之文明</div>
                 <div class="header-actions">
                   <span v-if="authStore.vipLevel > 0" class="header-vip-tag">VIP{{ authStore.vipLevel }}</span>
-                  <button class="header-icon-btn mail-btn" @click="router.push('/mail')">
+                  <button class="header-icon-btn mail-btn" @click="navigateTo('mail')">
                     <n-icon :size="15"><SmileOutlined /></n-icon>
                     <span v-if="unreadMail > 0" class="mail-dot"></span>
                   </button>
-                  <button class="header-icon-btn" @click="router.push('/settings')">
+                  <button class="header-icon-btn" @click="navigateTo('settings')">
                     <n-icon :size="15"><SettingOutlined /></n-icon>
                   </button>
                   <n-dropdown :options="walletMenuOptions" @select="handleWalletMenu">
@@ -67,11 +67,9 @@
                     <span class="sub-page-title">{{ currentPageTitle }}</span>
                     <span class="sub-page-level">{{ playerStore.realm }} Lv.{{ playerStore.level }}</span>
                   </div>
-                  <router-view v-slot="{ Component }">
-                    <transition name="page-fade" mode="out-in">
-                      <component :is="Component" />
-                    </transition>
-                  </router-view>
+                  <transition name="page-fade" mode="out-in">
+                    <component :is="pageComponents[currentPage]" :key="currentPage" />
+                  </transition>
                 </div>
                 </transition>
               </div>
@@ -104,11 +102,11 @@
   </template>
 
 <script setup>
-  import { useRouter, useRoute } from 'vue-router'
+  // vue-router 保留但不用于页面切换
   import { usePlayerStore } from './stores/player'
 import { useGameConfigStore } from './stores/gameConfig'
   import { useAuthStore } from './stores/auth'
-  import { h, ref, watch, onMounted, computed } from 'vue'
+  import { h, ref, watch, onMounted, onUnmounted, computed, provide, defineAsyncComponent } from 'vue'
   import { NIcon, darkTheme, createDiscreteApi } from 'naive-ui'
   import {
     BookOutlined,
@@ -130,8 +128,22 @@ import { useGameConfigStore } from './stores/gameConfig'
   import GameScene from './components/GameScene.vue'
   import BugReporter from "./components/BugReporter.vue"
 
-  const router = useRouter()
-  const route = useRoute()
+  // === App化导航系统 ===
+  const currentPage = ref('home')
+  const pageHistory = ref([])
+
+  function navigateTo(page) {
+    if (!page || page === '/') { page = 'home' }
+    page = page.replace(/^\//, '') // 去掉前导 /
+    if (currentPage.value !== page) {
+      pageHistory.value.push(currentPage.value)
+      if (pageHistory.value.length > 50) pageHistory.value.shift()
+      currentPage.value = page
+    }
+  }
+
+  provide('navigateTo', navigateTo)
+  provide('currentPage', currentPage)
   const playerStore = usePlayerStore()
   const gameConfigStore = useGameConfigStore()
   const authStore = useAuthStore()
@@ -178,6 +190,51 @@ function startSplash() {
     }
   }, 200)
 }
+
+  // === 页面组件注册 ===
+  const pageComponents = {
+    cultivation: defineAsyncComponent(() => import('./views/Cultivation.vue')),
+    inventory: defineAsyncComponent(() => import('./views/Inventory.vue')),
+    exploration: defineAsyncComponent(() => import('./views/Exploration.vue')),
+    gacha: defineAsyncComponent(() => import('./views/Gacha.vue')),
+    alchemy: defineAsyncComponent(() => import('./views/Alchemy.vue')),
+    dungeon: defineAsyncComponent(() => import('./views/Dungeon.vue')),
+    'daily-dungeon': defineAsyncComponent(() => import('./views/DailyDungeon.vue')),
+    pk: defineAsyncComponent(() => import('./views/PK.vue')),
+    boss: defineAsyncComponent(() => import('./views/WorldBoss.vue')),
+    sect: defineAsyncComponent(() => import('./views/Sect.vue')),
+    'sect-war': defineAsyncComponent(() => import('./views/SectWar.vue')),
+    friends: defineAsyncComponent(() => import('./views/Friends.vue')),
+    auction: defineAsyncComponent(() => import('./views/Auction.vue')),
+    shop: defineAsyncComponent(() => import('./views/Shop.vue')),
+    events: defineAsyncComponent(() => import('./views/Events.vue')),
+    'mount-title': defineAsyncComponent(() => import('./views/MountTitle.vue')),
+    ascension: defineAsyncComponent(() => import('./views/Ascension.vue')),
+    recharge: defineAsyncComponent(() => import('./views/Recharge.vue')),
+    vip: defineAsyncComponent(() => import('./views/Vip.vue')),
+    achievements: defineAsyncComponent(() => import('./views/Achievements.vue')),
+    rank: defineAsyncComponent(() => import('./views/Rank.vue')),
+    mail: defineAsyncComponent(() => import('./views/Mail.vue')),
+    settings: defineAsyncComponent(() => import('./views/Settings.vue')),
+    admin: defineAsyncComponent(() => import('./views/Admin.vue')),
+    'admin-events': defineAsyncComponent(() => import('./views/AdminEvents.vue')),
+    gm: defineAsyncComponent(() => import('./views/GM.vue')),
+    profile: defineAsyncComponent(() => import('./views/Profile.vue')),
+  }
+
+  // === 拦截浏览器返回键 ===
+  function onPopState() {
+    window.history.pushState(null, '', '/')
+    goBack()
+  }
+  onMounted(() => {
+    window.history.pushState(null, '', '/')
+    window.addEventListener('popstate', onPopState)
+  })
+  onUnmounted(() => {
+    window.removeEventListener('popstate', onPopState)
+  })
+
 // 立即启动 splash（登录状态才显示，否则跳过）
 if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
 
@@ -195,18 +252,16 @@ if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
 
   const switchTab = (key) => {
     activeTab.value = key
-    if (route.path !== '/') {
-      router.push('/')
+    if (currentPage.value !== 'home') {
+      currentPage.value = 'home'
+      pageHistory.value = []
     }
   }
 
-  // 根据路由自动更新 activeTab
-  watch(() => route.path, (path) => {
-    const routeKey = path.slice(1)
-    if (routeKey && routeTabMap[routeKey]) {
-      activeTab.value = routeTabMap[routeKey]
-    } else if (path === '/' || path === '') {
-      // 保持当前 activeTab
+  // 根据 currentPage 自动更新 activeTab
+  watch(currentPage, (page) => {
+    if (page && routeTabMap[page]) {
+      activeTab.value = routeTabMap[page]
     }
   })
 
@@ -307,7 +362,7 @@ if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
           content: '请先给自己取一个焰名吧！首次改名免费哦~',
           positiveText: '去取名',
           negativeText: '稍后再说',
-          onPositiveClick: () => router.push('/settings'),
+          onPositiveClick: () => navigateTo('settings'),
         })
       }, 1500)
     }
@@ -323,7 +378,7 @@ if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
     bool => {
       isNewPlayer.value = bool
       if (!bool && route.path === '/') {
-        router.push('/cultivation')
+        navigateTo('cultivation')
       }
     }
   )
@@ -406,20 +461,17 @@ if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
     return () => h(NIcon, null, { default: () => h(icon) })
   }
 
-  const getCurrentMenuKey = () => {
-    const path = route.path.slice(1)
-    return path
-  }
+
 
   const handleMenuClick = key => {
-    router.push(`/${key}`)
+    navigateTo(key)
   }
 
   const handleGameNavigate = (key) => {
-    router.push(`/${key}`)
+    navigateTo(key)
   }
 
-  const isHome = computed(() => route.path === '/' || route.path === '')
+  const isHome = computed(() => currentPage.value === 'home')
 
   const pageTitles = {
     cultivation: '修炼', inventory: '背包', gacha: '焰运阁', alchemy: '焰炼',
@@ -433,12 +485,15 @@ if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
   }
 
   const currentPageTitle = computed(() => {
-    const path = route.path.slice(1)
-    return pageTitles[path] || ''
+    return pageTitles[currentPage.value] || ''
   })
 
   const goBack = () => {
-    router.push('/')
+    if (pageHistory.value.length > 0) {
+      currentPage.value = pageHistory.value.pop()
+    } else {
+      currentPage.value = 'home'
+    }
   }
 
   const loginParticleStyle = (i) => ({

@@ -126,7 +126,7 @@
       <div v-for="g in shortcutGroups" :key="g.title" class="section-card shortcut-card">
         <div class="section-title">{{ g.title }}</div>
         <div class="shortcut-grid">
-          <div v-for="sc in g.items" :key="sc.path + sc.label" class="shortcut-btn" @click="router.push(sc.path)">
+          <div v-for="sc in g.items" :key="sc.path + sc.label" class="shortcut-btn" @click="navigateTo(sc.path.slice(1))">
             <span class="sc-icon-wrap" :style="{ background: sc.color + '18', borderColor: sc.color + '40' }">
               <span class="sc-icon">{{ sc.icon }}</span>
             </span>
@@ -168,9 +168,9 @@ import { computed, ref, onMounted } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import { useAuthStore } from '../stores/auth'
 import { useMessage } from 'naive-ui'
-import { useRouter } from 'vue-router'
+import { inject } from 'vue'
 
-const router = useRouter()
+const navigateTo = inject('navigateTo')
 const showGuide = ref(!hasSeenGuide("home"))
 const dismissGuide = () => { markGuideSeen("home"); showGuide.value = false }
 const playerStore = usePlayerStore()

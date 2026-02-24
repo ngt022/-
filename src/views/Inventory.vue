@@ -431,7 +431,7 @@
 import img from '../utils/img.js'
 import { hasSeenGuide, markGuideSeen, guideTexts } from '../utils/guide.js'
 import GuideTooltip from '../components/GuideTooltip.vue'
-  import { useRouter } from 'vue-router'
+  import { inject } from 'vue'
 import { usePlayerStore } from '../stores/player'
   import { useAuthStore } from '../stores/auth'
   import { ref, computed, onMounted } from 'vue'
@@ -556,7 +556,7 @@ import { usePlayerStore } from '../stores/player'
 
   const showGuide = ref(!hasSeenGuide("inventory"))
 const dismissGuide = () => { markGuideSeen("inventory"); showGuide.value = false }
-const router = useRouter()
+const navigateTo = inject('navigateTo')
   const playerStore = usePlayerStore()
   const authStore = useAuthStore()
   const message = useMessage()
@@ -1096,8 +1096,8 @@ const router = useRouter()
   const goAuction = (equipment) => {
     showEquipmentDetailModal.value = false
     // 跳转到拍卖页面
-    if (typeof router !== 'undefined' && router.push) {
-      router.push({ path: '/auction', query: { sell: equipment.id } })
+    if (typeof navigateTo === 'function') {
+      navigateTo('auction')
     } else {
       window.location.hash = '#/auction?sell=' + equipment.id
     }
