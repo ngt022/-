@@ -83,7 +83,7 @@
               <div v-if="!t.unlocked" class="title-progress">
                 <div class="progress-label">{{ conditionLabels[t.condition_type] }}: {{ t.current }} / {{ t.condition_value }}</div>
                 <n-progress :percentage="t.progress" :show-indicator="false" :height="8"
-                  :color="t.progress >= 100 ? '#4caf50' : '#ffd700'" rail-color="rgba(255,255,255,0.1)" />
+                  :color="t.progress >= 100 ? '#b8960b' : '#ffd700'" rail-color="rgba(255,255,255,0.1)" />
               </div>
               <div v-else class="title-card-actions">
                 <n-button v-if="activeTitleId !== t.id" type="primary" size="tiny" @click="activateTitle(t)">佩戴</n-button>
@@ -268,14 +268,14 @@ onMounted(() => { loadMounts(); loadTitles() })
 
 .quality-tag { display: inline-block; padding: 1px 8px; border-radius: 8px; font-size: 11px; font-weight: 600; }
 .qt-common { background: rgba(136,136,136,0.2); color: #888; border: 1px solid #88888866; }
-.qt-rare { background: rgba(33,150,243,0.2); color: #2196f3; border: 1px solid #2196f366; }
-.qt-epic { background: rgba(156,39,176,0.2); color: #9c27b0; border: 1px solid #9c27b066; }
+.qt-rare { background: rgba(212,168,67,0.2); color: #d4a843; border: 1px solid #d4a84366; }
+.qt-epic { background: rgba(255,140,0,0.2); color: #ff8c00; border: 1px solid #ff8c0066; }
 .qt-legendary { background: rgba(255,152,0,0.2); color: #ff9800; border: 1px solid #ff980066; }
 .qt-mythic { background: rgba(244,67,54,0.2); color: #f44336; border: 1px solid #f4433666; animation: mythic-pulse 2s ease-in-out infinite; }
 
 .quality-common { border: 1.5px solid #888 !important; box-shadow: 0 0 5px rgba(136,136,136,0.3); background: linear-gradient(135deg, rgba(136,136,136,0.08), transparent) !important; }
-.quality-rare { border: 1.5px solid #2196f3 !important; box-shadow: 0 0 10px rgba(33,150,243,0.4); background: linear-gradient(135deg, rgba(33,150,243,0.1), transparent) !important; }
-.quality-epic { border: 1.5px solid #9c27b0 !important; box-shadow: 0 0 12px rgba(156,39,176,0.5); background: linear-gradient(135deg, rgba(156,39,176,0.1), transparent) !important; }
+.quality-rare { border: 1.5px solid #d4a843 !important; box-shadow: 0 0 10px rgba(212,168,67,0.4); background: linear-gradient(135deg, rgba(212,168,67,0.1), transparent) !important; }
+.quality-epic { border: 1.5px solid #ff8c00 !important; box-shadow: 0 0 12px rgba(255,140,0,0.5); background: linear-gradient(135deg, rgba(255,140,0,0.1), transparent) !important; }
 .quality-legendary { border: 1.5px solid #ff9800 !important; box-shadow: 0 0 15px rgba(255,152,0,0.5); background: linear-gradient(135deg, rgba(255,152,0,0.12), transparent) !important; }
 .quality-mythic { border: 1.5px solid #f44336 !important; box-shadow: 0 0 18px rgba(244,67,54,0.6); background: linear-gradient(135deg, rgba(244,67,54,0.12), transparent) !important; animation: mythic-glow 2s ease-in-out infinite; }
 

@@ -565,7 +565,7 @@ onMounted(async () => {
   margin-bottom: 6px;
 }
 .lose-label { color: #ff4444; }
-.keep-label { color: #4caf50; }
+.keep-label { color: #b8960b; }
 .gain-label { color: #ffd700; }
 .confirm-list {
   padding: 8px 12px;

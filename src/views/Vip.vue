@@ -251,8 +251,8 @@ onMounted(async () => {
 
 <style scoped>
 .vip-content { padding: 16px; }
-.sign-done { background: rgba(76,175,80,0.15) !important; border-color: #4caf50 !important; }
-.sign-done :deep(.n-card__content) { color: #4caf50; }
+.sign-done { background: rgba(184,150,11,0.15) !important; border-color: #b8960b !important; }
+.sign-done :deep(.n-card__content) { color: #b8960b; }
 @media (max-width: 500px) {
   :deep(.n-grid) { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 6px !important; }
   :deep(.n-grid .n-gi) { grid-column: auto !important; }

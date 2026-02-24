@@ -209,13 +209,13 @@ const mySubTab = ref('myListings')
 
 // === 品质配置 ===
 const equipQuality = {
-  common: { name: '凡品', color: '#888' }, uncommon: { name: '良品', color: '#4caf50' },
-  rare: { name: '稀有', color: '#2196f3' }, epic: { name: '史诗', color: '#9c27b0' },
+  common: { name: '凡品', color: '#888' }, uncommon: { name: '良品', color: '#b8960b' },
+  rare: { name: '稀有', color: '#d4a843' }, epic: { name: '史诗', color: '#ff8c00' },
   legendary: { name: '传说', color: '#ff9800' }, mythic: { name: '神话', color: '#f44336' }
 }
 const petQuality = {
-  mortal: { name: '凡品', color: '#32CD32' }, spiritual: { name: '灵品', color: '#1E90FF' },
-  mystic: { name: '玄品', color: '#9932CC' }, celestial: { name: '仙品', color: '#FFD700' },
+  mortal: { name: '凡品', color: '#b8960b' }, spiritual: { name: '灵品', color: '#d4a843' },
+  mystic: { name: '玄品', color: '#e6a000' }, celestial: { name: '仙品', color: '#FFD700' },
   divine: { name: '神品', color: '#FF0000' }
 }
 const statNames = { attack: '攻击', defense: '防御', hp: '生命', speed: '速度', critRate: '暴击率', critDmg: '暴击伤害', dodge: '闪避', penetration: '穿透' }
@@ -540,7 +540,7 @@ watch(activeTab, onTabChange)
 .detail-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-top: 10px; }
 .stat-row { display: flex; justify-content: space-between; padding: 4px 8px; background: rgba(255,255,255,0.03); border-radius: 4px; font-size: 12px; }
 .stat-key { color: #999; }
-.stat-val { color: #4caf50; font-weight: 600; }
+.stat-val { color: #b8960b; font-weight: 600; }
 .detail-price-info { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
 .detail-actions { margin-top: 8px; }
 .bid-history { max-height: 200px; overflow-y: auto; }
@@ -550,16 +550,16 @@ watch(activeTab, onTabChange)
 
 /* 品质发光边框 - 复用 Inventory 风格 */
 .quality-common { border-color: #888 !important; box-shadow: 0 0 5px rgba(136,136,136,0.3); }
-.quality-uncommon { border-color: #4caf50 !important; box-shadow: 0 0 8px rgba(76,175,80,0.4); }
-.quality-rare { border-color: #2196f3 !important; box-shadow: 0 0 10px rgba(33,150,243,0.4); }
-.quality-epic { border-color: #9c27b0 !important; box-shadow: 0 0 12px rgba(156,39,176,0.5); }
+.quality-uncommon { border-color: #b8960b !important; box-shadow: 0 0 8px rgba(184,150,11,0.4); }
+.quality-rare { border-color: #d4a843 !important; box-shadow: 0 0 10px rgba(212,168,67,0.4); }
+.quality-epic { border-color: #ff8c00 !important; box-shadow: 0 0 12px rgba(255,140,0,0.5); }
 .quality-legendary { border-color: #ff9800 !important; box-shadow: 0 0 15px rgba(255,152,0,0.5); }
 .quality-mythic { border-color: #f44336 !important; box-shadow: 0 0 18px rgba(244,67,54,0.6); animation: mythic-glow 2s ease-in-out infinite; }
 @keyframes mythic-glow { 0%,100% { box-shadow: 0 0 15px rgba(244,67,54,0.5); } 50% { box-shadow: 0 0 25px rgba(244,67,54,0.8); } }
 
-.pet-quality-mortal { border-color: #32CD32 !important; box-shadow: 0 0 6px rgba(50,205,50,0.3); }
-.pet-quality-spiritual { border-color: #1E90FF !important; box-shadow: 0 0 8px rgba(30,144,255,0.4); }
-.pet-quality-mystic { border-color: #9932CC !important; box-shadow: 0 0 10px rgba(153,50,204,0.4); }
+.pet-quality-mortal { border-color: #b8960b !important; box-shadow: 0 0 6px rgba(184,150,11,0.3); }
+.pet-quality-spiritual { border-color: #d4a843 !important; box-shadow: 0 0 8px rgba(212,168,67,0.4); }
+.pet-quality-mystic { border-color: #e6a000 !important; box-shadow: 0 0 10px rgba(230,160,0,0.4); }
 .pet-quality-celestial { border-color: #FFD700 !important; box-shadow: 0 0 12px rgba(255,215,0,0.5); }
 .pet-quality-divine { border-color: #FF0000 !important; box-shadow: 0 0 15px rgba(255,0,0,0.5); animation: divine-glow 2s ease-in-out infinite; }
 @keyframes divine-glow { 0%,100% { box-shadow: 0 0 12px rgba(255,0,0,0.5); } 50% { box-shadow: 0 0 22px rgba(255,0,0,0.8); } }
