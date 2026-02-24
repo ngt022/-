@@ -230,67 +230,34 @@ const playerStore = usePlayerStore()
 </script>
 
 <style scoped>
-  .n-space {
-    width: 100%;
-  }
+.n-space { width: 100%; }
+.n-button { margin-bottom: 8px; }
 
-  .n-button {
-    margin-bottom: 12px;
-  }
+/* 材料标签 */
+.recipe-materials { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+.mat-tag {
+  font-size: 11px; padding: 2px 8px; border-radius: 4px;
+  border: 1px solid; backdrop-filter: blur(4px);
+}
+.mat-enough {
+  background: rgba(212,168,67,0.1); color: #d4a843;
+  border-color: rgba(212,168,67,0.25);
+}
+.mat-lack {
+  background: rgba(139,32,0,0.1); color: #a05030;
+  border-color: rgba(139,32,0,0.25);
+}
+.recipe-effect {
+  font-size: 12px; color: #ffd700; margin-top: 4px; font-weight: 500;
+  text-shadow: 0 0 6px rgba(255,215,0,0.15);
+}
 
-  .n-collapse {
-    margin-top: 12px;
-  }
-
-  .craft-button {
-    position: relative;
-    overflow: hidden;
-  }
-
-  @keyframes success-ripple {
-    0% {
-      transform: scale(0);
-      opacity: 1;
-    }
-    100% {
-      transform: scale(4);
-      opacity: 0;
-    }
-  }
-
-  @keyframes fail-shake {
-    0%,
-    100% {
-      transform: translateX(0);
-    }
-    25% {
-      transform: translateX(-10px);
-    }
-    75% {
-      transform: translateX(10px);
-    }
-  }
-
-  .success-animation::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 20px;
-    height: 20px;
-    background: rgba(0, 255, 0, 0.3);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    animation: success-ripple 1s ease-out;
-  }
-
-  .fail-animation {
-    animation: fail-shake 0.5s ease-in-out;
-  }
-
-  .recipe-materials { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
-  .mat-tag { font-size: 11px; padding: 2px 6px; border-radius: 4px; border: 1px solid; }
-  .mat-enough { background: rgba(76,175,80,0.15); color: #4caf50; border-color: rgba(76,175,80,0.3); }
-  .mat-lack { background: rgba(244,67,54,0.15); color: #f44336; border-color: rgba(244,67,54,0.3); }
-  .recipe-effect { font-size: 12px; color: #ffd54f; margin-top: 4px; font-weight: 500; }
+/* 炼制按钮动画 */
+.craft-confirm-btn { position: relative; overflow: hidden; }
+@keyframes fail-shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+.fail-animation { animation: fail-shake 0.4s ease-in-out; }
 </style>
