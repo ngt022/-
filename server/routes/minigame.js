@@ -1,9 +1,9 @@
-const express = require('express')
+import express from 'express'
 const router = express.Router()
 
 // 从 index.js 获取 pool 和 auth — 这个文件会被 index.js require 并 use
 // 需要在 module.exports 时传入 pool 和 auth
-module.exports = (pool, auth) => {
+export default (pool, auth) => {
 
   // 开始试炼 — 检查今日次数
   router.post('/start', auth, async (req, res) => {

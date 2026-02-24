@@ -396,7 +396,9 @@ import gachaRoutes from './routes/gacha.js';
 import equipmentRoutes from './routes/equipment.js';
 import petsRoutes from './routes/pets.js';
 import inventoryRoutes from './routes/inventory-gd.js';
-const minigameRoutes = require('./routes/minigame')
+
+
+const { default: minigameRoutes } = await import('./routes/minigame.js')
 app.use('/api/minigame', minigameRoutes(pool, auth));
 app.use('/api/shop', shopRoutes(pool, auth));
 app.use('/api/inventory', inventoryRoutes(pool, auth));
