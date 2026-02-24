@@ -2,21 +2,9 @@
   <div class="cultivation-container">
     <!-- 背景火焰粒子 -->
     <div class="fire-particles">
-      <span v-for="i in 20" :key="i" class="fire-particle" :style="particleStyle(i)"></span>
+      <span v-for="i in 10" :key="i" class="fire-particle" :style="particleStyle(i)"></span>
     </div>
-    <!-- 底部火焰光晕 -->
     <div class="fire-glow"></div>
-    
-    <n-card class="cultivation-card">
-      <n-space vertical>
-        <game-guide>
-          <p>🧘 <strong>冥想</strong>消耗焰灵获得焰力，焰力达到上限后可<strong>突破焰阶</strong></p>
-          <p>⬆️ 突破提升境界，解锁新地点和功能，共14大境界126级</p>
-          <p>⚡ 焰灵自动恢复，速率随等级提升（每秒 2+等级×0.5）</p>
-          <p>🔮 VIP/月卡/修炼加速卡可叠加冥想加成，最高2.7倍</p>
-          <p>🤖 <strong>一键冥想</strong>一次性消耗所有焰灵转化为焰力（服务端计算，防作弊）</p>
-          <p>💤 离线最多累积<strong>12小时</strong>收益（焰力+焰晶+焰灵）</p>
-        </game-guide>
         
         <!-- 圆形进度环核心区域 -->
         <div class="cultivation-core" :class="{ 'is-meditating': isMeditating }">
@@ -110,14 +98,7 @@
           </div>
         </div>
         
-        <!-- 境界图标显示 -->
-        <div class="realm-display">
-          <img :src="realmIcon" class="realm-icon" loading="lazy" />
-          <div class="realm-text">
-            <span class="realm-name">{{ realmInfo?.name }}</span>
-            <span class="realm-desc">当前境界</span>
-          </div>
-        </div>
+
         
         <!-- 游戏风格按钮组 -->
         <div class="cultivation-buttons">
@@ -154,9 +135,7 @@
           </button>
         </div>
         
-        <log-panel ref="logRef" title="冥想日志" />
-      </n-space>
-    </n-card>
+    <log-panel ref="logRef" title="冥想日志" class="cult-log" />
   </div>
 
   <!-- 突破全屏特效 -->
@@ -534,217 +513,181 @@ const playerStore = usePlayerStore()
 <style scoped>
 .cultivation-container {
   position: relative;
-  min-height: 80vh;
-  padding: 12px;
-  background: linear-gradient(180deg, #0d0d1a 0%, #151528 50%, #0d0d1a 100%);
+  padding: 0;
+  background: linear-gradient(180deg, #0b0b18 0%, #12101f 60%, #0b0b18 100%);
+  min-height: 75vh;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-/* 背景粒子 - 少而精 */
-.fire-particles { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+/* 背景粒子 */
+.fire-particles { position: absolute; inset: 0; pointer-events: none; }
 .fire-particle {
-  position: absolute; width: 3px; height: 3px;
-  background: radial-gradient(circle, rgba(255,165,0,0.8), transparent);
-  border-radius: 50%;
-  animation: float-up linear infinite;
+  position: absolute; width: 2px; height: 2px;
+  background: rgba(255,180,60,0.7); border-radius: 50%;
+  animation: fp-rise linear infinite;
 }
-@keyframes float-up {
-  0% { transform: translateY(80vh) scale(0); opacity: 0; }
-  15% { opacity: 0.6; }
-  85% { opacity: 0.3; }
-  100% { transform: translateY(-20px) scale(1); opacity: 0; }
+@keyframes fp-rise {
+  0% { transform: translateY(75vh); opacity: 0; }
+  10% { opacity: 0.5; }
+  90% { opacity: 0.2; }
+  100% { transform: translateY(-10px); opacity: 0; }
 }
-
 .fire-glow {
-  position: absolute; bottom: 0; left: 0; right: 0; height: 200px;
-  background: radial-gradient(ellipse at center bottom, rgba(212,168,67,0.08) 0%, transparent 70%);
-  pointer-events: none; z-index: 0;
+  position: absolute; bottom: 0; left: 0; right: 0; height: 120px;
+  background: radial-gradient(ellipse at center bottom, rgba(212,168,67,0.06) 0%, transparent 70%);
+  pointer-events: none;
 }
 
-/* 主卡片 */
-.cultivation-card {
-  position: relative; z-index: 1;
-  background: rgba(15, 15, 30, 0.9) !important;
-  border: 1px solid rgba(212,168,67,0.15) !important;
-  border-radius: 16px !important;
-  backdrop-filter: blur(10px);
-}
-
-/* 核心区域 */
+/* === 圆环核心 === */
 .cultivation-core {
   display: flex; flex-direction: column; align-items: center;
-  padding: 20px 0 10px;
+  padding: 24px 0 8px; width: 100%;
 }
-
-/* 圆环容器 */
 .progress-ring-container {
-  position: relative; width: 240px; height: 240px;
-  display: flex; align-items: center; justify-content: center;
+  position: relative; width: 220px; height: 220px;
 }
 .progress-ring { width: 100%; height: 100%; transform: rotate(-90deg); }
-.progress-ring-circle { transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+.progress-ring-circle { transition: stroke-dashoffset 0.6s ease; }
 
-/* 轨道粒子 - 减少到5个 */
+/* 轨道粒子 */
 .orbit-particles {
-  position: absolute; width: 100%; height: 100%;
-  animation: orbit-rotate 25s linear infinite;
+  position: absolute; inset: 0;
+  animation: orb-spin 22s linear infinite;
 }
 .orbit-particles.speed-up { animation-duration: 2s; }
-@keyframes orbit-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
+@keyframes orb-spin { to { transform: rotate(360deg); } }
 .orbit-particle {
   position: absolute; top: 50%; left: 50%;
-  width: 5px; height: 5px;
-  background: #ffd700;
-  border-radius: 50%;
-  box-shadow: 0 0 8px rgba(255,215,0,0.6);
-  transform: rotate(var(--orbit-angle)) translateX(108px);
-  animation: op-pulse 3s ease-in-out infinite;
+  width: 4px; height: 4px;
+  background: #ffd700; border-radius: 50%;
+  box-shadow: 0 0 6px rgba(255,215,0,0.5);
+  transform: rotate(var(--orbit-angle)) translateX(100px);
+  animation: op-blink 2.5s ease-in-out infinite;
 }
-@keyframes op-pulse {
-  0%, 100% { opacity: 0.4; transform: rotate(var(--orbit-angle)) translateX(108px) scale(0.6); }
-  50% { opacity: 1; transform: rotate(var(--orbit-angle)) translateX(108px) scale(1); }
+@keyframes op-blink {
+  0%,100% { opacity: 0.3; } 50% { opacity: 1; }
 }
 
-/* 脉冲波纹 */
+/* 脉冲 */
 .pulse-waves { position: absolute; inset: 0; pointer-events: none; }
 .pulse-wave {
-  position: absolute; top: 50%; left: 50%; width: 180px; height: 180px;
-  border: 1px solid rgba(212,168,67,0.3); border-radius: 50%;
-  transform: translate(-50%, -50%);
-  animation: pulse-expand 2s ease-out infinite;
+  position: absolute; top: 50%; left: 50%; width: 160px; height: 160px;
+  border: 1px solid rgba(212,168,67,0.25); border-radius: 50%;
+  transform: translate(-50%,-50%);
+  animation: pw-expand 2s ease-out infinite;
 }
-@keyframes pulse-expand {
-  0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.6; }
-  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+@keyframes pw-expand {
+  0% { transform: translate(-50%,-50%) scale(0.85); opacity: 0.5; }
+  100% { transform: translate(-50%,-50%) scale(1.35); opacity: 0; }
 }
 
 /* 中心数值 */
 .ring-center {
   position: absolute; top: 50%; left: 50%;
-  transform: translate(-50%, -50%); text-align: center; z-index: 2;
+  transform: translate(-50%,-50%); text-align: center;
 }
 .cultivation-value {
-  display: flex; align-items: baseline; justify-content: center; gap: 2px;
+  display: flex; align-items: baseline; justify-content: center; gap: 3px;
 }
 .current-value {
-  font-size: 32px; font-weight: 700;
-  color: #ffd700;
-  text-shadow: 0 0 12px rgba(255,215,0,0.3);
-  transition: transform 0.15s;
+  font-size: 28px; font-weight: 700; color: #ffd700;
+  text-shadow: 0 0 10px rgba(255,215,0,0.25);
 }
-.current-value.number-jump { animation: num-bounce 0.25s ease; }
-@keyframes num-bounce {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
-}
-.separator { font-size: 16px; color: rgba(212,168,67,0.4); margin: 0 2px; }
-.max-value { font-size: 14px; color: rgba(212,168,67,0.5); }
+.current-value.number-jump { animation: nj 0.2s ease; }
+@keyframes nj { 50% { transform: scale(1.12); } }
+.separator { font-size: 14px; color: rgba(212,168,67,0.35); }
+.max-value { font-size: 13px; color: rgba(212,168,67,0.45); }
 .realm-name-center {
-  font-size: 13px; color: rgba(212,168,67,0.7); margin-top: 4px;
-  letter-spacing: 2px;
+  font-size: 12px; color: rgba(212,168,67,0.6);
+  margin-top: 2px; letter-spacing: 3px;
 }
 
-/* 焰灵状态 */
+/* === 焰灵状态 === */
 .spirit-status {
-  width: 100%; max-width: 260px; margin-top: 16px;
-  padding: 10px 14px;
-  background: rgba(212,168,67,0.05);
-  border: 1px solid rgba(212,168,67,0.12);
-  border-radius: 10px;
-  transition: all 0.3s;
+  width: 90%; max-width: 240px; margin-top: 12px;
+  padding: 8px 12px;
+  background: rgba(212,168,67,0.04);
+  border: 1px solid rgba(212,168,67,0.1);
+  border-radius: 8px;
 }
 .spirit-status.spirit-full {
-  border-color: rgba(255,215,0,0.3);
-  box-shadow: 0 0 15px rgba(255,215,0,0.1);
+  border-color: rgba(255,215,0,0.25);
+  box-shadow: 0 0 12px rgba(255,215,0,0.08);
 }
-.spirit-arc { width: 100%; height: auto; }
+.spirit-arc { width: 100%; }
 .spirit-arc-progress { transition: stroke-dashoffset 0.5s ease; }
 .spirit-info {
   display: flex; align-items: center; justify-content: center;
-  gap: 6px; flex-wrap: wrap;
+  gap: 6px; font-size: 12px;
 }
-.spirit-label { font-size: 11px; color: #d4a843; font-weight: 600; }
-.spirit-value { font-size: 13px; color: rgba(240,214,138,0.9); }
-.spirit-rate { font-size: 10px; color: rgba(240,214,138,0.4); }
+.spirit-label { color: #d4a843; font-weight: 600; font-size: 11px; }
+.spirit-value { color: rgba(240,214,138,0.85); font-size: 13px; }
+.spirit-rate { color: rgba(240,214,138,0.35); font-size: 10px; }
 
-/* 境界显示 */
-.realm-display {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px; margin: 12px 0;
-  background: rgba(212,168,67,0.04);
-  border: 1px solid rgba(212,168,67,0.1);
-  border-radius: 10px;
-}
-.realm-display::before { display: none; }
-.realm-icon {
-  width: 40px; height: 40px; border-radius: 8px;
-  border: 1px solid rgba(212,168,67,0.3);
-  object-fit: cover;
-}
-.realm-text { display: flex; flex-direction: column; gap: 1px; }
-.realm-name { font-size: 14px; font-weight: 600; color: #f0d68a; }
-.realm-desc { font-size: 11px; color: rgba(240,214,138,0.4); }
-
-/* 按钮组 */
+/* === 按钮组 === */
 .cultivation-buttons {
-  display: flex; flex-direction: column; gap: 8px; margin: 12px 0;
+  width: 90%; max-width: 320px;
+  display: flex; flex-direction: column; gap: 8px;
+  margin: 16px auto 8px;
 }
 .game-btn {
-  position: relative; display: flex; align-items: center; justify-content: center;
-  gap: 6px; padding: 12px 16px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 14px;
   border: none; border-radius: 8px;
   font-size: 14px; font-weight: 600;
-  cursor: pointer; transition: all 0.15s; overflow: hidden;
-  color: #fff;
+  cursor: pointer; transition: all 0.15s;
+  color: rgba(255,255,255,0.9); position: relative; overflow: hidden;
 }
-.game-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.game-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .game-btn:active:not(:disabled) { transform: scale(0.97); }
-.game-btn::before {
+.game-btn::after {
   content: ''; position: absolute; top: 0; left: -100%;
   width: 100%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-  transition: left 0.4s;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  transition: left 0.35s;
 }
-.game-btn:hover:not(:disabled)::before { left: 100%; }
+.game-btn:hover:not(:disabled)::after { left: 100%; }
 
-.btn-icon { font-size: 16px; }
-.btn-text { flex: 1; text-align: left; }
+.btn-icon { font-size: 15px; width: 20px; text-align: center; }
+.btn-text { flex: 1; }
 .btn-cost {
-  font-size: 11px; opacity: 0.7;
-  padding: 2px 6px; background: rgba(0,0,0,0.25); border-radius: 4px;
+  font-size: 10px; opacity: 0.6;
+  padding: 2px 6px; background: rgba(0,0,0,0.2); border-radius: 3px;
 }
 
-/* 冥想按钮 - 暗红 */
 .btn-meditate {
-  background: linear-gradient(135deg, #8b2500 0%, #a0522d 100%);
-  border: 1px solid rgba(160,82,45,0.4);
+  background: linear-gradient(135deg, #6b2000, #8b3010);
+  border: 1px solid rgba(139,48,16,0.5);
 }
-/* 一键冥想 - 深橙 */
 .btn-oneclick {
-  background: linear-gradient(135deg, #b8600b 0%, #d4820b 100%);
-  border: 1px solid rgba(212,130,11,0.4);
+  background: linear-gradient(135deg, #8b5500, #a06800);
+  border: 1px solid rgba(160,104,0,0.5);
 }
-/* 突破按钮 - 金色 */
 .btn-breakthrough {
-  background: linear-gradient(135deg, #8b7500 0%, #b8960b 100%);
-  border: 1px solid rgba(184,150,11,0.4);
+  background: linear-gradient(135deg, #6b5a00, #8b7500);
+  border: 1px solid rgba(139,117,0,0.5);
 }
 .btn-breakthrough.can-break {
-  background: linear-gradient(135deg, #d4a843 0%, #ffd700 100%);
-  color: #1a1a2e;
-  animation: bt-glow 2s ease-in-out infinite;
+  background: linear-gradient(135deg, #c49b30, #e6b800);
+  color: #1a1a2e; border-color: rgba(230,184,0,0.5);
+  animation: can-brk 2.5s ease-in-out infinite;
 }
-@keyframes bt-glow {
-  0%, 100% { box-shadow: 0 0 10px rgba(255,215,0,0.3); }
-  50% { box-shadow: 0 0 20px rgba(255,215,0,0.5); }
+@keyframes can-brk {
+  0%,100% { box-shadow: 0 0 8px rgba(230,184,0,0.2); }
+  50% { box-shadow: 0 0 16px rgba(230,184,0,0.4); }
 }
-.btn-cost.ready { background: rgba(0,0,0,0.3); color: #ffd700; font-weight: 700; }
+.btn-cost.ready { background: rgba(0,0,0,0.25); color: #ffd700; font-weight: 700; }
 
-/* 突破特效 */
+/* 日志 */
+.cult-log { margin: 8px 12px 12px; }
+
+/* === 突破特效 === */
 .breakthrough-overlay {
   position: fixed; inset: 0; z-index: 99999;
-  background: rgba(0,0,0,0.9);
+  background: rgba(0,0,0,0.92);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
 }
@@ -752,54 +695,45 @@ const playerStore = usePlayerStore()
 .bt-particle {
   position: absolute; top: 50%; left: 50%;
   width: 4px; height: 4px; border-radius: 50%;
-  animation: bt-explode 1.5s ease-out forwards;
+  animation: bt-exp 1.5s ease-out forwards;
 }
-@keyframes bt-explode {
+@keyframes bt-exp {
   0% { transform: translate(-50%,-50%) scale(0); opacity: 1; }
-  100% { transform: translate(calc(-50% + cos(var(--angle)) * var(--dist) * 3), calc(-50% + sin(var(--angle)) * var(--dist) * 3)) scale(0); opacity: 0; }
+  100% { transform: translate(calc(-50% + cos(var(--angle))*var(--dist)*3), calc(-50% + sin(var(--angle))*var(--dist)*3)) scale(0); opacity: 0; }
 }
 .bt-content { position: relative; z-index: 2; text-align: center; }
 .bt-flash {
   position: fixed; inset: 0;
-  background: radial-gradient(circle, rgba(255,215,0,0.3) 0%, transparent 70%);
-  animation: bt-flash-anim 0.8s ease-out forwards; pointer-events: none;
+  background: radial-gradient(circle, rgba(255,215,0,0.25) 0%, transparent 70%);
+  animation: btf 0.8s ease-out forwards; pointer-events: none;
 }
-@keyframes bt-flash-anim {
-  0% { opacity: 1; transform: scale(0.5); }
-  100% { opacity: 0; transform: scale(2); }
-}
+@keyframes btf { 0% { opacity:1; transform:scale(0.5); } 100% { opacity:0; transform:scale(2); } }
 .bt-icon {
-  font-size: 64px;
-  animation: bt-icon-in 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards;
-  filter: drop-shadow(0 0 20px rgba(255,215,0,0.7));
+  font-size: 56px;
+  animation: bti 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  filter: drop-shadow(0 0 16px rgba(255,215,0,0.6));
 }
-@keyframes bt-icon-in {
-  0% { transform: scale(0) rotate(-180deg); opacity: 0; }
-  100% { transform: scale(1) rotate(0deg); opacity: 1; }
-}
+@keyframes bti { 0% { transform:scale(0) rotate(-180deg); opacity:0; } 100% { transform:scale(1) rotate(0); opacity:1; } }
 .bt-title {
-  font-size: 28px; font-weight: 900; letter-spacing: 6px; margin-top: 12px;
+  font-size: 24px; font-weight: 800; letter-spacing: 4px; margin-top: 10px;
   background: linear-gradient(180deg, #fff, #ffd700);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  animation: bt-text-in 0.8s ease-out 0.3s both;
+  animation: btt 0.8s ease-out 0.3s both;
 }
-@keyframes bt-text-in {
-  0% { transform: translateY(15px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
-}
+@keyframes btt { 0% { transform:translateY(12px); opacity:0; } 100% { transform:translateY(0); opacity:1; } }
 .bt-realm {
-  font-size: 18px; color: #d4a843; margin-top: 6px;
-  text-shadow: 0 0 12px rgba(212,168,67,0.5);
-  animation: bt-text-in 0.8s ease-out 0.5s both;
+  font-size: 16px; color: #d4a843; margin-top: 4px;
+  text-shadow: 0 0 10px rgba(212,168,67,0.4);
+  animation: btt 0.8s ease-out 0.5s both;
 }
-.bt-hint { font-size: 11px; color: #555; margin-top: 20px; animation: bt-text-in 0.8s ease-out 0.8s both; }
+.bt-hint { font-size: 10px; color: #444; margin-top: 16px; animation: btt 0.8s ease-out 0.8s both; }
 .breakthrough-fx-enter-active { transition: opacity 0.3s; }
 .breakthrough-fx-leave-active { transition: opacity 0.5s; }
 .breakthrough-fx-enter-from, .breakthrough-fx-leave-to { opacity: 0; }
 
-@media (max-width: 480px) {
-  .progress-ring-container { width: 200px; height: 200px; }
-  .current-value { font-size: 26px; }
-  .game-btn { padding: 10px 14px; font-size: 13px; }
+@media (max-width: 400px) {
+  .progress-ring-container { width: 180px; height: 180px; }
+  .current-value { font-size: 24px; }
+  .game-btn { padding: 10px 12px; font-size: 13px; }
 }
 </style>
