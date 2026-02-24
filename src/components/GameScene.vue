@@ -15,6 +15,14 @@
       <div class="spirit-particles">
         <span v-for="i in 15" :key="i" class="sp" :style="spStyle(i)"></span>
       </div>
+      <!-- 火焰粒子 -->
+      <div class="flame-particles">
+        <span v-for="i in 12" :key="i" class="flame" :style="flameStyle(i)"></span>
+      </div>
+      <!-- 萤火虫 -->
+      <div class="fireflies">
+        <span v-for="i in 8" :key="i" class="firefly" :style="fireflyStyle(i)"></span>
+      </div>
     </div>
 
     <!-- 公告栏 -->
@@ -284,7 +292,23 @@ const cloudStyle = (i) => ({
   opacity: 0.03 + (i % 3) * 0.02,
 })
 
-const spStyle = (i) => ({
+const flameStyle = (i) => ({
+    left: (i * 8.3 + Math.sin(i) * 5) % 100 + '%',
+    bottom: '-10px',
+    animationDelay: (i * 0.7) + 's',
+    animationDuration: (3 + Math.random() * 4) + 's',
+    opacity: 0.3 + Math.random() * 0.4,
+    '--size': (4 + Math.random() * 6) + 'px',
+  })
+
+  const fireflyStyle = (i) => ({
+    left: (i * 12.5 + Math.sin(i * 2) * 10) % 100 + '%',
+    top: (20 + Math.random() * 60) + '%',
+    animationDelay: (i * 1.2) + 's',
+    animationDuration: (4 + Math.random() * 6) + 's',
+  })
+
+  const spStyle = (i) => ({
   left: `${(i * 11 + 5) % 90 + 5}%`,
   bottom: `${(i * 7) % 30 + 10}%`,
   animationDelay: `${(i * 0.8) % 5}s`,
@@ -667,4 +691,52 @@ const spStyle = (i) => ({
 .hp-sc:active { background: rgba(212,168,67,0.12); transform: scale(0.95); }
 .hp-sc-icon { font-size: 1.2rem; }
 .hp-sc-text { font-size: 0.7rem; color: #a09880; }
-/* === 白色主题 === */</style>
+/* === 白色主题 === */
+/* 火焰粒子 */
+.flame-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+.flame {
+  position: absolute;
+  width: var(--size, 5px);
+  height: var(--size, 5px);
+  background: radial-gradient(circle, #ffa500, #ff6b35, transparent);
+  border-radius: 50%;
+  filter: blur(1px);
+  animation: flame-rise linear infinite;
+}
+@keyframes flame-rise {
+  0% { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+  10% { opacity: 0.6; }
+  50% { transform: translateY(-40vh) translateX(20px) scale(0.8); opacity: 0.4; }
+  100% { transform: translateY(-80vh) translateX(-10px) scale(0.2); opacity: 0; }
+}
+
+/* 萤火虫 */
+.fireflies {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+.firefly {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #ffd700;
+  border-radius: 50%;
+  box-shadow: 0 0 6px 2px rgba(255, 215, 0, 0.6), 0 0 12px 4px rgba(255, 165, 0, 0.3);
+  animation: firefly-float ease-in-out infinite;
+}
+@keyframes firefly-float {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.2; }
+  25% { transform: translate(15px, -20px) scale(1.2); opacity: 0.8; }
+  50% { transform: translate(-10px, -10px) scale(0.8); opacity: 0.4; }
+  75% { transform: translate(20px, 10px) scale(1.1); opacity: 0.9; }
+}
+</style>
