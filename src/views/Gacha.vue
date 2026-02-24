@@ -911,6 +911,23 @@ const handleAutoReleaseChange = values => {
 }
 .gacha-type-selector { display: flex; justify-content: center; }
 
+/* Radio Button 样式 */
+.gacha-type-selector :deep(.n-radio-group) {
+  gap: 0;
+}
+.gacha-type-selector :deep(.n-radio-button) {
+  --n-button-text-color: rgba(212,168,67,0.5) !important;
+  --n-button-text-color-active: #1a1a2e !important;
+  --n-button-color-active: #d4a843 !important;
+  --n-button-border-color: rgba(212,168,67,0.2) !important;
+  --n-button-border-color-active: #d4a843 !important;
+}
+.gacha-type-selector :deep(.n-radio-button--checked) {
+  background: #d4a843 !important;
+  color: #1a1a2e !important;
+  font-weight: 700;
+}
+
 /* === 焰晶 === */
 .spirit-stones {
   display: flex; align-items: center; justify-content: center;
