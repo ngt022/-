@@ -1320,10 +1320,11 @@ watch(() => authStore.wallet, (w) => { if (w) { setTimeout(checkAnnouncementPopu
     right: 0;
     z-index: 100;
     height: 60px;
-    background: rgba(8,8,16,0.95);
-    border-top: 1px solid rgba(212,168,67,0.2);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: linear-gradient(180deg, rgba(12,12,24,0.97), rgba(6,6,14,0.99));
+    border-top: 1px solid rgba(212,168,67,0.25);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.5), 0 -1px 0 rgba(212,168,67,0.08);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     padding-bottom: env(safe-area-inset-bottom);
   }
   .bottom-nav-inner {
@@ -1356,10 +1357,10 @@ watch(() => authStore.wallet, (w) => { if (w) { setTimeout(checkAnnouncementPopu
     transform: scale(0.95);
   }
   .nav-icon {
-    font-size: 22px;
+    font-size: 24px;
     line-height: 1;
-    filter: grayscale(0.6) brightness(0.7);
-    transition: filter 0.25s ease;
+    filter: grayscale(0.5) brightness(0.6);
+    transition: all 0.25s ease;
   }
   .nav-indicator {
     width: 4px;
@@ -1378,7 +1379,8 @@ watch(() => authStore.wallet, (w) => { if (w) { setTimeout(checkAnnouncementPopu
   }
   /* 选中态 */
   .nav-tab.active .nav-icon {
-    filter: grayscale(0) brightness(1) drop-shadow(0 0 6px rgba(212,168,67,0.4));
+    filter: grayscale(0) brightness(1.1) drop-shadow(0 0 8px rgba(212,168,67,0.5));
+    transform: scale(1.05);
   }
   .nav-tab.active .nav-indicator {
     background: var(--gold);
@@ -1674,13 +1676,16 @@ watch(() => authStore.wallet, (w) => { if (w) { setTimeout(checkAnnouncementPopu
     background: rgba(0,0,0,0.4); z-index: 998;
   }
   .submenu-panel {
-    position: fixed; bottom: 56px; left: 0; right: 0;
-    background: linear-gradient(180deg, rgba(20,20,30,0.98), rgba(15,15,25,0.99));
-    border-top: 1px solid rgba(212,168,67,0.3);
+    position: fixed; bottom: 60px; left: 0; right: 0;
+    bottom: calc(60px + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, rgba(15,15,28,0.98), rgba(12,12,22,0.99));
+    border-top: 1px solid rgba(212,168,67,0.2);
+    border-bottom: none;
     border-radius: 16px 16px 0 0;
     padding: 16px 12px 12px;
-    z-index: 999;
-    backdrop-filter: blur(10px);
+    z-index: 99;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 -8px 24px rgba(0,0,0,0.4);
   }
   .submenu-grid {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
@@ -1705,7 +1710,7 @@ watch(() => authStore.wallet, (w) => { if (w) { setTimeout(checkAnnouncementPopu
     transition: transform 0.25s ease, opacity 0.25s ease;
   }
   .submenu-slide-enter-from, .submenu-slide-leave-to {
-    transform: translateY(100%); opacity: 0;
+    transform: translateY(20px); opacity: 0;
   }
   .fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
   .fade-enter-from, .fade-leave-to { opacity: 0; }

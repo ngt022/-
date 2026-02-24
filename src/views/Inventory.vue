@@ -1350,9 +1350,10 @@ const navigateTo = inject('navigateTo')
 <style scoped>
   /* === 储藏室容器 === */
   .storage-container { padding: 8px; }
-  .storage-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-  .storage-title { font-size: 18px; font-weight: 700; color: #d4a843; text-shadow: 0 0 10px rgba(212,168,67,0.4); }
-  .storage-actions { display: flex; gap: 8px; }
+  .storage-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .storage-title { font-size: 16px; font-weight: 700; color: #d4a843; text-shadow: 0 0 10px rgba(212,168,67,0.4); }
+  .storage-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .storage-actions .n-button { font-size: 11px !important; padding: 0 8px !important; height: 26px !important; }
 
   /* === 装备栏 === */
   .equip-bar { margin-bottom: 16px; padding: 10px; border-radius: 12px; background: rgba(10,8,18,0.6); border: 1px solid rgba(212,168,67,0.15); }
