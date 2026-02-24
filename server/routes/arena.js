@@ -172,7 +172,7 @@ export default function(pool, auth, runPkBattle, computeFinalStats, getMountTitl
             return res.json({ success: false, message: "挑战次数已用完，额外挑战需" + EXTRA_COST + "焰晶（余额不足）", needPay: true, cost: EXTRA_COST, balance: stones });
           }
           // 扣费
-          await pool.query("UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) - " + EXTRA_COST + ")::int)) WHERE wallet = $1", [wallet]);
+          await pool.query("UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) - " + EXTRA_COST + ")::int)), spirit_stones = spirit_stones - " + EXTRA_COST + " WHERE wallet = $1", [wallet]);
         }
       }
 
@@ -226,7 +226,7 @@ export default function(pool, auth, runPkBattle, computeFinalStats, getMountTitl
           [scoreChangeB, getRankTier(Math.max(0, rB.rank_score + scoreChangeB)), targetWallet]);
 
         // Give reward stones
-        await pool.query(`UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)) WHERE wallet = $2`, [reward, wallet]);
+        await pool.query(`UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)), spirit_stones = spirit_stones + $1 WHERE wallet = $2`, [reward, wallet]);
 
       } else if (winner === 'defender') {
         scoreChangeA = -Math.min(25, Math.max(10, 15));
@@ -261,12 +261,12 @@ export default function(pool, auth, runPkBattle, computeFinalStats, getMountTitl
       if (!dailyAfter.first_challenge_reward) {
         dailyReward += 100;
         await pool.query('UPDATE arena_daily SET first_challenge_reward=true WHERE wallet=$1 AND date=CURRENT_DATE', [wallet]);
-        await pool.query(`UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + 100)::int)) WHERE wallet = $1`, [wallet]);
+        await pool.query(`UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + 100)::int)), spirit_stones = spirit_stones + 100 WHERE wallet = $1`, [wallet]);
       }
       if (dailyAfter.wins >= 5 && !dailyAfter.five_win_reward) {
         dailyReward += 500;
         await pool.query('UPDATE arena_daily SET five_win_reward=true WHERE wallet=$1 AND date=CURRENT_DATE', [wallet]);
-        await pool.query(`UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + 500)::int)) WHERE wallet = $1`, [wallet]);
+        await pool.query(`UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + 500)::int)), spirit_stones = spirit_stones + 500 WHERE wallet = $1`, [wallet]);
       }
 
       // Notify defender about being attacked (win or lose)

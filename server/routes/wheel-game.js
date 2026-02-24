@@ -36,12 +36,12 @@ export default (pool, auth) => {
       if (!isFree) {
         const stones = Number(gd.spiritStones) || 0
         if (stones < 200) return res.json({ success: false, message: '焰晶不足（需要200）' })
-        await pool.query("UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) - 200)::int)) WHERE wallet = $1", [wallet])
+        await pool.query("UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) - 200)::int)), spirit_stones = spirit_stones - 200 WHERE wallet = $1", [wallet])
       }
       const sectorIndex = weightedRandom()
       const sector = SECTORS[sectorIndex]
       if (sector.type === 'stones') {
-        await pool.query("UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)) WHERE wallet = $2", [sector.value, wallet])
+        await pool.query("UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)), spirit_stones = spirit_stones + $1 WHERE wallet = $2", [sector.value, wallet])
       } else if (sector.type === 'spirit') {
         await pool.query("UPDATE players SET game_data = jsonb_set(game_data, '{spirit}', to_jsonb((COALESCE((game_data->>'spirit')::float, 0) + $1)::float)) WHERE wallet = $2", [sector.value, wallet])
       }

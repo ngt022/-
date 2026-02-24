@@ -137,7 +137,7 @@ export default function(pool, auth, runPkBattle, computeFinalStats, getMountTitl
         rankChange = 15;
         // Give stones
         await pool.query(
-          `UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)) WHERE wallet = $2`,
+          `UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)), spirit_stones = spirit_stones + $1 WHERE wallet = $2`,
           [reward, wallet]
         );
         // Update rankings
@@ -220,7 +220,7 @@ export default function(pool, auth, runPkBattle, computeFinalStats, getMountTitl
         // Give stones reward
         if (reward.stones > 0) {
           await pool.query(
-            `UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)) WHERE wallet = $2`,
+            `UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)), spirit_stones = spirit_stones + $1 WHERE wallet = $2`,
             [reward.stones, r.wallet]
           );
         }

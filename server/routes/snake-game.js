@@ -28,7 +28,7 @@ export default (pool, auth) => {
       if (mg.currentToken !== gameToken) return res.json({ success: false, message: '无效的游戏会话' })
       const maxScore = Math.min(score, 5000)
       let reward = maxScore >= 500 ? 500 : maxScore >= 300 ? 300 : maxScore >= 200 ? 200 : maxScore >= 100 ? 100 : 50
-      await pool.query("UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)) WHERE wallet = $2", [reward, wallet])
+      await pool.query("UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)), spirit_stones = spirit_stones + $1 WHERE wallet = $2", [reward, wallet])
       const newCount = (mg.lastDate === today ? (mg.playCount || 0) : 0) + 1
       await pool.query("UPDATE players SET game_data = jsonb_set(COALESCE(game_data, '{}'), '{snakeGame}', $1::jsonb) WHERE wallet = $2", [JSON.stringify({ lastDate: today, playCount: newCount, currentToken: null, bestScore: Math.max(mg.bestScore || 0, maxScore) }), wallet])
       // 追踪小游戏分数

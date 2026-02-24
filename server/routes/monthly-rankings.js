@@ -269,7 +269,7 @@ export default function(pool, auth) {
             else if (r.rank_position <= 50) stones = 500;
             if (stones > 0) {
               await pool.query('UPDATE monthly_rankings SET reward_stones = $1 WHERE id = $2', [stones, r.id]);
-              await pool.query(`UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)) WHERE wallet = $2`, [stones, r.wallet]);
+              await pool.query(`UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)), spirit_stones = spirit_stones + $1 WHERE wallet = $2`, [stones, r.wallet]);
               totalDistributed++;
             }
           }

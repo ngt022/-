@@ -4755,12 +4755,18 @@ app.post('/api/pet/deploy', auth, async (req, res) => {
     if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
     const gd = typeof r.rows[0].game_data === 'string' ? JSON.parse(r.rows[0].game_data) : (r.rows[0].game_data || {});
     if (!petId) {
+      if (gd.activePet) {
+        const oldPet = (gd.items || []).find(i => String(i.id) === String(gd.activePet.id));
+        if (oldPet) oldPet.deployed = false;
+        gd.activePet.deployed = false;
+      }
       gd.activePet = null;
       await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
       return res.json({ success: true, message: '已召回焰兽', activePet: null });
     }
     const pet = (gd.items || []).find(i => String(i.id) === String(petId) && i.type === 'pet');
     if (!pet) return res.json({ success: false, message: '焰兽不存在' });
+    pet.deployed = true;
     gd.activePet = pet;
     await pool.query('UPDATE players SET game_data=$1 WHERE wallet=$2', [JSON.stringify(gd), w]);
     res.json({ success: true, message: '出战成功', activePet: pet });
@@ -5029,11 +5035,15 @@ app.post('/api/equipment/enhance', auth, async (req, res) => {
     gd.reinforceStones = stones - cost;
     if (isSuccess && equip.stats) {
       const oldStats = { ...equip.stats };
-      const pctStats = ['critRate','critDamageBoost','dodgeRate','vampireRate','finalDamageBoost','finalDamageReduce'];
+      const ENHANCE_PCT_CAPS = {critRate:0.15,critDamageBoost:0.20,dodgeRate:0.10,vampireRate:0.08,comboRate:0.10,counterRate:0.08,stunRate:0.08,healBoost:0.10,spiritRate:0.10,combatBoost:0.08,resistanceBoost:0.08,finalDamageBoost:0.08,finalDamageReduce:0.12,critDamageReduce:0.10,stunResist:0.12,vampireResist:0.10,dodgeResist:0.10,comboResist:0.10,counterResist:0.10,critResist:0.10,cultivationRate:0.15};
       for (const key of Object.keys(equip.stats)) {
         if (typeof equip.stats[key] === 'number') {
           equip.stats[key] *= 1.1;
-          equip.stats[key] = pctStats.includes(key) ? Math.round(equip.stats[key] * 100) / 100 : Math.round(equip.stats[key]);
+          if (key in ENHANCE_PCT_CAPS) {
+            equip.stats[key] = Math.min(ENHANCE_PCT_CAPS[key], Math.round(equip.stats[key] * 100) / 100);
+          } else {
+            equip.stats[key] = Math.round(equip.stats[key]);
+          }
         }
       }
       equip.enhanceLevel = currentLevel + 1;

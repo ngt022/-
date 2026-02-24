@@ -268,6 +268,20 @@ async function getGlobalDivinePetCount() {
 }
 
 // 生成装备名称
+
+// Single-piece percentage stat caps
+const PERCENT_CAPS = {
+  critRate: 0.15, critDamageBoost: 0.20, dodgeRate: 0.10,
+  vampireRate: 0.08, comboRate: 0.10, counterRate: 0.08,
+  stunRate: 0.08, healBoost: 0.10, spiritRate: 0.10,
+  combatBoost: 0.08, resistanceBoost: 0.08,
+  finalDamageBoost: 0.08, finalDamageReduce: 0.12,
+  critDamageReduce: 0.10, stunResist: 0.12,
+  vampireResist: 0.10, dodgeResist: 0.10,
+  comboResist: 0.10, counterResist: 0.10, critResist: 0.10,
+  cultivationRate: 0.15
+}
+
 function generateEquipmentName(type, quality) {
   const typeInfo = equipmentTypes[type]
   const prefix = typeInfo.prefixes[Math.floor(Math.random() * typeInfo.prefixes.length)]
@@ -301,10 +315,13 @@ function generateEquipment(level, type = null, quality = null) {
   
   Object.entries(equipmentBaseStats[type]).forEach(([stat, config]) => {
     const base = config.min + Math.random() * (config.max - config.min)
-    const value = base * qualityMod * levelMod
-    if (['critRate', 'critDamageBoost', 'dodgeRate', 'vampireRate', 'finalDamageBoost', 'finalDamageReduce', 'comboRate', 'counterRate', 'stunRate', 'healBoost', 'spiritRate', 'combatBoost', 'resistanceBoost', 'critDamageReduce', 'stunResist', 'vampireResist', 'dodgeResist', 'comboResist', 'counterResist', 'critResist', 'cultivationRate'].includes(stat)) {
-      baseStats[stat] = Math.round(value * 100) / 100
+    if (stat in PERCENT_CAPS) {
+      // Percentage stats: only scale with sqrt of qualityMod, no level scaling
+      const value = base * Math.sqrt(qualityMod)
+      baseStats[stat] = Math.min(PERCENT_CAPS[stat], Math.round(value * 100) / 100)
     } else {
+      // Flat stats: scale with both quality and level
+      const value = base * qualityMod * levelMod
       baseStats[stat] = Math.round(value)
     }
   })

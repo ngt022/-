@@ -583,7 +583,7 @@ export default function(pool, auth) {
             randomEvent = { id: evt.id, name: evt.name, desc: evt.desc, reward: evt.reward }
             // 发放奖励
             if (evt.reward.spiritStones) {
-              await pool.query("UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)) WHERE wallet = $2", [evt.reward.spiritStones, wallet])
+              await pool.query("UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)), spirit_stones = spirit_stones + $1 WHERE wallet = $2", [evt.reward.spiritStones, wallet])
             }
             if (evt.reward.reinforceStones) {
               await pool.query("UPDATE players SET game_data = jsonb_set(game_data, '{reinforceStones}', to_jsonb((COALESCE((game_data->>'reinforceStones')::int, 0) + $1)::int)) WHERE wallet = $2", [evt.reward.reinforceStones, wallet])
