@@ -125,6 +125,7 @@ export default function(pool, auth, runPkBattle, computeFinalStats, getMountTitl
           winRate: (o.wins + o.losses) > 0 ? Math.round(o.wins / (o.wins + o.losses) * 100) : 0
         })),
         myRank: { score: myRank?.rank_score || 0, tier: myTier },
+        myStreak: (await pool.query('SELECT win_streak FROM pk_rankings WHERE wallet=$1', [wallet])).rows[0]?.win_streak || 0,
         daily: { used: daily.challenges_used || 0, max: DAILY_FREE_CHALLENGES, wins: daily.wins || 0 },
         unreadNotifs: Number(notifCount)
       });
@@ -149,14 +150,23 @@ export default function(pool, auth, runPkBattle, computeFinalStats, getMountTitl
         if ((daily?.challenges_used || 0) >= DAILY_FREE_CHALLENGES) {
           // 付费续次: 每次200焰晶
           const EXTRA_COST = 200;
-          const p = (await pool.query("SELECT game_data FROM players WHERE wallet=", [wallet])).rows[0];
+          const p = (await pool.query("SELECT game_data FROM players WHERE wallet=$1", [wallet])).rows[0];
           const stones = parseInt(p?.game_data?.spiritStones) || 0;
           if (stones < EXTRA_COST) {
             return res.json({ success: false, message: "挑战次数已用完，额外挑战需" + EXTRA_COST + "焰晶（余额不足）", needPay: true, cost: EXTRA_COST, balance: stones });
           }
           // 扣费
-          await pool.query("UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) - " + EXTRA_COST + ")::int)) WHERE wallet = ", [wallet]);
+          await pool.query("UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) - " + EXTRA_COST + ")::int)) WHERE wallet = $1", [wallet]);
         }
+      }
+
+      // Anti-spam: can't challenge same person within 10 min
+      if (!isRevenge) {
+        const recent = (await pool.query(
+          "SELECT id FROM arena_battles WHERE attacker_wallet=$1 AND defender_wallet=$2 AND created_at > NOW() - INTERVAL '10 minutes' LIMIT 1",
+          [wallet, targetWallet]
+        )).rows[0];
+        if (recent) return res.json({ success: false, message: '10分钟内不能重复挑战同一对手' });
       }
 
       // Check revenge validity

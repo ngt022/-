@@ -89,6 +89,7 @@
           <div class="tier-icon">{{ tierEmoji[myRank.tier] || '🔰' }}</div>
           <div class="my-detail">
             <div class="my-tier">{{ tierName[myRank.tier]||铜段 }} · {{ myRank.score }}分</div>
+            <div class="my-streak" v-if="myStreak>0">🔥 {{ myStreak }}连胜</div>
             <div class="my-daily">今日 {{ daily.used }}/{{ daily.max }}次{{ daily.used>=daily.max?" (额外200💎/次)":"" }} · {{ daily.wins }}胜</div>
           </div>
         </div>
@@ -160,6 +161,7 @@ const opponents = ref([])
 const myRank = ref({ score: 0, tier: "bronze" })
 const daily = ref({ used: 0, max: 5, wins: 0 })
 const unreadNotifs = ref(0)
+const myStreak = ref(0)
 const battles = ref([])
 const notifs = ref([])
 
@@ -300,7 +302,7 @@ const loadOpponents = async () => {
   loading.value = true
   try {
     const res = await authStore.apiGet("/arena/opponents")
-    if (res.success) { opponents.value = res.opponents; myRank.value = res.myRank; daily.value = res.daily; unreadNotifs.value = res.unreadNotifs }
+    if (res.success) { opponents.value = res.opponents; myRank.value = res.myRank; daily.value = res.daily; unreadNotifs.value = res.unreadNotifs; myStreak.value = res.myStreak || 0 }
   } catch (e) { console.error(e) }
   loading.value = false
 }
@@ -309,7 +311,7 @@ const challenge = async (opp) => {
   challenging.value = true
   try {
     const res = await authStore.apiPost("/arena/challenge", { targetWallet: opp.wallet })
-    if (res.success) { daily.value.used++; if (res.result.winner === "attacker") daily.value.wins++; startBattle(res) }
+    if (res.success) { daily.value.used++; if (res.result.winner === "attacker") { daily.value.wins++; myStreak.value++ } else { myStreak.value = 0 }; startBattle(res) }
     else { if (res.needPay && confirm("免费次数已用完，花费200焰晶继续挑战？")) { /* 前端已处理，后端自动扣费 */ } else alert(res.message || "挑战失败") }
   } catch (e) { alert("网络错误") }
   challenging.value = false
@@ -341,6 +343,7 @@ onUnmounted(() => { clearTimer() })
 .my-info { display: flex; align-items: center; gap: 12px; padding: 12px; background: linear-gradient(135deg, rgba(212,168,67,0.12), rgba(139,32,0,0.08)); border: 1px solid rgba(212,168,67,0.25); border-radius: 12px; margin-bottom: 14px; }
 .tier-icon { font-size: 36px; }
 .my-tier { color: #ffd700; font-weight: bold; font-size: 16px; }
+.my-streak { color: #ff6b35; font-size: 14px; font-weight: bold; }
 .my-daily { color: #a08030; font-size: 13px; margin-top: 2px; }
 .loading, .empty { text-align: center; color: #a08030; padding: 40px 0; }
 .opp-list { display: flex; flex-direction: column; gap: 8px; }
