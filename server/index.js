@@ -400,6 +400,16 @@ import inventoryRoutes from './routes/inventory-gd.js';
 
 const { default: minigameRoutes } = await import('./routes/minigame.js')
 app.use('/api/minigame', minigameRoutes(pool, auth));
+const { default: matchGameRoutes } = await import('./routes/match-game.js')
+app.use('/api/match-game', matchGameRoutes(pool, auth));
+const { default: snakeGameRoutes } = await import('./routes/snake-game.js')
+app.use('/api/snake-game', snakeGameRoutes(pool, auth));
+const { default: puzzleGameRoutes } = await import('./routes/puzzle-game.js')
+app.use('/api/puzzle-game', puzzleGameRoutes(pool, auth));
+const { default: wheelGameRoutes } = await import('./routes/wheel-game.js')
+app.use('/api/wheel-game', wheelGameRoutes(pool, auth));
+const { default: catchGameRoutes } = await import('./routes/catch-game.js')
+app.use('/api/catch-game', catchGameRoutes(pool, auth));
 app.use('/api/shop', shopRoutes(pool, auth));
 app.use('/api/inventory', inventoryRoutes(pool, auth));
 
