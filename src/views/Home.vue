@@ -123,11 +123,13 @@
       </div>
 
       <!-- 5. 快捷入口 -->
-      <div class="section-card shortcut-card">
-        <div class="section-title">🚀 快捷入口</div>
+      <div v-for="g in shortcutGroups" :key="g.title" class="section-card shortcut-card">
+        <div class="section-title">{{ g.title }}</div>
         <div class="shortcut-grid">
-          <div v-for="sc in shortcuts" :key="sc.path" class="shortcut-btn" @click="router.push(sc.path)">
-            <span class="sc-icon">{{ sc.icon }}</span>
+          <div v-for="sc in g.items" :key="sc.path + sc.label" class="shortcut-btn" @click="router.push(sc.path)">
+            <span class="sc-icon-wrap" :style="{ background: sc.color + '18', borderColor: sc.color + '40' }">
+              <span class="sc-icon">{{ sc.icon }}</span>
+            </span>
             <span class="sc-text">{{ sc.label }}</span>
           </div>
         </div>
@@ -309,16 +311,34 @@ const equipSlots = [
 ]
 
 // 快捷入口
-const shortcuts = [
-  { icon: '⚔️', label: '修炼', path: '/cultivation' },
-  { icon: '🎒', label: '储藏室', path: '/inventory' },
-  { icon: '🎰', label: '抽卡', path: '/gacha' },
-  { icon: '🏔️', label: '焚天塔', path: '/dungeon' },
-  { icon: '🧪', label: '焰炼', path: '/alchemy' },
-  { icon: '🗺️', label: '探索', path: '/exploration' },
-  { icon: '🏪', label: '商店', path: '/shop' },
-  { icon: '👤', label: '个人', path: '/profile' },
+const shortcutGroups = [
+  { title: '修炼', items: [
+    { icon: '🧘', label: '冥想', path: '/cultivation', color: '#3498db' },
+    { icon: '🗺️', label: '探索', path: '/exploration', color: '#2ecc71' },
+    { icon: '🏔️', label: '焚天塔', path: '/dungeon', color: '#e67e22' },
+    { icon: '🌀', label: '秘境', path: '/daily-dungeon', color: '#9b59b6' },
+  ]},
+  { title: '战斗', items: [
+    { icon: '⚔️', label: '切磋', path: '/pk', color: '#e74c3c' },
+    { icon: '👹', label: '世界Boss', path: '/world-boss', color: '#c0392b' },
+    { icon: '🏛️', label: '宗门战', path: '/sect-war', color: '#d35400' },
+    { icon: '🏛️', label: '宗门', path: '/sect', color: '#e67e22' },
+  ]},
+  { title: '成长', items: [
+    { icon: '🎰', label: '抽卡', path: '/gacha', color: '#f39c12' },
+    { icon: '🧪', label: '焰炼', path: '/alchemy', color: '#1abc9c' },
+    { icon: '🐉', label: '焰兽', path: '/inventory', color: '#e74c3c' },
+    { icon: '🎒', label: '储藏室', path: '/inventory', color: '#8e44ad' },
+  ]},
+  { title: '社交', items: [
+    { icon: '🏪', label: '商城', path: '/shop', color: '#27ae60' },
+    { icon: '💰', label: '拍卖行', path: '/auction', color: '#f1c40f' },
+    { icon: '👥', label: '好友', path: '/friends', color: '#3498db' },
+    { icon: '🏆', label: '排行榜', path: '/rank', color: '#d4a843' },
+  ]},
 ]
+// 兼容旧引用
+const shortcuts = shortcutGroups.flatMap(g => g.items)
 
 // 品质颜色
 const qualityColorMap = {
@@ -400,6 +420,11 @@ const particleStyle = (i) => ({
   background: linear-gradient(135deg, #d4a843 0%, #8b6914 40%, #d4a843 70%, #f0d68a 100%);
   box-shadow: 0 0 24px rgba(212,168,67,0.25), 0 0 60px rgba(212,168,67,0.08);
   margin-bottom: 1rem;
+  animation: card-breathe 3s ease-in-out infinite;
+}
+@keyframes card-breathe {
+  0%, 100% { box-shadow: 0 0 24px rgba(212,168,67,0.25), 0 0 60px rgba(212,168,67,0.08); }
+  50% { box-shadow: 0 0 32px rgba(212,168,67,0.4), 0 0 80px rgba(212,168,67,0.15); }
 }
 .char-card-inner {
   display: flex; align-items: center; gap: 1rem;
@@ -442,6 +467,12 @@ const particleStyle = (i) => ({
   flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center;
   background: rgba(10,8,18,0.6); border: 1px solid rgba(212,168,67,0.15);
   border-radius: 10px; padding: 8px 4px; gap: 2px;
+  transition: all 0.2s;
+}
+.res-item:active {
+  transform: scale(0.95);
+  border-color: rgba(212,168,67,0.4);
+  background: rgba(212,168,67,0.08);
 }
 .res-icon { font-size: 1.1rem; }
 .res-val { font-size: 0.85rem; font-weight: 700; color: #d4a843; }
@@ -480,23 +511,37 @@ const particleStyle = (i) => ({
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
 }
 .shortcut-btn {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  background: rgba(20,18,30,0.5); border: 1px solid rgba(212,168,67,0.12);
-  border-radius: 10px; padding: 10px 4px; cursor: pointer;
-  transition: all 0.2s;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 10px 4px; cursor: pointer;
+  transition: all 0.15s;
 }
 .shortcut-btn:active {
-  background: rgba(212,168,67,0.12); border-color: rgba(212,168,67,0.4);
-  transform: scale(0.95);
+  transform: scale(0.9);
+}
+.sc-icon-wrap {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.shortcut-btn:active .sc-icon-wrap {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 .sc-icon { font-size: 1.3rem; }
-.sc-text { font-size: 0.75rem; color: #a09880; }
+.sc-text { font-size: 0.7rem; color: #8a8070; }
 
 /* 公告 */
 .announce-list { display: flex; flex-direction: column; gap: 6px; }
 .announce-item { display: flex; align-items: flex-start; gap: 6px; }
 .announce-dot { color: #d4a843; font-size: 1.2rem; line-height: 1.2; }
 .announce-text { font-size: 0.82rem; color: #8a8070; line-height: 1.5; }
+.announce-item {
+  padding-left: 10px;
+  border-left: 2px solid rgba(212,168,67,0.3);
+  transition: border-color 0.2s;
+}
+.announce-item:hover { border-left-color: #d4a843; }
 
 /* 账号概况 */
 .overview-grid {
@@ -516,6 +561,19 @@ const particleStyle = (i) => ({
 .ov-progress-fill {
   height: 100%; background: linear-gradient(90deg, #b8860b, #ffd700); border-radius: 2px;
   transition: width 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+.ov-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -50%; width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: progress-shine 2.5s ease-in-out infinite;
+}
+@keyframes progress-shine {
+  0% { left: -50%; }
+  100% { left: 150%; }
 }
 .ov-row-group { display: flex; flex-direction: column; gap: 0; }
 .ov-row {

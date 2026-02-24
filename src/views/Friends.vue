@@ -573,4 +573,31 @@ function setupGlobalWsHandler() {
 :deep(.n-tabs-tab) { color: #888 !important; }
 :deep(.n-tabs-tab--active) { color: #d4a843 !important; }
 :deep(.n-tabs-bar) { background: #d4a843 !important; }
+
+/* 好友美化 */
+.friend-card {
+  transition: all 0.2s !important;
+}
+.friend-card:active { transform: scale(0.98); }
+.online-dot.online {
+  animation: online-pulse 2s ease-in-out infinite;
+}
+@keyframes online-pulse {
+  0%, 100% { box-shadow: 0 0 4px #4caf50; }
+  50% { box-shadow: 0 0 10px #4caf50, 0 0 20px rgba(76,175,80,0.3); }
+}
+.main-card {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+.page-title {
+  text-shadow: 0 0 12px rgba(212,168,67,0.3);
+}
+.unread-badge {
+  animation: badge-bounce 0.5s ease;
+}
+@keyframes badge-bounce {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
 </style>

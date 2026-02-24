@@ -426,4 +426,26 @@ onMounted(async () => {
   font-size: 12px;
   margin-top: 4px;
 }
+
+/* 宗门美化 */
+.sect-content :deep(.n-card) {
+  transition: all 0.2s;
+}
+.sect-content :deep(.n-card:hover) {
+  border-color: rgba(212,168,67,0.3) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+.sect-name {
+  text-shadow: 0 0 8px rgba(212,168,67,0.3);
+}
+:deep(.n-button--primary-type) {
+  background: linear-gradient(135deg, #3498db, #2980b9) !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(52,152,219,0.3);
+}
+:deep(.n-button--primary-type:active) { transform: scale(0.97); }
+:deep(.n-button--warning-type) {
+  background: linear-gradient(135deg, #d4a843, #b8860b) !important;
+  border: none !important; color: #0a0a15 !important; font-weight: 600;
+}
 </style>

@@ -719,4 +719,43 @@ onMounted(async () => {
   filter: drop-shadow(0 0 6px rgba(212,168,67,0.6));
   flex-shrink: 0;
 }
+
+/* 商城卡片增强 */
+.equip-card:active, .item-card:active, .pack-card:active {
+  transform: scale(0.96);
+}
+.equip-card {
+  transition: all 0.2s;
+}
+.item-card {
+  transition: all 0.2s;
+}
+
+/* 价格标签闪光 */
+.equip-price, .item-price, .pack-price {
+  text-shadow: 0 0 6px rgba(255,213,79,0.3);
+}
+
+/* 礼包卡片呼吸光效 */
+.pack-card:not(.purchased) {
+  animation: pack-glow 3s ease-in-out infinite;
+}
+@keyframes pack-glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(212,168,67,0.1); }
+  50% { box-shadow: 0 0 12px rgba(212,168,67,0.2); }
+}
+
+/* 折扣标签动画 */
+.discount-tag :deep(.n-tag) {
+  animation: discount-pulse 2s ease-in-out infinite;
+}
+@keyframes discount-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* 已拥有标记增强 */
+.owned-badge {
+  backdrop-filter: blur(2px);
+}
 </style>

@@ -257,4 +257,20 @@ onMounted(async () => {
   :deep(.n-grid) { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 6px !important; }
   :deep(.n-grid .n-gi) { grid-column: auto !important; }
 }
+
+/* VIP 卡片美化 */
+:deep(.n-card) {
+  background: rgba(10,8,18,0.6) !important;
+  border: 1px solid rgba(212,168,67,0.12) !important;
+  border-radius: 12px !important;
+  transition: all 0.2s;
+}
+:deep(.n-card:hover) { border-color: rgba(212,168,67,0.25) !important; }
+:deep(.n-card-header__main) { color: #f0d68a !important; }
+:deep(.n-tag--info-type) {
+  background: linear-gradient(135deg, #d4a843, #b8860b) !important;
+  border: none !important; color: #0a0a15 !important; font-weight: 700;
+}
+:deep(.n-gi) { transition: transform 0.15s; }
+:deep(.n-gi:active) { transform: scale(0.95); }
 </style>

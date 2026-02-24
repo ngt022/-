@@ -340,6 +340,13 @@ const playNextAction = () => {
   actionFlash.value = true
   setTimeout(() => { actionFlash.value = false }, 300)
   
+  // 暴击屏幕震动
+  const hasCrit = round.actions.some(a => a.isCrit)
+  if (hasCrit) {
+    const el = document.querySelector('.battle-arena') || document.querySelector('.pk-page')
+    if (el) { el.classList.add('screen-shake'); setTimeout(() => el.classList.remove('screen-shake'), 400) }
+  }
+  
   // 一次性应用本回合所有 actions 的伤害
   for (const action of round.actions) {
     if (!action.isDodged) {
@@ -995,4 +1002,24 @@ onUnmounted(() => {
   margin-top: 16px;
 }
 
+
+/* 暴击屏幕震动 */
+@keyframes battle-shake {
+  0%, 100% { transform: translateX(0); }
+  10% { transform: translateX(-5px) translateY(3px); }
+  20% { transform: translateX(5px) translateY(-3px); }
+  30% { transform: translateX(-4px) translateY(2px); }
+  40% { transform: translateX(4px) translateY(-2px); }
+  50% { transform: translateX(-3px); }
+  60% { transform: translateX(3px); }
+  70% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+.screen-shake { animation: battle-shake 0.4s ease-out; }
+
+/* 击杀特写增强 */
+.kill-shot-overlay {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
 </style>

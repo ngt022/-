@@ -507,4 +507,53 @@ const clearLogPanel = () => {
   .map-node { min-height: 80px; }
   .node-icon { font-size: 22px; }
 }
+
+/* 地图区域氛围增强 */
+.world-map {
+  position: relative;
+}
+.world-map::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 60px;
+  background: linear-gradient(180deg, rgba(212,168,67,0.06) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+.map-node.active::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 12px;
+  border: 2px solid #d4a843;
+  animation: node-select-pulse 2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes node-select-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(212,168,67,0.3); }
+  50% { box-shadow: 0 0 20px rgba(212,168,67,0.5); }
+}
+.map-node.exploring::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background: radial-gradient(circle at 50% 50%, rgba(76,175,80,0.1) 0%, transparent 70%);
+  animation: explore-glow 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+@keyframes explore-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* 探索结果弹出动画 */
+.detail-icon {
+  transition: transform 0.3s;
+}
+.location-detail:hover .detail-icon {
+  transform: scale(1.1) rotate(-5deg);
+}
 </style>

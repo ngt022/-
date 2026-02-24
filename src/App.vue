@@ -42,7 +42,7 @@
                 </div>
               </div>
             </n-layout-header>
-            <n-layout-content>
+            <n-layout-content v-if="!showSplash">
               <!-- Buff状态栏 -->
               <div class="buff-bar" v-if="activeBuffs.length > 0">
                 <span v-for="buff in activeBuffs" :key="buff.key" class="buff-tag" :title="buff.desc">
@@ -57,20 +57,27 @@
                   :playerRealm="getRealmName(playerStore.level).name"
                   :activeTab="activeTab"
                   @navigate="handleGameNavigate"
+                  class="page-view"
                 />
                 <!-- 子页面：返回按钮 + 内容 -->
-                <div v-else>
+                <transition name="page-slide" mode="out-in">
+                <div v-if="!isHome" key="subpage" class="page-view">
                   <div class="sub-page-header">
                     <button class="back-btn" @click="goBack">← 返回</button>
                     <span class="sub-page-title">{{ currentPageTitle }}</span>
                     <span class="sub-page-spacer"></span>
                   </div>
-                  <router-view />
+                  <router-view v-slot="{ Component }">
+                    <transition name="page-fade" mode="out-in">
+                      <component :is="Component" />
+                    </transition>
+                  </router-view>
                 </div>
+                </transition>
               </div>
             </n-layout-content>
-            <WorldChat />
-            <div class="bottom-nav">
+            <WorldChat v-if="!showSplash" />
+            <div v-if="!showSplash" class="bottom-nav">
               <div class="bottom-nav-inner">
                 <div v-for="tab in navTabs" :key="tab.key"
                   class="nav-tab"
@@ -144,6 +151,35 @@ import { useGameConfigStore } from './stores/gameConfig'
   ]
 
   const activeTab = ref('home')
+
+// 开场 Loading
+const showSplash = ref(true)
+const splashProgress = ref(0)
+const splashText = ref('正在连接焰灵城...')
+const splashTexts = ['正在连接焰灵城...', '加载修炼数据...', '唤醒焰灵...', '准备就绪']
+const splashParticleStyle = (i) => ({
+  left: Math.random() * 100 + '%',
+  animationDelay: (i * 0.15) + 's',
+  animationDuration: (2 + Math.random() * 2) + 's',
+  width: (2 + Math.random() * 4) + 'px',
+  height: (2 + Math.random() * 4) + 'px',
+})
+function startSplash() {
+  let p = 0
+  const iv = setInterval(() => {
+    p += Math.random() * 15 + 5
+    if (p >= 100) p = 100
+    splashProgress.value = p
+    const idx = p < 30 ? 0 : p < 60 ? 1 : p < 90 ? 2 : 3
+    splashText.value = splashTexts[idx]
+    if (p >= 100) {
+      clearInterval(iv)
+      setTimeout(() => { showSplash.value = false }, 400)
+    }
+  }, 200)
+}
+// 立即启动 splash（登录状态才显示，否则跳过）
+if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
 
   const routeTabMap = {
     cultivation: 'adventure', dungeon: 'adventure', 'daily-dungeon': 'adventure',
@@ -1199,4 +1235,152 @@ watch(() => authStore.wallet, (w) => { if (w) { setTimeout(checkAnnouncementPopu
   }
 .buff-bar { display:flex; flex-wrap:wrap; gap:6px; padding:6px 12px; background:rgba(26,26,46,0.9); border-bottom:1px solid rgba(212,168,67,0.15); }
 .buff-tag { font-size:11px; padding:2px 8px; border-radius:12px; background:rgba(212,168,67,0.15); color:#d4a843; white-space:nowrap; cursor:default; }
+
+/* 页面切换过渡 */
+.page-fade-enter-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.page-fade-leave-active { transition: opacity 0.15s ease, transform 0.15s ease; }
+.page-fade-enter-from { opacity: 0; transform: translateY(8px); }
+.page-fade-leave-to { opacity: 0; transform: translateY(-4px); }
+
+/* 子页面统一美化 */
+.sub-page-header {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.back-btn {
+  transition: all 0.15s;
+}
+.back-btn:active {
+  transform: scale(0.95);
+  opacity: 0.8;
+}
+
+/* 全局 n-card 美化 */
+:deep(.n-card) {
+  background: rgba(10,8,18,0.6) !important;
+  border: 1px solid rgba(212,168,67,0.12) !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+:deep(.n-card-header) {
+  padding: 12px 16px !important;
+}
+:deep(.n-card__content) {
+  padding: 12px 16px !important;
+}
+
+/* 全局 n-alert 美化 */
+:deep(.n-alert) {
+  border-radius: 10px !important;
+}
+
+/* 全局 n-tabs segment 美化 */
+:deep(.n-tabs .n-tabs-tab) {
+  transition: all 0.2s;
+}
+
+/* 全局滚动条美化 */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(212,168,67,0.2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(212,168,67,0.4); }
+
+/* 首页↔子页面切换动画 */
+.page-slide-enter-active { transition: opacity 0.3s ease, transform 0.3s ease; }
+.page-slide-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.page-slide-enter-from { opacity: 0; transform: translateX(30px); }
+.page-slide-leave-to { opacity: 0; transform: translateX(-30px); }
+
+/* 开场 Loading */
+.splash-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: radial-gradient(ellipse at 50% 40%, #1a1020 0%, #0a0810 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+.splash-particles { position: absolute; inset: 0; overflow: hidden; }
+.splash-particle {
+  position: absolute; bottom: -10px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(212,168,67,0.8), rgba(255,100,20,0.4), transparent);
+  animation: splash-float linear infinite;
+}
+@keyframes splash-float {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  15% { opacity: 0.8; }
+  85% { opacity: 0.6; }
+  100% { transform: translateY(-100vh) scale(0.2); opacity: 0; }
+}
+.splash-content { position: relative; z-index: 2; text-align: center; }
+.splash-logo {
+  font-size: 64px;
+  animation: splash-logo-pulse 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(255,120,20,0.6));
+}
+@keyframes splash-logo-pulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(255,120,20,0.6)); }
+  50% { transform: scale(1.08); filter: drop-shadow(0 0 32px rgba(255,120,20,0.9)); }
+}
+.splash-title {
+  font-size: 28px; font-weight: 900; letter-spacing: 6px; margin-top: 12px;
+  font-family: 'Noto Serif SC', serif;
+  background: linear-gradient(180deg, #f5e6c8, #d4a843, #b8860b);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.splash-sub {
+  font-size: 13px; color: #8a7a60; letter-spacing: 4px; margin-top: 4px;
+}
+.splash-bar-track {
+  width: 180px; height: 4px; margin: 24px auto 0;
+  background: rgba(212,168,67,0.15); border-radius: 2px; overflow: hidden;
+}
+.splash-bar-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, #b8860b, #d4a843, #f0d68a);
+  transition: width 0.2s ease;
+  box-shadow: 0 0 8px rgba(212,168,67,0.5);
+}
+.splash-hint {
+  font-size: 11px; color: #6a5a40; margin-top: 10px; letter-spacing: 1px;
+}
+.splash-fade-leave-active { transition: opacity 0.5s ease; }
+.splash-fade-leave-to { opacity: 0; }
+
+/* 底部导航增强 */
+.nav-tab .nav-icon {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.nav-tab.active .nav-icon {
+  animation: nav-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes nav-bounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.3); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1.15); }
+}
+.nav-indicator {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: transparent; transition: all 0.3s;
+  margin-top: 1px;
+}
+.nav-tab.active .nav-indicator {
+  background: #d4a843;
+  box-shadow: 0 0 6px rgba(212,168,67,0.6);
+}
+
+/* 战斗屏幕震动 */
+@keyframes battle-shake {
+  0%, 100% { transform: translateX(0); }
+  10% { transform: translateX(-4px) translateY(2px); }
+  20% { transform: translateX(4px) translateY(-2px); }
+  30% { transform: translateX(-3px) translateY(1px); }
+  40% { transform: translateX(3px) translateY(-1px); }
+  50% { transform: translateX(-2px); }
+  60% { transform: translateX(2px); }
+  70% { transform: translateX(-1px); }
+  80% { transform: translateX(1px); }
+}
+.screen-shake {
+  animation: battle-shake 0.4s ease-out;
+}
 </style>

@@ -120,41 +120,67 @@ function safePct(obj, key) {
 </script>
 
 <style scoped>
-.profile-page {
-  padding: 0;
-}
+.profile-page { padding: 0; }
 .profile-realm-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-  padding: 10px;
-  background: rgba(212,168,67,0.06);
-  border: 1px solid rgba(212,168,67,0.15);
-  border-radius: 10px;
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 12px; padding: 14px;
+  background: linear-gradient(135deg, rgba(212,168,67,0.1) 0%, rgba(10,8,18,0.6) 100%);
+  border: 1px solid rgba(212,168,67,0.25);
+  border-radius: 12px;
+  position: relative; overflow: hidden;
+}
+.profile-realm-row::before {
+  content: '';
+  position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+  background: radial-gradient(circle at 20% 30%, rgba(212,168,67,0.08) 0%, transparent 60%);
+  animation: profile-glow 4s ease-in-out infinite;
+}
+@keyframes profile-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }
 .profile-realm-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;
+  width: 56px; height: 56px; border-radius: 12px;
   border: 2px solid rgba(212,168,67,0.5);
-  box-shadow: 0 0 10px rgba(212,168,67,0.3);
-  object-fit: cover;
+  box-shadow: 0 0 16px rgba(212,168,67,0.3), 0 0 32px rgba(212,168,67,0.1);
+  object-fit: cover; position: relative; z-index: 1;
 }
 .profile-realm-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  display: flex; flex-direction: column; gap: 3px;
+  position: relative; z-index: 1;
 }
 .profile-realm-name {
-  font-size: 16px;
-  font-weight: bold;
-  color: #f0d68a;
+  font-size: 18px; font-weight: bold; color: #f0d68a;
   text-shadow: 0 0 8px rgba(212,168,67,0.4);
   font-family: 'Noto Serif SC', serif;
 }
 .profile-player-name {
-  font-size: 13px;
-  color: #a09880;
+  font-size: 13px; color: #a09880;
+}
+
+/* 属性卡片统一美化 */
+:deep(.n-card) {
+  background: rgba(10,8,18,0.6) !important;
+  border: 1px solid rgba(212,168,67,0.12) !important;
+  border-radius: 12px !important;
+}
+:deep(.n-descriptions) {
+  --n-td-color: transparent !important;
+  --n-th-color: rgba(212,168,67,0.04) !important;
+  --n-border-color: rgba(212,168,67,0.1) !important;
+}
+:deep(.n-descriptions-table-content) {
+  color: #d4a843 !important;
+  font-weight: 600;
+}
+:deep(.n-descriptions-table-header) {
+  color: #8a8070 !important;
+}
+
+/* 进度条美化 */
+:deep(.n-progress .n-progress-graph-line-fill) {
+  background: linear-gradient(90deg, #2080f0, #36d1dc) !important;
+  box-shadow: 0 0 8px rgba(32,128,240,0.4);
+  transition: width 0.5s ease;
 }
 </style>

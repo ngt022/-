@@ -1432,8 +1432,12 @@ const router = useRouter()
   .sq-rare:hover { border-color: #2196f3; box-shadow: 0 0 10px rgba(33,150,243,0.4); }
   .sq-epic { border: 1.5px solid #9c27b066; }
   .sq-epic:hover { border-color: #9c27b0; box-shadow: 0 0 12px rgba(156,39,176,0.4); }
-  .sq-legendary { border: 1.5px solid #ff980066; }
+  .sq-legendary { border: 1.5px solid #ff980066; animation: legendary-glow 3s ease-in-out infinite; }
   .sq-legendary:hover { border-color: #ff9800; box-shadow: 0 0 12px rgba(255,152,0,0.5); }
+  @keyframes legendary-glow {
+    0%, 100% { box-shadow: 0 0 4px rgba(255,152,0,0.2); }
+    50% { box-shadow: 0 0 12px rgba(255,152,0,0.5), inset 0 0 8px rgba(255,152,0,0.1); }
+  }
   .sq-mythic { border: 1.5px solid #e91e6366; animation: mythic-pulse 2s ease-in-out infinite; }
   .sq-mythic:hover { border-color: #e91e63; box-shadow: 0 0 16px rgba(233,30,99,0.6); }
 
@@ -1522,4 +1526,36 @@ const router = useRouter()
   opacity: 1;
   transform: scale(1.2);
 }
+
+  /* 神品装备呼吸光效 */
+  .sq-mythic { border: 1.5px solid #e91e6366; animation: mythic-breathe 2.5s ease-in-out infinite; }
+  .sq-mythic:hover { border-color: #e91e63; }
+  @keyframes mythic-breathe {
+    0%, 100% { box-shadow: 0 0 6px rgba(233,30,99,0.3); border-color: #e91e6366; }
+    50% { box-shadow: 0 0 16px rgba(233,30,99,0.6), inset 0 0 10px rgba(233,30,99,0.15); border-color: #e91e63; }
+  }
+
+  /* 仙品装备光效 */
+  .eq-quality-legendary { animation: eq-legendary-pulse 3s ease-in-out infinite; }
+  @keyframes eq-legendary-pulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(255,152,0,0.3); }
+    50% { box-shadow: 0 0 16px rgba(255,152,0,0.6), 0 0 32px rgba(255,152,0,0.2); }
+  }
+
+  /* 焰兽品质光效 */
+  .pet-q-divine { border: 1.5px solid #FF000066; animation: pet-divine-glow 2s ease-in-out infinite; }
+  @keyframes pet-divine-glow {
+    0%, 100% { box-shadow: 0 0 6px rgba(255,0,0,0.3); }
+    50% { box-shadow: 0 0 14px rgba(255,0,0,0.6), inset 0 0 8px rgba(255,0,0,0.1); }
+  }
+  .pet-q-celestial { border: 1.5px solid #FFD70066; animation: pet-celestial-glow 2.5s ease-in-out infinite; }
+  @keyframes pet-celestial-glow {
+    0%, 100% { box-shadow: 0 0 6px rgba(255,215,0,0.3); }
+    50% { box-shadow: 0 0 14px rgba(255,215,0,0.5), inset 0 0 8px rgba(255,215,0,0.1); }
+  }
+  .pet-q-mystic { border: 1.5px solid #9932CC66; animation: pet-mystic-glow 3s ease-in-out infinite; }
+  @keyframes pet-mystic-glow {
+    0%, 100% { box-shadow: 0 0 4px rgba(153,50,204,0.2); }
+    50% { box-shadow: 0 0 10px rgba(153,50,204,0.5); }
+  }
 </style>
