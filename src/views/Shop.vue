@@ -170,7 +170,7 @@
         <div class="buy-total">
           总价：<span class="total-price">💎 {{ formatNum(buyTarget.price * buyCount) }}</span>
         </div>
-        <n-button type="warning" block strong :loading="isBuying" @click="confirmBuy" :disabled="playerStore.spiritStones < buyTarget.price * buyCount">
+        <n-button type="warning" block strong :loading="isBuying" @click="confirmBuy" :disabled="playerStore.spiritStones < buyTarget.price * buyCount" class="buy-button">
           {{ playerStore.spiritStones < buyTarget.price * buyCount ? '焰晶不足' : '确认购买' }}
         </n-button>
       </div>
@@ -566,125 +566,135 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.shop-page { padding: 8px; }
+/* ========== 页面整体氛围 ========== */
+.shop-page {
+  padding: 8px;
+  background: linear-gradient(180deg, #0b0b18 0%, #12101f 100%);
+  min-height: 100vh;
+}
+
+/* 顶部金色光晕效果 */
+.shop-page::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: radial-gradient(ellipse at center top, rgba(212,168,67,0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ========== 焰晶余额栏 ========== */
 .balance-bar {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 12px 16px; margin-bottom: 12px; border-radius: 12px;
-  background: linear-gradient(135deg, rgba(212,168,67,0.15), rgba(255,152,0,0.1));
-  border: 1px solid rgba(212,168,67,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(212,168,67,0.12), rgba(255,152,0,0.08));
+  border: 1px solid rgba(212,168,67,0.4);
+  box-shadow: 0 4px 20px rgba(212,168,67,0.1), inset 0 1px 0 rgba(255,255,255,0.05);
+  position: relative;
+  z-index: 1;
 }
-.balance-icon { font-size: 24px; }
-.balance-label { color: #aaa; font-size: 14px; }
-.balance-value { font-size: 22px; font-weight: bold; color: #ffd54f; text-shadow: 0 0 10px rgba(255,213,79,0.3); }
 
-.shop-tabs :deep(.n-tabs-tab) { font-size: 13px; }
+.balance-icon {
+  font-size: 24px;
+  filter: drop-shadow(0 0 8px rgba(212,168,67,0.5));
+}
 
-.quality-tabs { margin-top: 8px; }
+.balance-label {
+  color: #a09070;
+  font-size: 14px;
+}
 
-/* 装备网格 */
+.balance-value {
+  font-size: 22px;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 0 0 12px rgba(255,215,0,0.4);
+}
+
+/* ========== 分类标签美化 ========== */
+.shop-tabs :deep(.n-tabs-tab) {
+  font-size: 13px;
+  color: #888;
+  transition: all 0.3s ease;
+}
+
+.shop-tabs :deep(.n-tabs-tab.n-tabs-tab--active) {
+  color: #d4a843;
+  font-weight: 600;
+}
+
+.shop-tabs :deep(.n-tabs-tab-pad) {
+  border-bottom: 2px solid transparent;
+}
+
+.shop-tabs :deep(.n-tabs-tab--active .n-tabs-tab-pad) {
+  border-bottom-color: #d4a843;
+}
+
+.shop-tabs :deep(.n-tabs-bar) {
+  background: linear-gradient(90deg, #d4a843, #ffa500) !important;
+  height: 2px;
+  box-shadow: 0 0 8px rgba(212,168,67,0.5);
+}
+
+.quality-tabs :deep(.n-tabs-tab) {
+  color: #888;
+  font-size: 12px;
+}
+
+.quality-tabs :deep(.n-tabs-tab--active) {
+  color: #ffd700;
+}
+
+.quality-tabs :deep(.n-tabs-bar) {
+  background: linear-gradient(90deg, #d4a843, #ffa500) !important;
+}
+
+/* ========== 装备卡片 ========== */
 .equip-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 8px;
 }
+
 .equip-card {
-  position: relative; overflow: hidden; cursor: pointer;
-  padding: 10px 6px; border-radius: 8px; text-align: center;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(30,30,40,0.6); transition: all 0.3s;
-}
-.equip-card:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-.card-glow { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; }
-.equip-icon { font-size: 28px; margin-bottom: 4px; position: relative; z-index: 1; }
-.equip-name { font-size: 11px; font-weight: 600; margin-bottom: 2px; position: relative; z-index: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.equip-price { font-size: 11px; color: #ffd54f; position: relative; z-index: 1; }
-
-/* 通用商品网格 */
-.section-title { font-size: 13px; font-weight: 600; margin: 8px 0 4px; color: #ddd; }
-.item-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.item-card {
-  cursor: pointer; padding: 6px; border-radius: 8px; text-align: center;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(30,30,40,0.6); transition: all 0.3s; position: relative;
-}
-.item-card:hover { transform: translateY(-2px); border-color: rgba(212,168,67,0.4); }
-.item-icon { font-size: 28px; margin-bottom: 4px; }
-.item-name { font-size: 11px; font-weight: 600; color: #eee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.item-desc { font-size: 10px; color: #999; margin: 1px 0; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
-.item-price { font-size: 11px; color: #ffd54f; font-weight: 600; }
-.discount-tag { position: absolute; top: 6px; right: 6px; }
-.tier-tag { position: absolute; top: 6px; right: 6px; }
-.grade-tag { margin: 4px 0; }
-
-/* 焰草卡片 */
-.herb-card { border-color: rgba(76,175,80,0.2) !important; }
-.herb-card:hover { border-color: rgba(76,175,80,0.5) !important; }
-
-/* 焰方卡片 */
-.formula-grid { grid-template-columns: 1fr; }
-.formula-card {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
-  border-color: rgba(103,58,183,0.2) !important;
-  background: linear-gradient(135deg, rgba(103,58,183,0.08), rgba(30,30,40,0.6)) !important;
-}
-.formula-card.owned { opacity: 0.6; pointer-events: none; }
-.formula-card .item-icon { font-size: 32px; }
-.formula-card .item-name { flex: 1; }
-.owned-badge {
-  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg);
-  font-size: 18px; font-weight: bold; color: rgba(76,175,80,0.8);
-  border: 2px solid rgba(76,175,80,0.5); padding: 2px 12px; border-radius: 6px;
-  background: rgba(0,0,0,0.5);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 10px 6px;
+  border-radius: 10px;
+  text-align: center;
+  border: 1px solid rgba(212,168,67,0.25);
+  background: rgba(20,20,35,0.7);
+  backdrop-filter: blur(4px);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.exp-card { border-color: rgba(255,152,0,0.3) !important; background: linear-gradient(135deg, rgba(255,152,0,0.08), rgba(30,30,40,0.6)) !important; }
-.attr-card { border-color: rgba(156,39,176,0.3) !important; background: linear-gradient(135deg, rgba(156,39,176,0.08), rgba(30,30,40,0.6)) !important; }
-
-/* 礼包 */
-.pack-list { display: flex; flex-direction: column; gap: 10px; }
-.pack-card {
-  display: flex; align-items: center; gap: 12px; padding: 14px;
-  border-radius: 10px; cursor: pointer; position: relative; overflow: hidden;
-  border: 1px solid rgba(212,168,67,0.3);
-  background: linear-gradient(135deg, rgba(61,43,31,0.4), rgba(18,18,26,0.8));
-  transition: all 0.3s;
-}
-.pack-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(212,168,67,0.15); }
-.pack-card.purchased { opacity: 0.5; pointer-events: none; }
-.pack-badge {
-  position: absolute; top: -2px; right: 10px;
-  background: linear-gradient(135deg, #ff6b35, #ff9800); color: #fff;
-  font-size: 10px; font-weight: bold; padding: 2px 8px 4px;
-  border-radius: 0 0 6px 6px;
-}
-.pack-icon { font-size: 36px; flex-shrink: 0; }
-.pack-info { flex: 1; }
-.pack-name { font-size: 15px; font-weight: bold; color: #ffd54f; }
-.pack-desc { font-size: 11px; color: #aaa; margin: 4px 0; line-height: 1.4; }
-.pack-price { font-size: 14px; color: #ff9800; font-weight: bold; }
-.pack-sold {
-  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(-15deg);
-  font-size: 24px; font-weight: bold; color: rgba(255,255,255,0.3);
-  border: 3px solid rgba(255,255,255,0.2); padding: 4px 16px; border-radius: 8px;
+.equip-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(212,168,67,0.6);
+  box-shadow: 0 8px 24px rgba(212,168,67,0.15), 0 0 16px rgba(212,168,67,0.1);
 }
 
-/* 特权 */
-.buff-grid { grid-template-columns: 1fr !important; }
-.buff-card { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
-  border-color: rgba(103,58,183,0.3) !important;
-  background: linear-gradient(135deg, rgba(103,58,183,0.1), rgba(30,30,40,0.6)) !important;
+.card-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  opacity: 0.5;
 }
-.buff-card .item-icon { font-size: 32px; }
-.buff-card .item-name { flex: 1; }
-.buff-active { width: 100%; font-size: 11px; color: #4caf50; font-weight: 600; }
 
-/* 购买弹窗 */
-.buy-modal :deep(.n-card) { background: rgba(25,25,35,0.98) !important; }
-.buy-content { text-align: center; }
-.buy-icon { font-size: 48px; margin-bottom: 8px; }
-.buy-name { font-size: 18px; font-weight: bold; color: #ffd54f; margin-bottom: 4px; }
-.buy-desc { font-size: 13px; color: #aaa; margin-bottom: 12px; }
-.buy-count { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 12px; }
-.buy-total { font-size: 16px; margin-bottom: 14px; color: #ddd; }
-.total-price { color: #ffd54f; font-weight: bold; font-size: 18px; }
 .equip-icon-img {
   width: 48px;
   height: 48px;
@@ -692,70 +702,517 @@ onMounted(async () => {
   image-rendering: pixelated;
   filter: drop-shadow(0 0 6px rgba(212,168,67,0.6));
   transition: transform 0.2s;
+  position: relative;
+  z-index: 1;
 }
+
 .equip-card:hover .equip-icon-img {
-  transform: scale(1.15);
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 10px rgba(212,168,67,0.8));
 }
+
+.equip-name {
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  position: relative;
+  z-index: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.equip-price {
+  font-size: 11px;
+  color: #ffd700;
+  position: relative;
+  z-index: 1;
+  background: rgba(212,168,67,0.15);
+  padding: 2px 8px;
+  border-radius: 10px;
+  display: inline-block;
+  border: 1px solid rgba(212,168,67,0.2);
+  font-weight: 600;
+}
+
+/* ========== 通用商品卡片 ========== */
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 12px 0 6px;
+  color: #d4a843;
+  text-shadow: 0 0 8px rgba(212,168,67,0.2);
+  padding-left: 4px;
+  border-left: 3px solid #d4a843;
+}
+
+.item-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.item-card {
+  cursor: pointer;
+  padding: 8px 6px;
+  border-radius: 10px;
+  text-align: center;
+  border: 1px solid rgba(212,168,67,0.2);
+  background: rgba(20,20,35,0.65);
+  backdrop-filter: blur(4px);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.item-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(212,168,67,0.05), transparent);
+  transition: left 0.5s;
+}
+
+.item-card:hover::before {
+  left: 100%;
+}
+
+.item-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(212,168,67,0.5);
+  box-shadow: 0 6px 20px rgba(212,168,67,0.12), 0 0 12px rgba(212,168,67,0.08);
+}
+
+.item-icon {
+  font-size: 28px;
+  margin-bottom: 4px;
+  filter: drop-shadow(0 0 4px rgba(212,168,67,0.3));
+}
+
+.item-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #eee;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-desc {
+  font-size: 10px;
+  color: #888;
+  margin: 2px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.item-price {
+  font-size: 11px;
+  color: #ffd700;
+  font-weight: 600;
+  background: rgba(212,168,67,0.12);
+  padding: 2px 8px;
+  border-radius: 10px;
+  display: inline-block;
+  margin-top: 4px;
+  border: 1px solid rgba(212,168,67,0.15);
+}
+
+/* 已售罄/不可购买遮罩 */
+.item-card.owned {
+  opacity: 0.5;
+  pointer-events: none;
+  filter: grayscale(0.7);
+}
+
+.discount-tag {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.tier-tag {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.grade-tag {
+  margin: 4px 0;
+}
+
+/* ========== 焰草卡片 ========== */
+.herb-card {
+  border-color: rgba(212,168,67,0.15) !important;
+}
+
+.herb-card:hover {
+  border-color: rgba(212,168,67,0.4) !important;
+}
+
+/* ========== 焰方卡片 ========== */
+.formula-grid {
+  grid-template-columns: 1fr;
+}
+
+.formula-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border-color: rgba(212,168,67,0.2) !important;
+  background: linear-gradient(135deg, rgba(212,168,67,0.06), rgba(20,20,35,0.65)) !important;
+}
+
+.formula-card.owned {
+  opacity: 0.5;
+  pointer-events: none;
+  filter: grayscale(0.7);
+  background: rgba(30,30,40,0.4) !important;
+}
+
+.formula-card .item-icon {
+  font-size: 32px;
+}
+
+.formula-card .item-name {
+  flex: 1;
+}
+
+.owned-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-15deg);
+  font-size: 18px;
+  font-weight: bold;
+  color: rgba(139,139,139,0.9);
+  border: 2px solid rgba(139,139,139,0.5);
+  padding: 2px 12px;
+  border-radius: 6px;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(2px);
+}
+
+/* 特殊卡片样式 */
+.exp-card {
+  border-color: rgba(255,165,0,0.2) !important;
+  background: linear-gradient(135deg, rgba(255,165,0,0.05), rgba(20,20,35,0.65)) !important;
+}
+
+.exp-card:hover {
+  border-color: rgba(255,165,0,0.4) !important;
+}
+
+.attr-card {
+  border-color: rgba(212,168,67,0.2) !important;
+  background: linear-gradient(135deg, rgba(212,168,67,0.05), rgba(20,20,35,0.65)) !important;
+}
+
+/* ========== 礼包卡片 ========== */
+.pack-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pack-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(212,168,67,0.35);
+  background: linear-gradient(135deg, rgba(139,32,0,0.15), rgba(20,20,35,0.75));
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pack-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,107,53,0.08), transparent);
+  transition: left 0.6s;
+}
+
+.pack-card:hover::before {
+  left: 100%;
+}
+
+.pack-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,107,53,0.5);
+  box-shadow: 0 8px 28px rgba(255,107,53,0.15), 0 0 16px rgba(212,168,67,0.1);
+}
+
+.pack-card.purchased {
+  opacity: 0.4;
+  pointer-events: none;
+  filter: grayscale(0.8);
+}
+
+.pack-badge {
+  position: absolute;
+  top: -2px;
+  right: 10px;
+  background: linear-gradient(135deg, #8b2000, #ff6b35);
+  color: #fff;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 8px 4px;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 2px 8px rgba(139,32,0,0.3);
+}
+
+.pack-icon {
+  font-size: 36px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 6px rgba(212,168,67,0.4));
+}
+
+.pack-info {
+  flex: 1;
+}
+
+.pack-name {
+  font-size: 15px;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 0 0 8px rgba(255,215,0,0.2);
+}
+
+.pack-desc {
+  font-size: 11px;
+  color: #a09070;
+  margin: 4px 0;
+  line-height: 1.4;
+}
+
+.pack-price {
+  font-size: 14px;
+  color: #ff6b35;
+  font-weight: bold;
+  background: rgba(139,32,0,0.15);
+  padding: 2px 10px;
+  border-radius: 10px;
+  display: inline-block;
+  border: 1px solid rgba(255,107,53,0.2);
+}
+
+.pack-sold {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%) rotate(-15deg);
+  font-size: 24px;
+  font-weight: bold;
+  color: rgba(139,139,139,0.5);
+  border: 3px solid rgba(139,139,139,0.3);
+  padding: 4px 16px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(2px);
+}
+
+/* ========== 特权卡片 ========== */
+.buff-grid {
+  grid-template-columns: 1fr !important;
+}
+
+.buff-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border-color: rgba(212,168,67,0.2) !important;
+  background: linear-gradient(135deg, rgba(212,168,67,0.06), rgba(20,20,35,0.65)) !important;
+}
+
+.buff-card .item-icon {
+  font-size: 32px;
+}
+
+.buff-card .item-name {
+  flex: 1;
+}
+
+.buff-active {
+  width: 100%;
+  font-size: 11px;
+  color: #d4a843;
+  font-weight: 600;
+  background: rgba(212,168,67,0.1);
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-top: 4px;
+  border: 1px solid rgba(212,168,67,0.15);
+}
+
+/* ========== 购买弹窗 ========== */
+.buy-modal :deep(.n-card) {
+  background: rgba(15,15,25,0.98) !important;
+  border: 1px solid rgba(212,168,67,0.3) !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 30px rgba(212,168,67,0.1) !important;
+}
+
+.buy-modal :deep(.n-card-header) {
+  border-bottom: 1px solid rgba(212,168,67,0.2) !important;
+}
+
+.buy-modal :deep(.n-card-header__main) {
+  color: #d4a843 !important;
+  font-weight: 600;
+}
+
+.buy-content {
+  text-align: center;
+}
+
+.buy-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 0 12px rgba(212,168,67,0.4));
+}
+
+.buy-name {
+  font-size: 18px;
+  font-weight: bold;
+  color: #ffd700;
+  margin-bottom: 4px;
+  text-shadow: 0 0 10px rgba(255,215,0,0.2);
+}
+
+.buy-desc {
+  font-size: 13px;
+  color: #a09070;
+  margin-bottom: 12px;
+}
+
+.buy-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: #ccc;
+}
+
+.buy-total {
+  font-size: 16px;
+  margin-bottom: 14px;
+  color: #ddd;
+}
+
+.total-price {
+  color: #ffd700;
+  font-weight: bold;
+  font-size: 18px;
+  text-shadow: 0 0 8px rgba(255,215,0,0.2);
+}
+
+/* ========== 购买按钮统一 ========== */
+.buy-button {
+  background: linear-gradient(135deg, #8b2000, #ff6b35) !important;
+  border: none !important;
+  box-shadow: 0 4px 15px rgba(139,32,0,0.3) !important;
+  transition: all 0.3s ease !important;
+}
+
+.buy-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #9b3010, #ff7b45) !important;
+  box-shadow: 0 6px 20px rgba(255,107,53,0.4) !important;
+  transform: translateY(-1px);
+}
+
+.buy-button:disabled {
+  opacity: 0.4 !important;
+  filter: grayscale(0.5);
+  cursor: not-allowed;
+}
+
+/* ========== 商品图片统一发光 ========== */
 .buy-icon-img {
   width: 64px;
   height: 64px;
   object-fit: contain;
   image-rendering: pixelated;
-  filter: drop-shadow(0 0 8px rgba(212,168,67,0.7));
+  filter: drop-shadow(0 0 10px rgba(212,168,67,0.5));
   margin: 8px auto;
 }
+
 .shop-item-img {
   width: 36px;
   height: 36px;
   object-fit: contain;
   image-rendering: pixelated;
-  filter: drop-shadow(0 0 4px rgba(212,168,67,0.5));
+  filter: drop-shadow(0 0 6px rgba(212,168,67,0.4));
+  transition: transform 0.2s;
 }
+
+.item-card:hover .shop-item-img {
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 10px rgba(212,168,67,0.6));
+}
+
 .shop-pack-img {
   width: 56px;
   height: 56px;
   object-fit: contain;
   image-rendering: pixelated;
-  filter: drop-shadow(0 0 6px rgba(212,168,67,0.6));
+  filter: drop-shadow(0 0 8px rgba(212,168,67,0.5));
   flex-shrink: 0;
+  transition: transform 0.2s;
 }
 
-/* 商城卡片增强 */
+.pack-card:hover .shop-pack-img {
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 12px rgba(212,168,67,0.7));
+}
+
+/* ========== 交互反馈 ========== */
 .equip-card:active, .item-card:active, .pack-card:active {
   transform: scale(0.96);
-}
-.equip-card {
-  transition: all 0.2s;
-}
-.item-card {
-  transition: all 0.2s;
-}
-
-/* 价格标签闪光 */
-.equip-price, .item-price, .pack-price {
-  text-shadow: 0 0 6px rgba(255,213,79,0.3);
-}
-
-/* 礼包卡片呼吸光效 */
-.pack-card:not(.purchased) {
-  animation: pack-glow 3s ease-in-out infinite;
-}
-@keyframes pack-glow {
-  0%, 100% { box-shadow: 0 0 4px rgba(212,168,67,0.1); }
-  50% { box-shadow: 0 0 12px rgba(212,168,67,0.2); }
 }
 
 /* 折扣标签动画 */
 .discount-tag :deep(.n-tag) {
   animation: discount-pulse 2s ease-in-out infinite;
 }
+
 @keyframes discount-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.05); }
 }
 
-/* 已拥有标记增强 */
-.owned-badge {
-  backdrop-filter: blur(2px);
+/* 礼包卡片呼吸光效（未购买状态） */
+.pack-card:not(.purchased) {
+  animation: pack-glow 4s ease-in-out infinite;
+}
+
+@keyframes pack-glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(212,168,67,0.1); }
+  50% { box-shadow: 0 0 16px rgba(255,107,53,0.15); }
+}
+
+/* 选中状态优化 */
+.shop-tabs :deep(.n-tabs-tab.n-tabs-tab--active) {
+  text-shadow: 0 0 10px rgba(212,168,67,0.3);
+}
+
+/* 确保所有卡片层级正确 */
+.equip-card, .item-card, .pack-card {
+  position: relative;
+  z-index: 1;
 }
 </style>
