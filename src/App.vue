@@ -65,7 +65,7 @@
                   <div class="sub-page-header">
                     <button class="back-btn" @click="goBack">← 返回</button>
                     <span class="sub-page-title">{{ currentPageTitle }}</span>
-                    <span class="sub-page-spacer"></span>
+                    <span class="sub-page-level">{{ playerStore.realm }} Lv.{{ playerStore.level }}</span>
                   </div>
                   <router-view v-slot="{ Component }">
                     <transition name="page-fade" mode="out-in">
@@ -673,7 +673,13 @@ watch(() => authStore.wallet, (w) => { if (w) { setTimeout(checkAnnouncementPopu
     -webkit-text-fill-color: transparent;
     background-clip: text;
     white-space: nowrap;
-  }  .sub-page-spacer {
+    .sub-page-level {
+    font-size: 0.75rem;
+    color: #d4a843;
+    opacity: 0.85;
+    white-space: nowrap;
+  }
+  .sub-page-spacer {
     flex: 1;
   }
 
