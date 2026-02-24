@@ -560,11 +560,9 @@ if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
   })
 
   const goBack = () => {
-    if (pageHistory.value.length > 0) {
-      currentPage.value = pageHistory.value.pop()
-    } else {
-      currentPage.value = 'home'
-    }
+    // 始终回主城
+    currentPage.value = 'home'
+    pageHistory.value = []
   }
 
   const loginParticleStyle = (i) => ({
