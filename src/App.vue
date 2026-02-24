@@ -68,7 +68,8 @@
                     <span class="sub-page-level">{{ playerStore.realm }} Lv.{{ playerStore.level }}</span>
                   </div>
                   <transition name="page-fade" mode="out-in">
-                    <component :is="pageComponents[currentPage]" :key="currentPage" />
+                    <SkeletonLoader v-if="pageLoading" :type="loadingType" :key="'skeleton-'+currentPage" />
+                    <component v-else :is="pageComponents[currentPage]" :key="currentPage" />
                   </transition>
                 </div>
                 </transition>
@@ -147,15 +148,20 @@ import { useGameConfigStore } from './stores/gameConfig'
   import BugReporter from "./components/BugReporter.vue"
   // === App化导航系统 ===
   const currentPage = ref('home')
+  const pageLoading = ref(false)
+  const loadingType = ref('list')
   const pageHistory = ref([])
 
   function navigateTo(page) {
     if (!page || page === '/') { page = 'home' }
-    page = page.replace(/^\//, '') // 去掉前导 /
+    page = page.replace(/^\//, '')
     if (currentPage.value !== page) {
       pageHistory.value.push(currentPage.value)
       if (pageHistory.value.length > 50) pageHistory.value.shift()
+      loadingType.value = skeletonTypeMap[page] || 'list'
+      pageLoading.value = true
       currentPage.value = page
+      setTimeout(() => { pageLoading.value = false }, 350)
     }
   }
 
@@ -321,15 +327,18 @@ if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
   const selectSubItem = (childKey) => {
     expandedTab.value = null
     pageHistory.value = []
+    loadingType.value = skeletonTypeMap[childKey] || 'list'
+    pageLoading.value = true
     if (currentPage.value !== 'home') {
-      // 已在子页面，先回主城再进新页面，避免transition卡住
       currentPage.value = 'home'
       activeTab.value = 'home'
       nextTick(() => {
         currentPage.value = childKey
+        setTimeout(() => { pageLoading.value = false }, 350)
       })
     } else {
       currentPage.value = childKey
+      setTimeout(() => { pageLoading.value = false }, 350)
     }
   }
 
