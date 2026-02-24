@@ -1090,11 +1090,13 @@ const handleAutoReleaseChange = values => {
 /* === 翻牌动画 === */
 .flip-stage { padding: 10px 0; }
 .flip-cards {
-  display: grid; grid-template-columns: repeat(5, 1fr);
+  display: flex; flex-wrap: wrap; justify-content: center;
   gap: 8px; margin-bottom: 12px;
 }
 .flip-card {
   perspective: 600px; cursor: pointer;
+  width: calc((100% - 32px) / 5);
+  max-width: 100px;
   aspect-ratio: 3/4;
 }
 .flip-card-inner {
@@ -1112,8 +1114,10 @@ const handleAutoReleaseChange = values => {
   align-items: center; justify-content: center;
   overflow: hidden;
 }
-.flip-card-back {
+.flip-card-front {
   transform: rotateY(180deg);
+}
+.flip-card-back {
   background: linear-gradient(135deg, #1a1020, #0f0f20);
   border-color: rgba(212,168,67,0.3);
 }
