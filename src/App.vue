@@ -150,6 +150,15 @@ import { useGameConfigStore } from './stores/gameConfig'
   const currentPage = ref('home')
   const pageLoading = ref(false)
   const loadingType = ref('list')
+  const skeletonTypeMap = {
+    cultivation: 'cultivation', inventory: 'list', exploration: 'grid',
+    gacha: 'grid', alchemy: 'list', dungeon: 'grid', 'daily-dungeon': 'grid',
+    pk: 'list', boss: 'detail', sect: 'detail', 'sect-war': 'list',
+    friends: 'list', auction: 'list', shop: 'shop', events: 'list',
+    'mount-title': 'grid', ascension: 'detail', recharge: 'shop',
+    vip: 'detail', achievements: 'grid', rank: 'list', mail: 'list',
+    settings: 'list', admin: 'list', profile: 'detail'
+  }
   const pageHistory = ref([])
 
   function navigateTo(page) {
