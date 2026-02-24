@@ -116,7 +116,7 @@
 
       <div v-if="tab==='log'">
         <div v-if="battles.length===0" class="empty">暂无战斗记录</div>
-        <div v-for="b in battles" :key="b.id" class="log-card clickable" @click="viewReplay(b)">
+        <div v-for="b in battles" :key="b.id" class="log-card">
           <div class="log-left">
             <div class="log-result" :class="getLogResult(b)">{{ getLogResult(b)==="win"?"胜":"负" }}</div>
             <div class="log-info">
@@ -124,7 +124,10 @@
               <div class="log-time">{{ formatTime(b.created_at) }}</div>
             </div>
           </div>
-          <div class="log-score" :class="getLogScore(b)>0?'pos':'neg'">{{ getLogScore(b)>0?"+":"" }}{{ getLogScore(b) }}</div>
+          <div class="log-right">
+            <div class="log-score" :class="getLogScore(b)>0?'pos':'neg'">{{ getLogScore(b)>0?"+":"" }}{{ getLogScore(b) }}</div>
+            <button class="btn-replay" @click="viewReplay(b)">▶ 回放</button>
+          </div>
         </div>
       </div>
 
@@ -132,7 +135,7 @@
         <div v-if="notifs.length===0" class="empty">暂无通知</div>
         <div v-for="n in notifs" :key="n.id" class="notif-card clickable">
           <div class="notif-left">
-            <div class="notif-text">💀 {{ n.attacker_name }} 击败了你</div>
+            <div class="notif-text">{{ n.score_change < 0 ? "💀" : "🛡️" }} {{ n.attacker_name }} {{ n.score_change < 0 ? "击败了你" : "挑战了你（防守成功）" }}</div>
             <div class="notif-score neg">积分 {{ n.score_change }}</div>
             <div class="notif-time">{{ formatTime(n.created_at) }}</div>
           </div>
@@ -437,6 +440,9 @@ onUnmounted(() => { clearTimer() })
 .notif-card { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; margin-bottom: 6px; background: rgba(255,69,0,0.06); border: 1px solid rgba(255,69,0,0.15); border-radius: 10px; }
 .notif-text { color: #ff6b35; font-size: 14px; } .notif-score { font-size: 13px; } .notif-time { color: #a08030; font-size: 11px; }
 .revenged { color: #4caf50; font-size: 12px; }
+.btn-replay { background: rgba(212,168,67,0.15); border: 1px solid rgba(212,168,67,0.3); color: #d4a843; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-top: 4px; }
+.btn-replay:active { background: rgba(212,168,67,0.3); }
+.log-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .clickable { cursor: pointer; transition: background 0.2s; }
 .clickable:active { background: rgba(212,168,67,0.15); }
 @keyframes battle-shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }

@@ -253,13 +253,11 @@ export default function(pool, auth, runPkBattle, computeFinalStats, getMountTitl
         await pool.query(`UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + 500)::int)) WHERE wallet = $1`, [wallet]);
       }
 
-      // Notify defender if they lost
-      if (winner === 'attacker') {
-        await pool.query(
-          'INSERT INTO arena_notifications (wallet, attacker_wallet, attacker_name, score_change, battle_id) VALUES ($1,$2,$3,$4,$5)',
-          [targetWallet, wallet, attacker.name, scoreChangeB, battle.id]
-        );
-      }
+      // Notify defender about being attacked (win or lose)
+      await pool.query(
+        'INSERT INTO arena_notifications (wallet, attacker_wallet, attacker_name, score_change, battle_id) VALUES ($1,$2,$3,$4,$5)',
+        [targetWallet, wallet, attacker.name, scoreChangeB, battle.id]
+      );
 
       // Mark revenge done
       if (isRevenge) {
