@@ -350,6 +350,7 @@ export const usePlayerStore = defineStore('player', {
         this.cultivationCost = data.cultCost
         this.cultivationGain = data.cultGain
         this.isAutoCultivating = data.isAutoCultivating
+        if (data.totalCultivationTime !== undefined) this.totalCultivationTime = data.totalCultivationTime
         // 属性同步
         if (data.baseAttributes) this.baseAttributes = data.baseAttributes
         if (data.combatAttributes) this.combatAttributes = data.combatAttributes

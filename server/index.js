@@ -921,6 +921,7 @@ app.post('/api/game/tick', auth, async (req, res) => {
       combatResistance: gd.combatResistance,
       specialAttributes: gd.specialAttributes,
       _nakedBase: gd._nakedBase,
+      totalCultivationTime: gd.totalCultivationTime || 0,
     });
   } catch (e) {
     logger.error('[TICK]', e.message);
@@ -1028,6 +1029,8 @@ app.post('/api/game/cultivate', auth, async (req, res) => {
     gd.spirit = result.spirit;
     gd.cultivation = result.cultivation;
     gd.lastTickTime = result.lastTickTime;
+    // 累加修炼时间（每次冥想算 actualTimes 秒）
+    gd.totalCultivationTime = (gd.totalCultivationTime || 0) + (result.actualTimes || 0);
 
     // 检查突破
     let broke = false;
