@@ -358,210 +358,182 @@ const clearLogPanel = () => {
 </script>
 
 <style scoped>
-.explore-page { padding: 0; }
+.explore-page {
+  padding: 0;
+  background: linear-gradient(180deg, #0b0b18 0%, #12101f 100%);
+  min-height: 75vh;
+}
 
+/* === 地图区域 === */
 .world-map {
+  position: relative;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(212,168,67,0.2);
+  border: 1px solid rgba(212,168,67,0.15);
   margin-bottom: 12px;
-  background: linear-gradient(180deg, #0a0a15 0%, #12102a 100%);
+  background: linear-gradient(180deg, #0a0a15 0%, #10101f 100%);
 }
+.world-map::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 80px;
+  background: radial-gradient(ellipse at center top, rgba(212,168,67,0.06) 0%, transparent 70%);
+  pointer-events: none; z-index: 1;
+}
+
 .map-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: flex; align-items: center; gap: 8px;
   padding: 10px 14px;
-  font-weight: bold;
-  color: #d4a843;
-  font-size: 14px;
-  border-bottom: 1px solid rgba(212,168,67,0.15);
+  font-weight: 700; color: #d4a843; font-size: 14px;
+  border-bottom: 1px solid rgba(212,168,67,0.1);
+  letter-spacing: 1px;
 }
 .map-icon { font-size: 18px; }
 .map-spirit {
-  margin-left: auto;
-  font-size: 12px;
-  color: #a09880;
-  font-weight: normal;
+  margin-left: auto; font-size: 11px;
+  color: rgba(212,168,67,0.5); font-weight: normal;
+  background: rgba(212,168,67,0.06);
+  padding: 2px 8px; border-radius: 4px;
 }
 
 .map-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding: 12px;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 8px; padding: 12px;
 }
 
+/* === 地图节点 === */
 .map-node {
-  position: relative;
-  border-radius: 10px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s;
-  border: 1px solid rgba(212,168,67,0.15);
-  min-height: 140px;
+  position: relative; border-radius: 10px;
+  overflow: hidden; cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(212,168,67,0.1);
+  min-height: 130px;
 }
 .map-node:hover:not(.locked) {
-  transform: translateY(-2px);
-  border-color: rgba(212,168,67,0.5);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3), 0 0 10px rgba(212,168,67,0.1);
+  transform: translateY(-3px);
+  border-color: rgba(212,168,67,0.4);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 15px rgba(212,168,67,0.1);
 }
 .map-node.active {
-  border-color: #d4a843;
-  box-shadow: 0 0 15px rgba(212,168,67,0.2);
+  border-color: rgba(212,168,67,0.6);
+}
+.map-node.active::after {
+  content: '';
+  position: absolute; inset: -1px;
+  border-radius: 11px;
+  border: 2px solid rgba(212,168,67,0.5);
+  animation: node-pulse 2.5s ease-in-out infinite;
+  pointer-events: none; z-index: 2;
+}
+@keyframes node-pulse {
+  0%,100% { box-shadow: 0 0 8px rgba(212,168,67,0.2); }
+  50% { box-shadow: 0 0 18px rgba(212,168,67,0.4); }
 }
 .map-node.locked {
-  opacity: 0.4;
-  cursor: not-allowed;
-  filter: grayscale(0.8);
+  opacity: 0.3; cursor: not-allowed; filter: grayscale(0.8);
 }
 .map-node.exploring {
-  border-color: #4caf50;
-  box-shadow: 0 0 12px rgba(76,175,80,0.2);
+  border-color: rgba(255,165,0,0.4);
+}
+.map-node.exploring::before {
+  content: '';
+  position: absolute; inset: 0; border-radius: 10px;
+  background: radial-gradient(circle, rgba(255,165,0,0.08) 0%, transparent 70%);
+  animation: expl-glow 2s ease-in-out infinite;
+  pointer-events: none; z-index: 1;
+}
+@keyframes expl-glow {
+  0%,100% { opacity: 0.4; } 50% { opacity: 1; }
 }
 
 .node-bg {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
   pointer-events: none;
+  transition: transform 0.4s ease;
 }
-.bg-newbie_village { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('/assets/images/area-xinhuocun.png') center/cover no-repeat; }
-.bg-celestial_mountain { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('/assets/images/area-chixiaofeng.png') center/cover no-repeat; }
-.bg-phoenix_valley { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('/assets/images/area-niepangu.png') center/cover no-repeat; }
-.bg-dragon_abyss { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('/assets/images/area-yanyuan.png') center/cover no-repeat; }
-.bg-immortal_realm { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('/assets/images/area-yantianshenyu.png') center/cover no-repeat; }
-.bg-void_realm { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('/assets/images/area-yanxumijing.png') center/cover no-repeat; }
-.bg-fusion_forbidden { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('/assets/images/area-yanhejindi.png') center/cover no-repeat; }
-.bg-great_flame_palace { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('/assets/images/area-dayantiangong.png') center/cover no-repeat; }
-.bg-tribulation_temple { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('/assets/images/area-duyanshengdian.png') center/cover no-repeat; }
+.map-node:hover:not(.locked) .node-bg {
+  transform: scale(1.05);
+}
+
+.bg-newbie_village { background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), url('/assets/images/area-xinhuocun.png') center/cover no-repeat; }
+.bg-celestial_mountain { background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), url('/assets/images/area-chixiaofeng.png') center/cover no-repeat; }
+.bg-phoenix_valley { background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), url('/assets/images/area-niepangu.png') center/cover no-repeat; }
+.bg-dragon_abyss { background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), url('/assets/images/area-yanyuan.png') center/cover no-repeat; }
+.bg-immortal_realm { background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), url('/assets/images/area-yantianshenyu.png') center/cover no-repeat; }
+.bg-void_realm { background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), url('/assets/images/area-yanxumijing.png') center/cover no-repeat; }
+.bg-fusion_forbidden { background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), url('/assets/images/area-yanhejindi.png') center/cover no-repeat; }
+.bg-great_flame_palace { background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), url('/assets/images/area-dayantiangong.png') center/cover no-repeat; }
+.bg-tribulation_temple { background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)), url('/assets/images/area-duyanshengdian.png') center/cover no-repeat; }
 
 .node-content {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 6px;
-  gap: 4px;
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 14px 6px; gap: 4px;
 }
-.node-icon { font-size: 28px; }
+.node-icon {
+  font-size: 28px;
+  filter: drop-shadow(0 0 6px rgba(212,168,67,0.3));
+}
 .node-name {
-  font-size: 12px;
-  font-weight: bold;
+  font-size: 12px; font-weight: 700;
   color: #e8e0d0;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
 }
-.node-lock {
-  font-size: 10px;
-  color: #666;
-}
+.node-lock { font-size: 10px; color: #555; }
 .node-cost {
-  font-size: 11px;
-  color: #a09880;
+  font-size: 11px; color: rgba(212,168,67,0.6);
+  background: rgba(0,0,0,0.3);
+  padding: 1px 6px; border-radius: 3px;
 }
 .node-status {
-  font-size: 10px;
-  color: #4caf50;
-  font-weight: bold;
+  font-size: 10px; color: #ffa500; font-weight: 700;
 }
 .exploring-pulse {
   animation: epulse 1.5s ease-in-out infinite;
 }
-@keyframes epulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
+@keyframes epulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
 
-/* 详情面板 */
+/* === 详情面板 === */
 .location-detail { margin-bottom: 12px; }
-.detail-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.location-detail .n-card {
+  background: rgba(15,15,30,0.9) !important;
+  border: 1px solid rgba(212,168,67,0.15) !important;
+  border-radius: 10px !important;
 }
-.detail-icon { font-size: 36px; }
-.detail-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.detail-header { display: flex; align-items: center; gap: 12px; }
+.detail-icon {
+  font-size: 36px;
+  filter: drop-shadow(0 0 8px rgba(212,168,67,0.3));
+  transition: transform 0.3s;
 }
+.location-detail:hover .detail-icon { transform: scale(1.08); }
+.detail-info { display: flex; flex-direction: column; gap: 2px; }
 .detail-name {
-  font-size: 16px;
-  font-weight: bold;
-  color: #f0d68a;
-  font-family: 'Noto Serif SC', serif;
+  font-size: 15px; font-weight: 700; color: #f0d68a;
+  letter-spacing: 1px;
 }
-.detail-desc {
-  font-size: 12px;
-  color: #a09880;
-}
+.detail-desc { font-size: 12px; color: rgba(160,152,128,0.7); }
 
+/* === 统计 === */
 .explore-stats { margin-bottom: 12px; }
-.explore-stats span {
-  font-size: 12px;
-  color: #a09880;
+.explore-stats .n-card {
+  background: rgba(15,15,30,0.9) !important;
+  border: 1px solid rgba(212,168,67,0.1) !important;
+  border-radius: 10px !important;
 }
+.explore-stats span { font-size: 12px; color: rgba(160,152,128,0.7); }
 
-/* 过渡动画 */
+/* === 过渡 === */
 .slide-enter-active { transition: all 0.3s ease; }
 .slide-leave-active { transition: all 0.2s ease; }
-.slide-enter-from { opacity: 0; transform: translateY(-10px); }
-.slide-leave-to { opacity: 0; transform: translateY(-10px); }
+.slide-enter-from { opacity: 0; transform: translateY(-8px); }
+.slide-leave-to { opacity: 0; transform: translateY(-8px); }
 
 @media (max-width: 480px) {
   .map-grid { grid-template-columns: repeat(2, 1fr); }
-  .map-node { min-height: 120px; }
+  .map-node { min-height: 110px; }
   .node-icon { font-size: 22px; }
-}
-
-/* 地图区域氛围增强 */
-.world-map {
-  position: relative;
-}
-.world-map::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 60px;
-  background: linear-gradient(180deg, rgba(212,168,67,0.06) 0%, transparent 100%);
-  pointer-events: none;
-  z-index: 1;
-}
-.map-node.active::after {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: 12px;
-  border: 2px solid #d4a843;
-  animation: node-select-pulse 2s ease-in-out infinite;
-  pointer-events: none;
-}
-@keyframes node-select-pulse {
-  0%, 100% { box-shadow: 0 0 8px rgba(212,168,67,0.3); }
-  50% { box-shadow: 0 0 20px rgba(212,168,67,0.5); }
-}
-.map-node.exploring::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 10px;
-  background: radial-gradient(circle at 50% 50%, rgba(76,175,80,0.1) 0%, transparent 70%);
-  animation: explore-glow 2s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 1;
-}
-@keyframes explore-glow {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
-}
-
-/* 探索结果弹出动画 */
-.detail-icon {
-  transition: transform 0.3s;
-}
-.location-detail:hover .detail-icon {
-  transform: scale(1.1) rotate(-5deg);
 }
 </style>
