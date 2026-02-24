@@ -1,5 +1,5 @@
 <template>
-  <n-config-provider :theme="darkTheme">
+  <n-config-provider :theme="darkTheme" :theme-overrides="themeOverrides">
     <n-message-provider>
       <n-dialog-provider>
         <!-- 未登录：全屏连接钱包 -->
@@ -126,6 +126,116 @@ import { useGameConfigStore } from './stores/gameConfig'
   import { useAuthStore } from './stores/auth'
   import { h, ref, watch, onMounted, onUnmounted, computed, provide, defineAsyncComponent, nextTick } from 'vue'
   import SkeletonLoader from './components/SkeletonLoader.vue'
+
+  // 黑金主题覆盖
+  const themeOverrides = {
+    common: {
+      primaryColor: '#d4a843',
+      primaryColorHover: '#e6b800',
+      primaryColorPressed: '#b8960b',
+      primaryColorSuppl: '#ffd700',
+      successColor: '#a0522d',
+      successColorHover: '#b8600b',
+      warningColor: '#ff6b35',
+      warningColorHover: '#ffa500',
+      errorColor: '#8b2000',
+      errorColorHover: '#a52a2a',
+      infoColor: '#d4a843',
+      infoColorHover: '#e6b800',
+      bodyColor: '#0b0b18',
+      cardColor: 'rgba(15,15,30,0.95)',
+      modalColor: 'rgba(15,15,30,0.98)',
+      popoverColor: 'rgba(20,20,35,0.95)',
+      tableColor: 'rgba(15,15,30,0.9)',
+      inputColor: 'rgba(20,20,40,0.8)',
+      actionColor: 'rgba(20,20,40,0.6)',
+      borderColor: 'rgba(212,168,67,0.15)',
+      dividerColor: 'rgba(212,168,67,0.1)',
+      hoverColor: 'rgba(212,168,67,0.08)',
+      textColor1: '#f0d68a',
+      textColor2: 'rgba(240,214,138,0.82)',
+      textColor3: 'rgba(212,168,67,0.5)',
+    },
+    Card: {
+      color: 'rgba(15,15,30,0.9)',
+      borderColor: 'rgba(212,168,67,0.12)',
+      titleTextColor: '#f0d68a',
+      textColor: 'rgba(240,214,138,0.8)',
+      borderRadius: '10px',
+    },
+    Button: {
+      borderRadiusMedium: '8px',
+      borderRadiusLarge: '8px',
+      textColorPrimary: '#1a1a2e',
+      colorPrimary: '#d4a843',
+      colorHoverPrimary: '#e6b800',
+      colorPressedPrimary: '#b8960b',
+      borderPrimary: 'rgba(212,168,67,0.5)',
+      textColorSuccess: '#fff',
+      colorSuccess: '#8b2000',
+      colorHoverSuccess: '#a0522d',
+      borderSuccess: 'rgba(139,32,0,0.5)',
+      textColorWarning: '#fff',
+      colorWarning: '#b8600b',
+      colorHoverWarning: '#d4820b',
+      borderWarning: 'rgba(184,96,11,0.5)',
+      textColorInfo: '#1a1a2e',
+      colorInfo: '#d4a843',
+      colorHoverInfo: '#e6b800',
+      borderInfo: 'rgba(212,168,67,0.5)',
+    },
+    Tag: {
+      borderRadius: '6px',
+      colorInfo: 'rgba(212,168,67,0.12)',
+      borderInfo: 'rgba(212,168,67,0.2)',
+      textColorInfo: '#d4a843',
+      colorWarning: 'rgba(255,107,53,0.12)',
+      borderWarning: 'rgba(255,107,53,0.2)',
+      textColorWarning: '#ff6b35',
+      colorSuccess: 'rgba(160,82,45,0.12)',
+      borderSuccess: 'rgba(160,82,45,0.2)',
+      textColorSuccess: '#a0522d',
+    },
+    Tabs: {
+      tabTextColorActiveLine: '#ffd700',
+      tabTextColorHoverLine: '#d4a843',
+      tabTextColorLine: 'rgba(212,168,67,0.5)',
+      barColor: '#d4a843',
+    },
+    Divider: {
+      color: 'rgba(212,168,67,0.1)',
+      textColor: 'rgba(212,168,67,0.5)',
+    },
+    Alert: {
+      colorInfo: 'rgba(212,168,67,0.06)',
+      borderInfo: 'rgba(212,168,67,0.15)',
+      iconColorInfo: '#d4a843',
+      titleTextColorInfo: '#f0d68a',
+      contentTextColorInfo: 'rgba(240,214,138,0.7)',
+    },
+    Descriptions: {
+      thColor: 'rgba(20,20,40,0.6)',
+      tdColor: 'rgba(15,15,30,0.6)',
+      borderColor: 'rgba(212,168,67,0.1)',
+      titleTextColor: '#f0d68a',
+      labelTextColor: 'rgba(212,168,67,0.6)',
+    },
+    Dialog: {
+      color: 'rgba(15,15,30,0.98)',
+      borderRadius: '12px',
+      titleTextColor: '#f0d68a',
+      textColor: 'rgba(240,214,138,0.8)',
+    },
+    Input: {
+      color: 'rgba(20,20,40,0.8)',
+      borderColor: 'rgba(212,168,67,0.15)',
+      borderHover: 'rgba(212,168,67,0.3)',
+      borderFocus: '#d4a843',
+      textColor: '#f0d68a',
+      placeholderColor: 'rgba(212,168,67,0.3)',
+      caretColor: '#d4a843',
+    },
+  }
   import { NIcon, darkTheme, createDiscreteApi } from 'naive-ui'
   import {
     BookOutlined,
