@@ -1,4 +1,4 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
 
 const SEASON_REWARDS = {
@@ -17,7 +17,7 @@ const AI_OPPONENTS = [
   { name: '焰灵傀儡·皇', level: 95, realm: '焰天期一层', tier: 'emperor', stats: { health: 25000, attack: 1200, defense: 800, speed: 40, critRate: 0.18, comboRate: 0.1, dodgeRate: 0.12, combatBoost: 0.2, finalDamageBoost: 0.1, finalDamageReduce: 0.1, resistanceBoost: 0.1, vampireRate: 0.08, counterRate: 0.08, dodgeResist: 0.08, critDamageBoost: 0.25, critDamageReduce: 0.08, vampireResist: 0.05, counterResist: 0.05 } },
 ];
 
-module.exports = function(pool, auth, runPkBattle, computeFinalStats, getMountTitleBonuses) {
+export default function(pool, auth, runPkBattle, computeFinalStats, getMountTitleBonuses) {
 
   // Init tables
   const init = async () => {
@@ -179,6 +179,7 @@ module.exports = function(pool, auth, runPkBattle, computeFinalStats, getMountTi
           rankChange,
           newRankScore: rank?.rank_score || 0,
           newRankTier: rank?.rank_tier || 'bronze',
+          maxHpA: playerStats.health, maxHpB: aiStats.health,
           isAI: true
         }
       });

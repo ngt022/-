@@ -1,7 +1,7 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
 
-module.exports = function(pool, auth) {
+export default function(pool, auth) {
 
   // 创建表（首次自动）
   const initTables = async () => {

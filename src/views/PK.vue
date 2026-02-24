@@ -657,8 +657,8 @@ const startAiMatch = async () => {
     if (res.success) {
       battleResult.value = res.result
       showCountdown.value = true
-      currentRound.value = -1
-      setTimeout(() => { showCountdown.value = false; currentRound.value = 0; autoPlayRounds() }, 3000)
+      currentRoundIndex.value = -1
+      setTimeout(() => { showCountdown.value = false; startBattlePlayback() }, 3000)
     } else {
       window.$message?.error(res.message || 'AI匹配失败')
     }

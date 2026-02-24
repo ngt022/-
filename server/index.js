@@ -410,6 +410,15 @@ const { default: wheelGameRoutes } = await import('./routes/wheel-game.js')
 app.use('/api/wheel-game', wheelGameRoutes(pool, auth));
 const { default: catchGameRoutes } = await import('./routes/catch-game.js')
 app.use('/api/catch-game', catchGameRoutes(pool, auth));
+
+// 月度排行榜
+const { default: monthlyRankingsInit } = await import("./routes/monthly-rankings.js"); const monthlyRankingsRoutes = monthlyRankingsInit(pool, auth);
+app.use("/api/monthly", auth, monthlyRankingsRoutes);
+app.monthlyRankings = monthlyRankingsRoutes;
+
+// PK赛季+AI匹配
+const { default: pkSeasonInit } = await import("./routes/pk-season.js"); const pkSeasonRoutes = pkSeasonInit(pool, auth, runPkBattle, computeFinalStats, getMountTitleBonuses);
+app.use("/api/pk", pkSeasonRoutes);
 app.use('/api/shop', shopRoutes(pool, auth));
 app.use('/api/inventory', inventoryRoutes(pool, auth));
 
