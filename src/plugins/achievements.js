@@ -736,6 +736,13 @@ export const achievements = {
 
 // 检查成就完成情况并发放奖励
 export const checkAchievements = player => {
+  // 确保从 localStorage 恢复已完成成就
+  try {
+    const saved = JSON.parse(localStorage.getItem('xx_completed_achievements') || '[]')
+    if (saved.length > 0 && (!player.completedAchievements || player.completedAchievements.length === 0)) {
+      player.completedAchievements = saved
+    }
+  } catch(e) {}
   const completedAchievements = []
 
   // 遍历所有成就类别
@@ -773,6 +780,12 @@ export const checkAchievements = player => {
     })
   })
 
+  // 保存到 localStorage
+  try {
+    if (player.completedAchievements && player.completedAchievements.length > 0) {
+      localStorage.setItem('xx_completed_achievements', JSON.stringify(player.completedAchievements))
+    }
+  } catch(e) {}
   return completedAchievements
 }
 
