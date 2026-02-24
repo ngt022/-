@@ -74,8 +74,26 @@ export default function(pool, auth, runPkBattle, computeFinalStats, getMountTitl
     const p = (await pool.query('SELECT game_data, combat_power, level, realm, name FROM players WHERE wallet=$1', [wallet])).rows[0];
     if (!p) return null;
     const gd = p.game_data || {};
-    const bonuses = getMountTitleBonuses(gd);
-    const stats = computeFinalStats(gd, bonuses);
+    let stats;
+    // Bot players: use combatAttributes directly
+    if (wallet.startsWith('0xbot') && gd.combatAttributes) {
+      stats = { ...gd.combatAttributes };
+      // Ensure all required fields
+      stats.health = stats.health || 10000;
+      stats.attack = stats.attack || 1000;
+      stats.defense = stats.defense || 500;
+      stats.speed = stats.speed || 100;
+      stats.critRate = stats.critRate || 0.15;
+      stats.critDamage = stats.critDamage || 0.5;
+      stats.dodgeRate = stats.dodgeRate || 0.05;
+      stats.vampireRate = stats.vampireRate || 0.03;
+      stats.comboRate = stats.comboRate || 0;
+      stats.counterRate = stats.counterRate || 0;
+      stats.stunRate = stats.stunRate || 0;
+    } else {
+      const bonuses = getMountTitleBonuses(gd);
+      stats = computeFinalStats(gd, bonuses);
+    }
     return { wallet, name: p.name || '无名修士', level: p.level, realm: p.realm, combatPower: p.combat_power || 0, stats };
   }
 
@@ -89,10 +107,8 @@ export default function(pool, auth, runPkBattle, computeFinalStats, getMountTitl
       const myTier = myRank?.rank_tier || 'bronze';
       const myTierIdx = getTierIndex(myTier);
 
-      // Get players in same tier +-1
-      const minTier = RANK_TIERS[Math.max(0, myTierIdx - 1)].name;
-      const maxTier = RANK_TIERS[Math.min(RANK_TIERS.length - 1, myTierIdx + 1)].name;
-      const tiers = [minTier, myTier, maxTier].filter((v, i, a) => a.indexOf(v) === i);
+      // Get players in same tier only
+      const tiers = [myTier];
 
       const opponents = (await pool.query(
         `SELECT r.wallet, r.rank_score, r.rank_tier, r.wins, r.losses, r.win_streak,

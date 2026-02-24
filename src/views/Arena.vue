@@ -100,7 +100,7 @@
             <div class="opp-left">
               <div class="opp-tier" :style="{color:tierColor[o.rankTier]}">{{ tierEmoji[o.rankTier] }}</div>
               <div class="opp-info">
-                <div class="opp-name">{{ o.name }}</div>
+                <div class="opp-name clickable" @click.stop="detailPlayer=o">{{ o.name }}</div>
                 <div class="opp-sub">{{ o.realm }} Lv.{{ o.level }}</div>
                 <div class="opp-stats">
                   <span :class="o.combatPower>myCombatPower?'cp-high':'cp-low'">⚔️{{ o.combatPower }}</span>
@@ -111,7 +111,24 @@
             <button class="btn fire" @click="challenge(o)" :disabled="challenging">⚔️ {{ daily.used>=daily.max ? "挑战(200💎)" : "挑战" }}</button>
           </div>
         </div>
-        <button class="btn gold full" @click="loadOpponents" :disabled="loading" style="margin-top:12px">🔄 刷新对手</button>
+        <!-- 玩家详情弹窗 -->
+      <div v-if="detailPlayer" class="detail-overlay" @click="detailPlayer=null">
+        <div class="detail-card" @click.stop>
+          <div class="detail-header">
+            <div class="detail-avatar" :style="{color:tierColor[detailPlayer.rankTier]}">{{ tierEmoji[detailPlayer.rankTier] }}</div>
+            <div class="detail-name">{{ detailPlayer.name }}</div>
+          </div>
+          <div class="detail-row"><span>等级</span><span>Lv.{{ detailPlayer.level }}</span></div>
+          <div class="detail-row"><span>境界</span><span>{{ detailPlayer.realm }}</span></div>
+          <div class="detail-row"><span>战力</span><span>{{ detailPlayer.combatPower }}</span></div>
+          <div class="detail-row"><span>段位</span><span :style="{color:tierColor[detailPlayer.rankTier]}">{{ tierName[detailPlayer.rankTier] }} {{ detailPlayer.rankScore }}分</span></div>
+          <div class="detail-row"><span>胜率</span><span>{{ detailPlayer.winRate }}%</span></div>
+          <div class="detail-row"><span>胜/负</span><span>{{ detailPlayer.wins }}W / {{ detailPlayer.losses }}L</span></div>
+          <button class="btn fire full" @click="challenge(detailPlayer);detailPlayer=null" :disabled="challenging" style="margin-top:12px">⚔️ 挑战</button>
+          <button class="btn gold full" @click="detailPlayer=null" style="margin-top:8px">关闭</button>
+        </div>
+      </div>
+      <button class="btn gold full" @click="loadOpponents" :disabled="loading" style="margin-top:12px">🔄 刷新对手</button>
       </div>
 
       <div v-if="tab==='log'">
@@ -140,6 +157,8 @@
             <div class="notif-time">{{ formatTime(n.created_at) }}</div>
           </div>
           <button v-if="!n.revenged&&canRevenge(n)" class="btn fire sm" @click="revenge(n)">🔥 复仇</button>
+          <span v-else-if="n.revengeResult==='win'" class="revenge-win">复仇成功</span>
+          <span v-else-if="n.revengeResult==='lose'" class="revenge-lose">复仇失败</span>
           <span v-else-if="n.revenged" class="revenged">已复仇</span>
         </div>
       </div>
@@ -166,6 +185,7 @@ const daily = ref({ used: 0, max: 5, wins: 0 })
 const unreadNotifs = ref(0)
 const myStreak = ref(0)
 const battles = ref([])
+const detailPlayer = ref(null)
 const notifs = ref([])
 
 // Battle replay state
@@ -324,7 +344,7 @@ const revenge = async (n) => {
   challenging.value = true
   try {
     const res = await authStore.apiPost("/arena/challenge", { targetWallet: n.attacker_wallet, isRevenge: true })
-    if (res.success) { n.revenged = true; startBattle(res) }
+    if (res.success) { n.revenged = true; n.revengeResult = res.result.winner === 'attacker' ? 'win' : 'lose'; startBattle(res) }
     else alert(res.message || "复仇失败")
   } catch (e) { alert("网络错误") }
   challenging.value = false
@@ -443,6 +463,16 @@ onUnmounted(() => { clearTimer() })
 .btn-replay { background: rgba(212,168,67,0.15); border: 1px solid rgba(212,168,67,0.3); color: #d4a843; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-top: 4px; }
 .btn-replay:active { background: rgba(212,168,67,0.3); }
 .log-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.revenge-win { color: #4caf50; font-size: 12px; font-weight: bold; }
+.revenge-lose { color: #ff4500; font-size: 12px; font-weight: bold; }
+.detail-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.detail-card { background: #1a1520; border: 2px solid #d4a843; border-radius: 16px; padding: 20px; min-width: 280px; max-width: 340px; }
+.detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.detail-avatar { font-size: 36px; }
+.detail-name { color: #ffd700; font-size: 18px; font-weight: bold; }
+.detail-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(212,168,67,0.1); font-size: 14px; }
+.detail-row span:first-child { color: #a08030; }
+.detail-row span:last-child { color: #ffd700; }
 .clickable { cursor: pointer; transition: background 0.2s; }
 .clickable:active { background: rgba(212,168,67,0.15); }
 @keyframes battle-shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
