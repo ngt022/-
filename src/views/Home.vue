@@ -25,7 +25,7 @@
           </div>
           <div class="char-info">
             <div class="char-name">{{ playerStore.name }}</div>
-            <div class="char-realm">{{ playerStore.realm }}</div>
+            <div class="char-realm">{{ playerStore.realm }} <span style="opacity:0.7;font-size:0.85em">Lv.{{ playerStore.level }}</span></div>
             <div class="char-stats">
               <span>等级 <b>{{ playerStore.level }}</b></span>
               <span class="stat-sep">|</span>
