@@ -9,7 +9,7 @@
     <div class="reward-info">
       <div class="reward-title">💰 月度奖励池：收入ROON的5%</div>
       <div class="reward-rules">
-        🥇 第1名 30% · 🥈🥉 第2-3名各15% · 第4-10名平分25% · 第11-50名平分15%
+        ⚔️ 战力榜: ROON奖励(1名30%/2-3名各15%/4-10名分25%/11-50名分15%) · 其他榜: 焰晶奖励(1名5000/2-3名3000/4-10名1000/11-50名500)
       </div>
     </div>
     <div class="list">

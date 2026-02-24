@@ -58,7 +58,7 @@ module.exports = function(pool, auth) {
     const month = getCurrentMonth();
     await pool.query(
       `INSERT INTO monthly_spending (wallet, month, total_spent) VALUES ($1, $2, $3)
-       ON CONFLICT (wallet, month) DO UPDATE SET total_spent = monthly_spending.total_spent + $3`,
+       ON CONFLICT (wallet, month) DO UPDATE SET total_spent = monthly_spending.total_spent + $3$3`,
       [wallet, month, amount]
     );
   };
@@ -68,7 +68,7 @@ module.exports = function(pool, auth) {
     const month = getCurrentMonth();
     await pool.query(
       `INSERT INTO minigame_scores (wallet, month, total_score) VALUES ($1, $2, $3)
-       ON CONFLICT (wallet, month) DO UPDATE SET total_score = minigame_scores.total_score + $3`,
+       ON CONFLICT (wallet, month) DO UPDATE SET total_score = minigame_scores.total_score + $3$3`,
       [wallet, month, score]
     );
   };
@@ -96,12 +96,12 @@ module.exports = function(pool, auth) {
         )).rows;
       } else if (type === 'spending') {
         rows = (await pool.query(
-          'SELECT s.wallet, p.name, s.total_spent as score, p.level, p.realm FROM monthly_spending s JOIN players p ON p.wallet = s.wallet WHERE s.month =  ORDER BY s.total_spent DESC LIMIT 50',
+          'SELECT s.wallet, p.name, s.total_spent as score, p.level, p.realm FROM monthly_spending s JOIN players p ON p.wallet = s.wallet WHERE s.month = $1 ORDER BY s.total_spent DESC LIMIT 50',
           [month]
         )).rows;
       } else if (type === 'minigame') {
         rows = (await pool.query(
-          'SELECT s.wallet, p.name, s.total_score as score, p.level, p.realm FROM minigame_scores s JOIN players p ON p.wallet = s.wallet WHERE s.month =  ORDER BY s.total_score DESC LIMIT 50',
+          'SELECT s.wallet, p.name, s.total_score as score, p.level, p.realm FROM minigame_scores s JOIN players p ON p.wallet = s.wallet WHERE s.month = $1 ORDER BY s.total_score DESC LIMIT 50',
           [month]
         )).rows;
       }
@@ -126,10 +126,10 @@ module.exports = function(pool, auth) {
     try {
       const { month, type } = req.params;
       const rows = (await pool.query(
-        'SELECT wallet, player_name as name, score, rank_position, reward_roon FROM monthly_rankings WHERE month =  AND rank_type =  ORDER BY rank_position ASC',
+        'SELECT wallet, player_name as name, score, rank_position, reward_roon FROM monthly_rankings WHERE month = $1 AND rank_type = $2 ORDER BY rank_position ASC',
         [month, type]
       )).rows;
-      const revenue = (await pool.query('SELECT * FROM monthly_revenue WHERE month = ', [month])).rows[0];
+      const revenue = (await pool.query('SELECT * FROM monthly_revenue WHERE month = $1', [month])).rows[0];
       res.json({ success: true, rankings: rows, revenue });
     } catch (e) {
       res.json({ success: false, message: e.message });
@@ -190,9 +190,9 @@ module.exports = function(pool, auth) {
         } else if (type === 'level') {
           rows = (await pool.query('SELECT wallet, name, level as score FROM players ORDER BY level DESC LIMIT 50')).rows;
         } else if (type === 'spending') {
-          rows = (await pool.query('SELECT s.wallet, p.name, s.total_spent as score FROM monthly_spending s JOIN players p ON p.wallet = s.wallet WHERE s.month =  ORDER BY s.total_spent DESC LIMIT 50', [month])).rows;
+          rows = (await pool.query('SELECT s.wallet, p.name, s.total_spent as score FROM monthly_spending s JOIN players p ON p.wallet = s.wallet WHERE s.month = $1 ORDER BY s.total_spent DESC LIMIT 50', [month])).rows;
         } else if (type === 'minigame') {
-          rows = (await pool.query('SELECT s.wallet, p.name, s.total_score as score FROM minigame_scores s JOIN players p ON p.wallet = s.wallet WHERE s.month =  ORDER BY s.total_score DESC LIMIT 50', [month])).rows;
+          rows = (await pool.query('SELECT s.wallet, p.name, s.total_score as score FROM minigame_scores s JOIN players p ON p.wallet = s.wallet WHERE s.month = $1 ORDER BY s.total_score DESC LIMIT 50', [month])).rows;
         }
 
         for (let i = 0; i < (rows || []).length; i++) {
@@ -207,7 +207,7 @@ module.exports = function(pool, auth) {
         }
       }
 
-      await pool.query('UPDATE monthly_revenue SET snapshot_done = true WHERE month = ', [month]);
+      await pool.query('UPDATE monthly_revenue SET snapshot_done = true WHERE month = $1', [month]);
       res.json({ success: true, message: `快照完成, 共${totalInserted}条记录` });
     } catch (e) {
       res.json({ success: false, message: e.message });
@@ -222,7 +222,7 @@ module.exports = function(pool, auth) {
         return res.json({ success: false, message: '无权限' });
       }
       const { month } = req.body;
-      const rev = (await pool.query('SELECT * FROM monthly_revenue WHERE month = ', [month])).rows[0];
+      const rev = (await pool.query('SELECT * FROM monthly_revenue WHERE month = $1', [month])).rows[0];
       if (!rev) return res.json({ success: false, message: '未找到该月收入记录' });
       if (!rev.snapshot_done) return res.json({ success: false, message: '请先执行快照' });
       if (rev.distributed) return res.json({ success: false, message: '已分配过' });
@@ -241,35 +241,42 @@ module.exports = function(pool, auth) {
         return rankings;
       };
 
-      // 对每个榜单类型分配（5个榜平分奖励池）
+      // 战力榜发ROON(5%奖励池), 其他4榜发焰晶
       const types = ['power', 'pk', 'level', 'spending', 'minigame'];
-      const perTypePool = pool5 / types.length;
       let totalDistributed = 0;
+      const stoneRewards = {1:5000, 2:3000, 3:3000, 4:1000, 5:1000, 6:1000, 7:1000, 8:1000, 9:1000, 10:1000};
 
       for (const type of types) {
         const rankings = (await pool.query(
-          'SELECT * FROM monthly_rankings WHERE month =  AND rank_type =  ORDER BY rank_position ASC',
+          'SELECT * FROM monthly_rankings WHERE month = $1 AND rank_type = $2 ORDER BY rank_position ASC',
           [month, type]
         )).rows;
 
         for (const r of rankings) {
-          let share = 0;
-          if (r.rank_position === 1) share = perTypePool * 0.30;
-          else if (r.rank_position <= 3) share = perTypePool * 0.15;
-          else if (r.rank_position <= 10) share = perTypePool * 0.25 / 7;
-          else if (r.rank_position <= 50) share = perTypePool * 0.15 / 40;
-
-          if (share > 0) {
-            await pool.query(
-              'UPDATE monthly_rankings SET reward_roon =  WHERE id = ',
-              [share.toFixed(6), r.id]
-            );
-            totalDistributed++;
+          if (type === 'power') {
+            let share = 0;
+            if (r.rank_position === 1) share = pool5 * 0.30;
+            else if (r.rank_position <= 3) share = pool5 * 0.15;
+            else if (r.rank_position <= 10) share = pool5 * 0.25 / 7;
+            else if (r.rank_position <= 50) share = pool5 * 0.15 / 40;
+            if (share > 0) {
+              await pool.query('UPDATE monthly_rankings SET reward_roon = $1 WHERE id = $2', [share.toFixed(6), r.id]);
+              totalDistributed++;
+            }
+          } else {
+            let stones = 0;
+            if (r.rank_position <= 10) stones = stoneRewards[r.rank_position] || 1000;
+            else if (r.rank_position <= 50) stones = 500;
+            if (stones > 0) {
+              await pool.query('UPDATE monthly_rankings SET reward_stones = $1 WHERE id = $2', [stones, r.id]);
+              await pool.query(`UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)) WHERE wallet = $2`, [stones, r.wallet]);
+              totalDistributed++;
+            }
           }
         }
       }
 
-      await pool.query('UPDATE monthly_revenue SET distributed = true WHERE month = ', [month]);
+      await pool.query('UPDATE monthly_revenue SET distributed = true WHERE month = $1', [month]);
       res.json({ success: true, message: `奖励分配完成, ${totalDistributed}人获奖, 总池 ${pool5.toFixed(4)} ROON` });
     } catch (e) {
       res.json({ success: false, message: e.message });
