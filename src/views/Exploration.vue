@@ -399,7 +399,7 @@ const clearLogPanel = () => {
   cursor: pointer;
   transition: all 0.3s;
   border: 1px solid rgba(212,168,67,0.15);
-  min-height: 100px;
+  min-height: 140px;
 }
 .map-node:hover:not(.locked) {
   transform: translateY(-2px);
@@ -512,7 +512,7 @@ const clearLogPanel = () => {
 
 @media (max-width: 480px) {
   .map-grid { grid-template-columns: repeat(2, 1fr); }
-  .map-node { min-height: 80px; }
+  .map-node { min-height: 120px; }
   .node-icon { font-size: 22px; }
 }
 
