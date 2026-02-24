@@ -1,4 +1,4 @@
-const CACHE_NAME = 'huozhiwenming-v20260224033229'
+const CACHE_NAME = 'huozhiwenming-v20260224055224'
 const STATIC_ASSETS = [
   './',
   './index.html',

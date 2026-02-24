@@ -67,9 +67,16 @@
                     <span class="sub-page-title">{{ currentPageTitle }}</span>
                     <span class="sub-page-level">{{ playerStore.realm }} Lv.{{ playerStore.level }}</span>
                   </div>
-                  <transition name="page-fade" mode="out-in">
-                    <component :is="pageComponents[currentPage]" :key="currentPage" />
-                  </transition>
+                  <Suspense>
+                      <template #default>
+                        <transition name="page-fade" mode="out-in">
+                          <component :is="pageComponents[currentPage]" :key="currentPage" />
+                        </transition>
+                      </template>
+                      <template #fallback>
+                        <SkeletonLoader :type="getSkeletonType(currentPage)" />
+                      </template>
+                    </Suspense>
                 </div>
                 </transition>
               </div>
@@ -124,6 +131,7 @@
 import { useGameConfigStore } from './stores/gameConfig'
   import { useAuthStore } from './stores/auth'
   import { h, ref, watch, onMounted, onUnmounted, computed, provide, defineAsyncComponent, nextTick } from 'vue'
+  import SkeletonLoader from './components/SkeletonLoader.vue'
   import { NIcon, darkTheme, createDiscreteApi } from 'naive-ui'
   import {
     BookOutlined,
@@ -144,7 +152,6 @@ import { useGameConfigStore } from './stores/gameConfig'
   import WorldChat from './components/WorldChat.vue'
   import GameScene from './components/GameScene.vue'
   import BugReporter from "./components/BugReporter.vue"
-
   // === App化导航系统 ===
   const currentPage = ref('home')
   const pageHistory = ref([])
@@ -243,16 +250,16 @@ function startSplash() {
     gacha: defineAsyncComponent(() => import('./views/Gacha.vue')),
     alchemy: defineAsyncComponent(() => import('./views/Alchemy.vue')),
     dungeon: defineAsyncComponent(() => import('./views/Dungeon.vue')),
-    'daily-dungeon': defineAsyncComponent(() => import('./views/DailyDungeon.vue')),
+    'daily-dungeon': defineAsyncComponent({ loader: () => import('./views/DailyDungeon.vue'), loadingComponent: { render() { return h(SkeletonLoader, { type: 'grid' }) } }, delay: 100 }),
     pk: defineAsyncComponent(() => import('./views/PK.vue')),
     boss: defineAsyncComponent(() => import('./views/WorldBoss.vue')),
     sect: defineAsyncComponent(() => import('./views/Sect.vue')),
-    'sect-war': defineAsyncComponent(() => import('./views/SectWar.vue')),
+    'sect-war': defineAsyncComponent({ loader: () => import('./views/SectWar.vue'), loadingComponent: { render() { return h(SkeletonLoader, { type: 'list' }) } }, delay: 100 }),
     friends: defineAsyncComponent(() => import('./views/Friends.vue')),
     auction: defineAsyncComponent(() => import('./views/Auction.vue')),
     shop: defineAsyncComponent(() => import('./views/Shop.vue')),
     events: defineAsyncComponent(() => import('./views/Events.vue')),
-    'mount-title': defineAsyncComponent(() => import('./views/MountTitle.vue')),
+    'mount-title': defineAsyncComponent({ loader: () => import('./views/MountTitle.vue'), loadingComponent: { render() { return h(SkeletonLoader, { type: 'grid' }) } }, delay: 100 }),
     ascension: defineAsyncComponent(() => import('./views/Ascension.vue')),
     recharge: defineAsyncComponent(() => import('./views/Recharge.vue')),
     vip: defineAsyncComponent(() => import('./views/Vip.vue')),
@@ -261,7 +268,7 @@ function startSplash() {
     mail: defineAsyncComponent(() => import('./views/Mail.vue')),
     settings: defineAsyncComponent(() => import('./views/Settings.vue')),
     admin: defineAsyncComponent(() => import('./views/Admin.vue')),
-    'admin-events': defineAsyncComponent(() => import('./views/AdminEvents.vue')),
+    'admin-events': defineAsyncComponent({ loader: () => import('./views/AdminEvents.vue'), loadingComponent: { render() { return h(SkeletonLoader, { type: 'list' }) } }, delay: 100 }),
     gm: defineAsyncComponent(() => import('./views/GM.vue')),
     profile: defineAsyncComponent(() => import('./views/Profile.vue')),
   }
@@ -551,7 +558,22 @@ if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
     navigateTo(key)
   }
 
-  const isHome = computed(() => currentPage.value === 'home')
+  // 根据页面类型返回对应的骨架屏类型
+const getSkeletonType = (page) => {
+  const typeMap = {
+    list: ['inventory', 'mail', 'friends', 'achievements', 'rank', 'dungeon', 'daily-dungeon', 'exploration'],
+    grid: ['gacha', 'events', 'admin', 'admin-events'],
+    detail: ['profile', 'settings', 'mount-title'],
+    cultivation: ['cultivation', 'ascension'],
+    shop: ['shop', 'auction', 'vip', 'recharge']
+  }
+  for (const [type, pages] of Object.entries(typeMap)) {
+    if (pages.includes(page)) return type
+  }
+  return 'list'
+}
+
+const isHome = computed(() => currentPage.value === 'home')
 
   const pageTitles = {
     cultivation: '修炼', inventory: '背包', gacha: '焰运阁', alchemy: '焰炼',
