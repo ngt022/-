@@ -336,8 +336,7 @@ import { useGameConfigStore } from './stores/gameConfig'
       { key: 'dungeon', label: '焚天塔', icon: '🏔️', img: '/assets/images/menu/menu_dungeon.webp' },
       { key: 'daily-dungeon', label: '秘境', icon: '🌀', img: '/assets/images/menu/menu_daily_dungeon.webp' },
       { key: 'boss', label: '世界Boss', icon: '👹', img: '/assets/images/menu/menu_boss.webp' },
-      { key: 'minigame', label: '焰灵试炼', icon: '🎮' },
-      { key: 'matchgame', label: '焰符连连看', icon: '🔥' },
+      { key: 'game-hall', label: '焰灵游坊', icon: '🎮', img: '/assets/images/menu/menu_game_hall.webp' },
     ]},
     { key: 'character', label: '角色', icon: '🎒', children: [
       { key: 'profile', label: '角色', icon: '👤', img: '/assets/images/menu/menu_profile.webp' },
@@ -422,6 +421,7 @@ function startSplash() {
     pk: defineAsyncComponent(() => import('./views/PK.vue')),
     boss: defineAsyncComponent(() => import('./views/WorldBoss.vue')),
     minigame: defineAsyncComponent({ loader: () => import("./views/MiniGame.vue"), loadingComponent: { render() { return h(SkeletonLoader, { type: "grid" }) } }, delay: 0 }),
+    "game-hall": defineAsyncComponent({ loader: () => import("./views/GameHall.vue"), loadingComponent: { render() { return h(SkeletonLoader, { type: "grid" }) } }, delay: 0 }),
     "match-game": defineAsyncComponent({ loader: () => import("./views/MatchGame.vue"), loadingComponent: { render() { return h(SkeletonLoader, { type: "grid" }) } }, delay: 0 }),
     "snake-game": defineAsyncComponent({ loader: () => import("./views/SnakeGame.vue"), loadingComponent: { render() { return h(SkeletonLoader, { type: "grid" }) } }, delay: 0 }),
     "puzzle-game": defineAsyncComponent({ loader: () => import("./views/PuzzleGame.vue"), loadingComponent: { render() { return h(SkeletonLoader, { type: "grid" }) } }, delay: 0 }),
