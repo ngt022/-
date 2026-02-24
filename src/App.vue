@@ -336,6 +336,7 @@ import { useGameConfigStore } from './stores/gameConfig'
       { key: 'dungeon', label: '焚天塔', icon: '🏔️', img: '/assets/images/menu/menu_dungeon.webp' },
       { key: 'daily-dungeon', label: '秘境', icon: '🌀', img: '/assets/images/menu/menu_daily_dungeon.webp' },
       { key: 'boss', label: '世界Boss', icon: '👹', img: '/assets/images/menu/menu_boss.webp' },
+      { key: 'minigame', label: '焰灵试炼', icon: '🎮', img: '/assets/images/menu/menu_minigame.webp' },
     ]},
     { key: 'character', label: '角色', icon: '🎒', children: [
       { key: 'profile', label: '角色', icon: '👤', img: '/assets/images/menu/menu_profile.webp' },
@@ -419,6 +420,7 @@ function startSplash() {
     'daily-dungeon': defineAsyncComponent({ loader: () => import('./views/DailyDungeon.vue'), loadingComponent: { render() { return h(SkeletonLoader, { type: 'grid' }) } }, delay: 0 }),
     pk: defineAsyncComponent(() => import('./views/PK.vue')),
     boss: defineAsyncComponent(() => import('./views/WorldBoss.vue')),
+    minigame: defineAsyncComponent({ loader: () => import("./views/MiniGame.vue"), loadingComponent: { render() { return h(SkeletonLoader, { type: "grid" }) } }, delay: 0 }),
     sect: defineAsyncComponent(() => import('./views/Sect.vue')),
     'sect-war': defineAsyncComponent({ loader: () => import('./views/SectWar.vue'), loadingComponent: { render() { return h(SkeletonLoader, { type: 'list' }) } }, delay: 0 }),
     friends: defineAsyncComponent(() => import('./views/Friends.vue')),
