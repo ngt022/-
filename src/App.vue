@@ -85,7 +85,8 @@
                 <div class="submenu-grid">
                   <div v-for="child in navTabs.find(t => t.key === expandedTab)?.children || []"
                     :key="child.key" class="submenu-item" @click="selectSubItem(child.key)">
-                    <span class="submenu-icon">{{ child.icon }}</span>
+                    <img v-if="child.img" :src="child.img" class="submenu-img" @error="$event.target.style.display='none'" />
+                    <span v-if="!child.img" class="submenu-icon">{{ child.icon }}</span>
                     <span class="submenu-label">{{ child.label }}</span>
                   </div>
                 </div>
@@ -173,34 +174,34 @@ import { useGameConfigStore } from './stores/gameConfig'
   const navTabs = [
     { key: 'home', label: '主城', icon: '🏠' },
     { key: 'adventure', label: '冒险', icon: '⚔️', children: [
-      { key: 'cultivation', label: '冥想', icon: '🧘' },
-      { key: 'exploration', label: '探索', icon: '🗺️' },
-      { key: 'dungeon', label: '焚天塔', icon: '🏔️' },
-      { key: 'daily-dungeon', label: '秘境', icon: '🌀' },
-      { key: 'boss', label: '世界Boss', icon: '👹' },
+      { key: 'cultivation', label: '冥想', icon: '🧘', img: '/assets/images/menu/menu_cultivation.webp' },
+      { key: 'exploration', label: '探索', icon: '🗺️', img: '/assets/images/menu/menu_exploration.webp' },
+      { key: 'dungeon', label: '焚天塔', icon: '🏔️', img: '/assets/images/menu/menu_dungeon.webp' },
+      { key: 'daily-dungeon', label: '秘境', icon: '🌀', img: '/assets/images/menu/menu_daily_dungeon.webp' },
+      { key: 'boss', label: '世界Boss', icon: '👹', img: '/assets/images/menu/menu_boss.webp' },
     ]},
     { key: 'character', label: '角色', icon: '🎒', children: [
-      { key: 'profile', label: '角色', icon: '👤' },
-      { key: 'inventory', label: '背包', icon: '🎒' },
-      { key: 'alchemy', label: '焰炼', icon: '🧪' },
-      { key: 'mount-title', label: '焰骑', icon: '🐉' },
-      { key: 'ascension', label: '飞升', icon: '🌟' },
-      { key: 'achievements', label: '焰功', icon: '🏆' },
+      { key: 'profile', label: '角色', icon: '👤', img: '/assets/images/menu/menu_profile.webp' },
+      { key: 'inventory', label: '背包', icon: '🎒', img: '/assets/images/menu/menu_inventory.webp' },
+      { key: 'alchemy', label: '焰炼', icon: '🧪', img: '/assets/images/menu/menu_alchemy.webp' },
+      { key: 'mount-title', label: '焰骑', icon: '🐉', img: '/assets/images/menu/menu_mount.webp' },
+      { key: 'ascension', label: '飞升', icon: '🌟', img: '/assets/images/menu/menu_ascension.webp' },
+      { key: 'achievements', label: '焰功', icon: '🏆', img: '/assets/images/menu/menu_achievements.webp' },
     ]},
     { key: 'social', label: '社交', icon: '👥', children: [
-      { key: 'pk', label: '切磋', icon: '⚔️' },
-      { key: 'sect', label: '宗门', icon: '🏛️' },
-      { key: 'sect-war', label: '宗门战', icon: '🏛️' },
-      { key: 'friends', label: '好友', icon: '👥' },
-      { key: 'auction', label: '拍卖行', icon: '💰' },
-      { key: 'rank', label: '排行榜', icon: '🏆' },
+      { key: 'pk', label: '切磋', icon: '⚔️', img: '/assets/images/menu/menu_pk.webp' },
+      { key: 'sect', label: '宗门', icon: '🏛️', img: '/assets/images/menu/menu_sect.webp' },
+      { key: 'sect-war', label: '宗门战', icon: '🏛️', img: '/assets/images/menu/menu_sect_war.webp' },
+      { key: 'friends', label: '好友', icon: '👥', img: '/assets/images/menu/menu_friends.webp' },
+      { key: 'auction', label: '拍卖行', icon: '💰', img: '/assets/images/menu/menu_auction.webp' },
+      { key: 'rank', label: '排行榜', icon: '🏆', img: '/assets/images/menu/menu_rank.webp' },
     ]},
     { key: 'market', label: '商城', icon: '💰', children: [
-      { key: 'shop', label: '商城', icon: '🏪' },
-      { key: 'gacha', label: '抽卡', icon: '🎰' },
-      { key: 'vip', label: '焰阶', icon: '👑' },
-      { key: 'recharge', label: '充值', icon: '💎' },
-      { key: 'events', label: '活动', icon: '🎉' },
+      { key: 'shop', label: '商城', icon: '🏪', img: '/assets/images/menu/menu_shop.webp' },
+      { key: 'gacha', label: '抽卡', icon: '🎰', img: '/assets/images/menu/menu_gacha.webp' },
+      { key: 'vip', label: '焰阶', icon: '👑', img: '/assets/images/menu/menu_vip.webp' },
+      { key: 'recharge', label: '充值', icon: '💎', img: '/assets/images/menu/menu_recharge.webp' },
+      { key: 'events', label: '活动', icon: '🎉', img: '/assets/images/menu/menu_events.webp' },
     ]},
   ]
 
@@ -1545,6 +1546,8 @@ watch(() => authStore.wallet, (w) => { if (w) { setTimeout(checkAnnouncementPopu
   .submenu-label { font-size: 11px; color: #ccc; white-space: nowrap; }
   .nav-tab.expanded .nav-icon { transform: scale(1.15); }
   .nav-tab.expanded .nav-label { color: #d4a843; }
+
+  .submenu-img { width: 32px; height: 32px; object-fit: contain; margin-bottom: 2px; }
   /* 子菜单动画 */
   .submenu-slide-enter-active, .submenu-slide-leave-active {
     transition: transform 0.25s ease, opacity 0.25s ease;

@@ -313,28 +313,28 @@ const equipSlots = [
 // 快捷入口
 const shortcutGroups = [
   { title: '修炼', items: [
-    { icon: '🧘', label: '冥想', path: '/cultivation', color: '#3498db' },
-    { icon: '🗺️', label: '探索', path: '/exploration', color: '#2ecc71' },
-    { icon: '🏔️', label: '焚天塔', path: '/dungeon', color: '#e67e22' },
-    { icon: '🌀', label: '秘境', path: '/daily-dungeon', color: '#9b59b6' },
+    { icon: '🧘', label: '冥想', path: '/cultivation', color: '#3498db', img: '/assets/images/menu/menu_cultivation.webp' },
+    { icon: '🗺️', label: '探索', path: '/exploration', color: '#2ecc71', img: '/assets/images/menu/menu_exploration.webp' },
+    { icon: '🏔️', label: '焚天塔', path: '/dungeon', color: '#e67e22', img: '/assets/images/menu/menu_dungeon.webp' },
+    { icon: '🌀', label: '秘境', path: '/daily-dungeon', color: '#9b59b6', img: '/assets/images/menu/menu_daily_dungeon.webp' },
   ]},
   { title: '战斗', items: [
-    { icon: '⚔️', label: '切磋', path: '/pk', color: '#e74c3c' },
-    { icon: '👹', label: '世界Boss', path: '/world-boss', color: '#c0392b' },
-    { icon: '🏛️', label: '宗门战', path: '/sect-war', color: '#d35400' },
-    { icon: '🏛️', label: '宗门', path: '/sect', color: '#e67e22' },
+    { icon: '⚔️', label: '切磋', path: '/pk', color: '#e74c3c', img: '/assets/images/menu/menu_pk.webp' },
+    { icon: '👹', label: '世界Boss', path: '/world-boss', color: '#c0392b', img: '/assets/images/menu/menu_boss.webp' },
+    { icon: '🏛️', label: '宗门战', path: '/sect-war', color: '#d35400', img: '/assets/images/menu/menu_sect_war.webp' },
+    { icon: '🏛️', label: '宗门', path: '/sect', color: '#e67e22', img: '/assets/images/menu/menu_sect.webp' },
   ]},
   { title: '成长', items: [
-    { icon: '🎰', label: '抽卡', path: '/gacha', color: '#f39c12' },
-    { icon: '🧪', label: '焰炼', path: '/alchemy', color: '#1abc9c' },
-    { icon: '🐉', label: '焰兽', path: '/inventory', color: '#e74c3c' },
-    { icon: '🎒', label: '储藏室', path: '/inventory', color: '#8e44ad' },
+    { icon: '🎰', label: '抽卡', path: '/gacha', color: '#f39c12', img: '/assets/images/menu/menu_gacha.webp' },
+    { icon: '🧪', label: '焰炼', path: '/alchemy', color: '#1abc9c', img: '/assets/images/menu/menu_alchemy.webp' },
+    { icon: '🐉', label: '焰兽', path: '/inventory', color: '#e74c3c', img: '/assets/images/menu/menu_inventory.webp' },
+    { icon: '🎒', label: '储藏室', path: '/inventory', color: '#8e44ad', img: '/assets/images/menu/menu_inventory.webp' },
   ]},
   { title: '社交', items: [
-    { icon: '🏪', label: '商城', path: '/shop', color: '#27ae60' },
-    { icon: '💰', label: '拍卖行', path: '/auction', color: '#f1c40f' },
-    { icon: '👥', label: '好友', path: '/friends', color: '#3498db' },
-    { icon: '🏆', label: '排行榜', path: '/rank', color: '#d4a843' },
+    { icon: '🏪', label: '商城', path: '/shop', color: '#27ae60', img: '/assets/images/menu/menu_shop.webp' },
+    { icon: '💰', label: '拍卖行', path: '/auction', color: '#f1c40f', img: '/assets/images/menu/menu_auction.webp' },
+    { icon: '👥', label: '好友', path: '/friends', color: '#3498db', img: '/assets/images/menu/menu_friends.webp' },
+    { icon: '🏆', label: '排行榜', path: '/rank', color: '#d4a843', img: '/assets/images/menu/menu_rank.webp' },
   ]},
 ]
 // 兼容旧引用
@@ -645,4 +645,7 @@ const particleStyle = (i) => ({
   border-radius: 8px;
   letter-spacing: 2px;
 }
+
+.shortcut-img { width: 36px; height: 36px; object-fit: contain; }
+.shortcut-emoji { font-size: 1.6rem; }
 </style>
