@@ -116,7 +116,7 @@
 
       <div v-if="tab==='log'">
         <div v-if="battles.length===0" class="empty">暂无战斗记录</div>
-        <div v-for="b in battles" :key="b.id" class="log-card">
+        <div v-for="b in battles" :key="b.id" class="log-card clickable" @click="viewReplay(b)">
           <div class="log-left">
             <div class="log-result" :class="getLogResult(b)">{{ getLogResult(b)==="win"?"胜":"负" }}</div>
             <div class="log-info">
@@ -130,7 +130,7 @@
 
       <div v-if="tab==='notif'">
         <div v-if="notifs.length===0" class="empty">暂无通知</div>
-        <div v-for="n in notifs" :key="n.id" class="notif-card">
+        <div v-for="n in notifs" :key="n.id" class="notif-card clickable">
           <div class="notif-left">
             <div class="notif-text">💀 {{ n.attacker_name }} 击败了你</div>
             <div class="notif-score neg">积分 {{ n.score_change }}</div>
@@ -327,6 +327,32 @@ const revenge = async (n) => {
   challenging.value = false
 }
 
+const viewReplay = async (b) => {
+  try {
+    const res = await authStore.apiGet("/arena/replay/" + b.id)
+    if (res.success && res.battle.rounds_data) {
+      const rd = typeof res.battle.rounds_data === 'string' ? JSON.parse(res.battle.rounds_data) : res.battle.rounds_data
+      battleResult.value = {
+        rounds: rd,
+        winner: res.battle.winner === res.battle.attacker_wallet ? 'A' : 'B',
+        nameA: res.battle.attacker_name,
+        nameB: res.battle.defender_name,
+        maxHpA: res.battle.attacker_power * 2,
+        maxHpB: res.battle.defender_power * 2,
+        finalHpA: res.battle.winner === res.battle.attacker_wallet ? 1 : 0,
+        finalHpB: res.battle.winner === res.battle.defender_wallet ? 1 : 0,
+      }
+      lastWinner.value = res.battle.winner === myWallet.value ? 'attacker' : 'defender'
+      lastScoreChange.value = res.battle.attacker_wallet === myWallet.value ? res.battle.attacker_score_change : res.battle.defender_score_change
+      lastReward.value = res.battle.reward_stones || 0
+      lastDailyReward.value = 0
+      startCountdown()
+    } else {
+      alert('回放数据不可用')
+    }
+  } catch (e) { alert('加载回放失败') }
+}
+
 const loadHistory = async () => { try { const r = await authStore.apiGet("/arena/history"); if (r.success) battles.value = r.battles } catch(e){} }
 const loadNotifs = async () => { try { const r = await authStore.apiGet("/arena/notifications"); if (r.success) { notifs.value = r.notifications; unreadNotifs.value = 0 } } catch(e){} }
 
@@ -411,6 +437,8 @@ onUnmounted(() => { clearTimer() })
 .notif-card { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; margin-bottom: 6px; background: rgba(255,69,0,0.06); border: 1px solid rgba(255,69,0,0.15); border-radius: 10px; }
 .notif-text { color: #ff6b35; font-size: 14px; } .notif-score { font-size: 13px; } .notif-time { color: #a08030; font-size: 11px; }
 .revenged { color: #4caf50; font-size: 12px; }
+.clickable { cursor: pointer; transition: background 0.2s; }
+.clickable:active { background: rgba(212,168,67,0.15); }
 @keyframes battle-shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
 .screen-shake { animation: battle-shake 0.4s ease-out; }
 </style>
