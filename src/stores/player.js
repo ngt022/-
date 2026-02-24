@@ -179,7 +179,7 @@ export const usePlayerStore = defineStore('player', {
     unlockedRealms: ['燃火一层'], // 已解锁境界
     unlockedLocations: ['新手村'], // 已解锁地点
     unlockedSkills: [], // 已解锁功法
-    completedAchievements: [], // 已完成成就
+    completedAchievements: JSON.parse(localStorage.getItem("xx_completed_achievements") || "[]"), // 已完成成就(持久化)
     isAutoCultivating: false, // 自动冥想状态
     storageExpand: {}, // 背包扩容等级
     buffs: {} // 商城buff（doubleCrystal/cultivationBoost/luckyCharm）
