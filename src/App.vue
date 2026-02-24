@@ -562,6 +562,7 @@ if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
   const goBack = () => {
     // 始终回主城
     currentPage.value = 'home'
+    activeTab.value = 'home'
     pageHistory.value = []
   }
 
