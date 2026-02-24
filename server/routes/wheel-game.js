@@ -47,6 +47,8 @@ export default (pool, auth) => {
       }
       const newCount = spinCount + 1
       await pool.query("UPDATE players SET game_data = jsonb_set(COALESCE(game_data, '{}'), '{wheelGame}', $1::jsonb) WHERE wallet = $2", [JSON.stringify({ lastDate: today, spinCount: newCount }), wallet])
+      // 追踪小游戏分数
+      try { if (req.app.monthlyRankings) await req.app.monthlyRankings.trackMinigameScore(wallet || req.wallet, score || maxScore || 0); } catch(e) {}
       res.json({ success: true, sectorIndex, reward: sector, remainingSpins: 5 - newCount, isFree, cost: isFree ? 0 : 200 })
     } catch (e) { res.status(500).json({ success: false, message: e.message }) }
   })

@@ -31,6 +31,8 @@ export default (pool, auth) => {
       await pool.query("UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)) WHERE wallet = $2", [reward, wallet])
       const newCount = (mg.lastDate === today ? (mg.playCount || 0) : 0) + 1
       await pool.query("UPDATE players SET game_data = jsonb_set(COALESCE(game_data, '{}'), '{snakeGame}', $1::jsonb) WHERE wallet = $2", [JSON.stringify({ lastDate: today, playCount: newCount, currentToken: null, bestScore: Math.max(mg.bestScore || 0, maxScore) }), wallet])
+      // 追踪小游戏分数
+      try { if (req.app.monthlyRankings) await req.app.monthlyRankings.trackMinigameScore(wallet || req.wallet, score || maxScore || 0); } catch(e) {}
       res.json({ success: true, score: maxScore, reward, remainingPlays: 3 - newCount, bestScore: Math.max(mg.bestScore || 0, maxScore) })
     } catch (e) { res.status(500).json({ success: false, message: e.message }) }
   })

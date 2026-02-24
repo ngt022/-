@@ -72,6 +72,8 @@ export default (pool, auth) => {
         [JSON.stringify({ lastDate: today, playCount: newCount, currentToken: null, bestScore: Math.max(mgData.bestScore || 0, maxScore) }), wallet]
       )
       
+      // 追踪小游戏分数
+      try { if (req.app.monthlyRankings) await req.app.monthlyRankings.trackMinigameScore(wallet || req.wallet, score || maxScore || 0); } catch(e) {}
       res.json({ success: true, score: maxScore, reward, remainingPlays: 3 - newCount, bestScore: Math.max(mgData.bestScore || 0, maxScore) })
     } catch (e) {
       res.status(500).json({ success: false, message: e.message })

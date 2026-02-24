@@ -35,6 +35,8 @@ export default (pool, auth) => {
       }
       const newCount = (mg.lastDate === today ? (mg.playCount || 0) : 0) + 1
       await pool.query("UPDATE players SET game_data = jsonb_set(COALESCE(game_data, '{}'), '{puzzleGame}', $1::jsonb) WHERE wallet = $2", [JSON.stringify({ lastDate: today, playCount: newCount, currentToken: null, bestMoves: completed ? Math.min(mg.bestMoves || 999, moves) : (mg.bestMoves || 999) }), wallet])
+      // 追踪小游戏分数
+      try { if (req.app.monthlyRankings) await req.app.monthlyRankings.trackMinigameScore(wallet || req.wallet, score || maxScore || 0); } catch(e) {}
       res.json({ success: true, moves, reward, completed, remainingPlays: 3 - newCount, bestMoves: completed ? Math.min(mg.bestMoves || 999, moves) : (mg.bestMoves || 999) })
     } catch (e) { res.status(500).json({ success: false, message: e.message }) }
   })
