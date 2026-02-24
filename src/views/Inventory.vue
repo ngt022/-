@@ -1377,16 +1377,16 @@ const navigateTo = inject('navigateTo')
   .eq-enhance { position: absolute; top: 1px; right: 2px; font-size: 11px; color: #FFD700; font-weight: bold; text-shadow: 0 0 4px rgba(255,215,0,0.6); }
 
   /* 装备栏品质 */
-  .eq-quality-common { border: 1.5px solid #555; }
-  .eq-quality-uncommon { border: 1.5px solid #4caf50; box-shadow: 0 0 6px rgba(76,175,80,0.3); }
-  .eq-quality-rare { border: 1.5px solid #2196f3; box-shadow: 0 0 6px rgba(33,150,243,0.3); }
-  .eq-quality-epic { border: 1.5px solid #9c27b0; box-shadow: 0 0 8px rgba(156,39,176,0.3); }
-  .eq-quality-legendary { border: 1.5px solid #ff9800; box-shadow: 0 0 8px rgba(255,152,0,0.4); }
-  .eq-quality-mythic { border: 1.5px solid #e91e63; box-shadow: 0 0 10px rgba(233,30,99,0.4); animation: mythic-pulse 2s ease-in-out infinite; }
+  .eq-quality-common { border: 1.5px solid rgba(150,150,150,0.3); }
+  .eq-quality-uncommon { border: 1.5px solid rgba(184,134,11,0.5); box-shadow: 0 0 6px rgba(184,134,11,0.2); }
+  .eq-quality-rare { border: 1.5px solid rgba(212,168,67,0.6); box-shadow: 0 0 8px rgba(212,168,67,0.25); }
+  .eq-quality-epic { border: 1.5px solid rgba(255,165,0,0.6); box-shadow: 0 0 10px rgba(255,165,0,0.3); }
+  .eq-quality-legendary { border: 1.5px solid rgba(255,215,0,0.6); box-shadow: 0 0 10px rgba(255,215,0,0.35); }
+  .eq-quality-mythic { border: 1.5px solid rgba(255,80,0,0.6); box-shadow: 0 0 12px rgba(255,80,0,0.4); animation: mythic-pulse 2s ease-in-out infinite; }
 
   @keyframes mythic-pulse {
-    0%,100% { box-shadow: 0 0 8px rgba(233,30,99,0.4); }
-    50% { box-shadow: 0 0 18px rgba(233,30,99,0.7), 0 0 30px rgba(233,30,99,0.2); }
+    0%,100% { box-shadow: 0 0 8px rgba(255,80,0,0.3); }
+    50% { box-shadow: 0 0 18px rgba(255,80,0,0.6), 0 0 30px rgba(255,80,0,0.15); }
   }
 
   /* === 筛选 tab === */
@@ -1424,22 +1424,22 @@ const navigateTo = inject('navigateTo')
   .empty-dot { color: rgba(212,168,67,0.1); font-size: 20px; }
 
   /* 网格品质边框 */
-  .sq-common { border: 1.5px solid #9e9e9e44; }
-  .sq-common:hover { border-color: #9e9e9e; box-shadow: 0 0 8px rgba(158,158,158,0.3); }
-  .sq-uncommon { border: 1.5px solid #4caf5066; }
-  .sq-uncommon:hover { border-color: #4caf50; box-shadow: 0 0 10px rgba(76,175,80,0.4); }
-  .sq-rare { border: 1.5px solid #2196f366; }
-  .sq-rare:hover { border-color: #2196f3; box-shadow: 0 0 10px rgba(33,150,243,0.4); }
-  .sq-epic { border: 1.5px solid #9c27b066; }
-  .sq-epic:hover { border-color: #9c27b0; box-shadow: 0 0 12px rgba(156,39,176,0.4); }
-  .sq-legendary { border: 1.5px solid #ff980066; animation: legendary-glow 3s ease-in-out infinite; }
-  .sq-legendary:hover { border-color: #ff9800; box-shadow: 0 0 12px rgba(255,152,0,0.5); }
+  .sq-common { border: 1.5px solid rgba(150,150,150,0.2); }
+  .sq-common:hover { border-color: rgba(150,150,150,0.5); box-shadow: 0 0 8px rgba(150,150,150,0.2); }
+  .sq-uncommon { border: 1.5px solid rgba(184,134,11,0.35); }
+  .sq-uncommon:hover { border-color: rgba(184,134,11,0.7); box-shadow: 0 0 10px rgba(184,134,11,0.3); }
+  .sq-rare { border: 1.5px solid rgba(212,168,67,0.4); }
+  .sq-rare:hover { border-color: rgba(212,168,67,0.7); box-shadow: 0 0 10px rgba(212,168,67,0.3); }
+  .sq-epic { border: 1.5px solid rgba(255,165,0,0.4); }
+  .sq-epic:hover { border-color: rgba(255,165,0,0.7); box-shadow: 0 0 12px rgba(255,165,0,0.35); }
+  .sq-legendary { border: 1.5px solid rgba(255,215,0,0.4); animation: legendary-glow 3s ease-in-out infinite; }
+  .sq-legendary:hover { border-color: rgba(255,215,0,0.7); box-shadow: 0 0 12px rgba(255,215,0,0.4); }
   @keyframes legendary-glow {
-    0%, 100% { box-shadow: 0 0 4px rgba(255,152,0,0.2); }
-    50% { box-shadow: 0 0 12px rgba(255,152,0,0.5), inset 0 0 8px rgba(255,152,0,0.1); }
+    0%, 100% { box-shadow: 0 0 4px rgba(255,215,0,0.2); }
+    50% { box-shadow: 0 0 12px rgba(255,215,0,0.4), inset 0 0 8px rgba(255,215,0,0.08); }
   }
-  .sq-mythic { border: 1.5px solid #e91e6366; animation: mythic-pulse 2s ease-in-out infinite; }
-  .sq-mythic:hover { border-color: #e91e63; box-shadow: 0 0 16px rgba(233,30,99,0.6); }
+  .sq-mythic { border: 1.5px solid rgba(255,80,0,0.4); animation: mythic-pulse 2s ease-in-out infinite; }
+  .sq-mythic:hover { border-color: rgba(255,80,0,0.7); box-shadow: 0 0 16px rgba(255,80,0,0.5); }
 
   /* 格子内容 */
   .cell-icon-area { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px; }
@@ -1459,16 +1459,16 @@ const navigateTo = inject('navigateTo')
   /* === 焰兽格子 === */
   .pet-img { width: 30px; height: 30px; border-radius: 6px; }
   .pet-stars-mini { font-size: 8px; color: #FFD700; line-height: 1; }
-  .pet-q-mortal { border: 1.5px solid #32CD3266; }
-  .pet-q-mortal:hover { border-color: #32CD32; box-shadow: 0 0 8px rgba(50,205,50,0.4); }
-  .pet-q-spiritual { border: 1.5px solid #1E90FF66; }
-  .pet-q-spiritual:hover { border-color: #1E90FF; box-shadow: 0 0 8px rgba(30,144,255,0.4); }
-  .pet-q-mystic { border: 1.5px solid #9932CC66; }
-  .pet-q-mystic:hover { border-color: #9932CC; box-shadow: 0 0 10px rgba(153,50,204,0.4); }
-  .pet-q-celestial { border: 1.5px solid #FFD70066; }
+  .pet-q-mortal { border: 1.5px solid rgba(150,130,80,0.35); }
+  .pet-q-mortal:hover { border-color: rgba(150,130,80,0.7); box-shadow: 0 0 8px rgba(150,130,80,0.3); }
+  .pet-q-spiritual { border: 1.5px solid rgba(184,134,11,0.4); }
+  .pet-q-spiritual:hover { border-color: rgba(184,134,11,0.7); box-shadow: 0 0 8px rgba(184,134,11,0.3); }
+  .pet-q-mystic { border: 1.5px solid rgba(212,168,67,0.4); }
+  .pet-q-mystic:hover { border-color: rgba(212,168,67,0.7); box-shadow: 0 0 10px rgba(212,168,67,0.35); }
+  .pet-q-celestial { border: 1.5px solid rgba(255,215,0,0.4); }
   .pet-q-celestial:hover { border-color: #FFD700; box-shadow: 0 0 10px rgba(255,215,0,0.5); }
-  .pet-q-divine { border: 1.5px solid #FF000066; animation: divine-glow 2s ease-in-out infinite; }
-  .pet-q-divine:hover { border-color: #FF0000; box-shadow: 0 0 14px rgba(255,0,0,0.5); }
+  .pet-q-divine { border: 1.5px solid rgba(255,80,0,0.5); animation: divine-glow 2s ease-in-out infinite; }
+  .pet-q-divine:hover { border-color: rgba(255,80,0,0.8); box-shadow: 0 0 14px rgba(255,80,0,0.5); }
   .pet-active-cell { animation: active-pulse 1.5s ease-in-out infinite !important; }
 
   @keyframes divine-glow {
@@ -1528,25 +1528,25 @@ const navigateTo = inject('navigateTo')
 }
 
   /* 神品装备呼吸光效 */
-  .sq-mythic { border: 1.5px solid #e91e6366; animation: mythic-breathe 2.5s ease-in-out infinite; }
-  .sq-mythic:hover { border-color: #e91e63; }
+  .sq-mythic { border: 1.5px solid rgba(255,80,0,0.4); animation: mythic-breathe 2.5s ease-in-out infinite; }
+  .sq-mythic:hover { border-color: rgba(255,80,0,0.7); }
   @keyframes mythic-breathe {
-    0%, 100% { box-shadow: 0 0 6px rgba(233,30,99,0.3); border-color: #e91e6366; }
-    50% { box-shadow: 0 0 16px rgba(233,30,99,0.6), inset 0 0 10px rgba(233,30,99,0.15); border-color: #e91e63; }
+    0%, 100% { box-shadow: 0 0 6px rgba(255,80,0,0.25); border-color: rgba(255,80,0,0.35); }
+    50% { box-shadow: 0 0 16px rgba(255,80,0,0.5), inset 0 0 10px rgba(255,80,0,0.1); border-color: rgba(255,80,0,0.7); }
   }
 
   /* 仙品装备光效 */
   .eq-quality-legendary { animation: eq-legendary-pulse 3s ease-in-out infinite; }
   @keyframes eq-legendary-pulse {
-    0%, 100% { box-shadow: 0 0 8px rgba(255,152,0,0.3); }
-    50% { box-shadow: 0 0 16px rgba(255,152,0,0.6), 0 0 32px rgba(255,152,0,0.2); }
+    0%, 100% { box-shadow: 0 0 8px rgba(255,215,0,0.25); }
+    50% { box-shadow: 0 0 16px rgba(255,215,0,0.5), 0 0 32px rgba(255,215,0,0.15); }
   }
 
   /* 焰兽品质光效 */
   .pet-q-divine { border: 1.5px solid #FF000066; animation: pet-divine-glow 2s ease-in-out infinite; }
   @keyframes pet-divine-glow {
-    0%, 100% { box-shadow: 0 0 6px rgba(255,0,0,0.3); }
-    50% { box-shadow: 0 0 14px rgba(255,0,0,0.6), inset 0 0 8px rgba(255,0,0,0.1); }
+    0%, 100% { box-shadow: 0 0 6px rgba(255,80,0,0.25); }
+    50% { box-shadow: 0 0 14px rgba(255,80,0,0.5), inset 0 0 8px rgba(255,80,0,0.08); }
   }
   .pet-q-celestial { border: 1.5px solid #FFD70066; animation: pet-celestial-glow 2.5s ease-in-out infinite; }
   @keyframes pet-celestial-glow {
@@ -1555,7 +1555,7 @@ const navigateTo = inject('navigateTo')
   }
   .pet-q-mystic { border: 1.5px solid #9932CC66; animation: pet-mystic-glow 3s ease-in-out infinite; }
   @keyframes pet-mystic-glow {
-    0%, 100% { box-shadow: 0 0 4px rgba(153,50,204,0.2); }
-    50% { box-shadow: 0 0 10px rgba(153,50,204,0.5); }
+    0%, 100% { box-shadow: 0 0 4px rgba(212,168,67,0.2); }
+    50% { box-shadow: 0 0 10px rgba(212,168,67,0.4); }
   }
 </style>

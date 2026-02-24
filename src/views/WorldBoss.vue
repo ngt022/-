@@ -377,24 +377,17 @@ onUnmounted(() => {
 
 <style scoped>
 .boss-page { max-width: 1000px; margin: 0 auto; padding: 12px; }
-.boss-card { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: 1px solid #333; border-radius: 12px; }
+.boss-card { background: rgba(15,15,30,0.9); border: 1px solid rgba(212,168,67,0.12); border-radius: 12px; }
 .boss-main { margin-bottom: 12px; }
 .boss-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .boss-title { display: flex; align-items: center; gap: 8px; }
 .boss-icon { font-size: 32px; }
-.boss-avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 10px;
-  border: 2px solid rgba(255,215,0,0.5);
-  box-shadow: 0 0 14px rgba(255,68,68,0.4);
-  object-fit: cover;
-}
-.boss-name { font-size: 22px; font-weight: bold; color: #ffd700; text-shadow: 0 0 10px rgba(255,215,0,0.5); }
-.boss-desc { color: #aaa; font-size: 13px; margin: 8px 0; }
+.boss-avatar { width: 64px; height: 64px; border-radius: 10px; border: 2px solid rgba(212,168,67,0.4); box-shadow: 0 0 14px rgba(139,32,0,0.5); object-fit: cover; }
+.boss-name { font-size: 22px; font-weight: bold; color: #ffd700; text-shadow: 0 0 10px rgba(255,215,0,0.4); }
+.boss-desc { color: #999; font-size: 13px; margin: 8px 0; }
 .hp-bar-wrap { margin: 12px 0; }
-.hp-bar-bg { height: 28px; background: #333; border-radius: 14px; overflow: hidden; position: relative; }
-.hp-bar-fill { height: 100%; background: linear-gradient(90deg, #ff4444, #ff6b6b, #ff4444); border-radius: 14px; transition: width 0.5s ease; box-shadow: 0 0 15px rgba(255,68,68,0.5); }
+.hp-bar-bg { height: 28px; background: rgba(30,30,50,0.8); border-radius: 14px; overflow: hidden; position: relative; border: 1px solid rgba(139,32,0,0.3); }
+.hp-bar-fill { height: 100%; background: linear-gradient(90deg, #8b2000, #ff4444, #8b2000); border-radius: 14px; transition: width 0.5s ease; box-shadow: 0 0 15px rgba(139,32,0,0.6); }
 .hp-text { text-align: center; margin-top: 4px; font-size: 13px; color: #ddd; font-weight: bold; }
 .boss-info-row { display: flex; gap: 8px; margin-top: 8px; }
 .boss-body { display: flex; gap: 12px; }
@@ -410,7 +403,7 @@ onUnmounted(() => {
 .my-stats { margin-top: 12px; color: #ccc; font-size: 13px; }
 .gold { color: #ffd700; font-weight: bold; }
 .damage-float-container { position: absolute; top: 0; left: 0; right: 0; height: 60px; pointer-events: none; overflow: hidden; }
-.damage-float { position: absolute; top: 0; font-weight: bold; font-size: 18px; color: #fff; animation: floatUp 1.5s ease-out forwards; text-shadow: 0 0 6px rgba(0,0,0,0.8); }
+.damage-float { position: absolute; top: 0; font-weight: bold; font-size: 18px; color: #ffa500; animation: floatUp 1.5s ease-out forwards; text-shadow: 0 0 6px rgba(0,0,0,0.8); }
 .damage-float.crit { font-size: 26px; color: #ff4444; text-shadow: 0 0 12px rgba(255,68,68,0.8); }
 @keyframes floatUp {
   0% { opacity: 1; transform: translateY(40px) scale(1); }
@@ -419,18 +412,17 @@ onUnmounted(() => {
 }
 .float-enter-active { animation: floatUp 1.5s ease-out; }
 .float-leave-active { display: none; }
-.rank-table .my-row { background: rgba(255,215,0,0.1); }
+.rank-table .my-row { background: rgba(212,168,67,0.1); }
 .rank-table .my-row td { color: #ffd700; font-weight: bold; }
 .medal { font-size: 18px; }
-.dmg-col { color: #ff6b6b; font-weight: bold; }
-.log-card { }
+.dmg-col { color: #ff6b35; font-weight: bold; }
 .battle-log { max-height: 300px; overflow-y: auto; padding: 4px; }
-.log-item { padding: 4px 0; font-size: 13px; color: #ccc; border-bottom: 1px solid #222; }
-.log-item.crit { color: #ff6b6b; }
-.log-name { color: #4fc3f7; font-weight: bold; }
+.log-item { padding: 4px 0; font-size: 13px; color: #ccc; border-bottom: 1px solid rgba(212,168,67,0.06); }
+.log-item.crit { color: #ff6b35; }
+.log-name { color: #d4a843; font-weight: bold; }
 .log-crit { color: #ff4444; font-weight: bold; margin: 0 4px; }
 .log-dmg { color: #fff; font-weight: bold; }
 .log-crit-dmg { color: #ff4444; font-size: 15px; }
-.log-empty { color: #666; text-align: center; padding: 20px; }
-.reward-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #222; }
+.log-empty { color: #555; text-align: center; padding: 20px; }
+.reward-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(212,168,67,0.08); }
 </style>

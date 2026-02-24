@@ -194,53 +194,53 @@ onMounted(() => { fetchList(); fetchHistory() })
 
 <style scoped>
 .daily-dungeon { padding: 16px; max-width: 800px; margin: 0 auto; }
-.page-title { font-size: 22px; font-weight: bold; color: #daa520; text-align: center; margin-bottom: 20px; text-shadow: 0 0 10px rgba(218,165,32,0.3); }
+.page-title { font-size: 22px; font-weight: bold; color: #d4a843; text-align: center; margin-bottom: 20px; text-shadow: 0 0 10px rgba(212,168,67,0.3); }
 .dungeon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
-.dungeon-card { background: linear-gradient(135deg, #1a1a2e, #16213e); border: 1px solid #333; border-radius: 12px; padding: 16px; cursor: pointer; position: relative; overflow: hidden; transition: all 0.3s; }
-.dungeon-card:hover:not(.locked):not(.exhausted) { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(218,165,32,0.2); border-color: #daa520; }
+.dungeon-card { background: rgba(15,15,30,0.9); border: 1px solid rgba(212,168,67,0.12); border-radius: 12px; padding: 16px; cursor: pointer; position: relative; overflow: hidden; transition: all 0.3s; }
+.dungeon-card:hover:not(.locked):not(.exhausted) { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(212,168,67,0.15); border-color: rgba(212,168,67,0.4); }
 .dungeon-card.locked { opacity: 0.5; cursor: not-allowed; }
 .dungeon-card.exhausted { opacity: 0.6; cursor: not-allowed; }
 .card-diff { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 12px; font-weight: bold; margin-bottom: 8px; }
-.card-diff.easy { background: #2d5a2d; color: #7fff7f; }
-.card-diff.normal { background: #2d4a5a; color: #7fbfff; }
-.card-diff.hard { background: #5a2d5a; color: #df7fff; }
-.card-diff.hell { background: #5a1a1a; color: #ff4444; }
+.card-diff.easy { background: rgba(212,168,67,0.15); color: #f0d68a; }
+.card-diff.normal { background: rgba(212,168,67,0.25); color: #d4a843; }
+.card-diff.hard { background: rgba(255,107,53,0.2); color: #ff6b35; }
+.card-diff.hell { background: rgba(139,32,0,0.4); color: #ff4444; text-shadow: 0 0 6px rgba(255,68,68,0.5); }
 .card-name { font-size: 18px; font-weight: bold; color: #eee; margin-bottom: 6px; }
-.card-desc { font-size: 13px; color: #999; margin-bottom: 10px; line-height: 1.4; }
-.card-info { display: flex; justify-content: space-between; font-size: 13px; color: #aaa; margin-bottom: 8px; }
-.card-reward { display: flex; gap: 12px; font-size: 13px; color: #daa520; }
+.card-desc { font-size: 13px; color: #888; margin-bottom: 10px; line-height: 1.4; }
+.card-info { display: flex; justify-content: space-between; font-size: 13px; color: #999; margin-bottom: 8px; }
+.card-reward { display: flex; gap: 12px; font-size: 13px; color: #d4a843; }
 .lock-mask { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); font-size: 18px; color: #888; font-weight: bold; border-radius: 12px; }
-.exhausted-mask { color: #ff6666; }
-.battle-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; padding: 16px; }
-.battle-box { width: 100%; max-width: 500px; background: linear-gradient(180deg, #0d1117, #161b22); border: 1px solid #daa520; border-radius: 16px; padding: 20px; }
+.exhausted-mask { color: #a0522d; }
+.battle-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(5,5,15,0.95); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.battle-box { width: 100%; max-width: 500px; background: rgba(15,15,30,0.95); border: 1px solid rgba(212,168,67,0.2); border-radius: 16px; padding: 20px; }
 .battle-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.enemy-name { font-size: 20px; font-weight: bold; color: #ff6666; }
-.enemy-level { font-size: 14px; color: #aaa; }
-.hp-bar-wrap { position: relative; height: 22px; background: #333; border-radius: 11px; overflow: hidden; margin-bottom: 16px; }
-.hp-bar { height: 100%; background: linear-gradient(90deg, #ff4444, #ff6666); transition: width 0.5s ease; border-radius: 11px; }
+.enemy-name { font-size: 20px; font-weight: bold; color: #ff6b35; }
+.enemy-level { font-size: 14px; color: #999; }
+.hp-bar-wrap { position: relative; height: 22px; background: rgba(30,30,50,0.8); border-radius: 11px; overflow: hidden; margin-bottom: 16px; border: 1px solid rgba(139,32,0,0.3); }
+.hp-bar { height: 100%; background: linear-gradient(90deg, #8b2000, #ff4444); transition: width 0.5s ease; border-radius: 11px; }
 .hp-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; text-shadow: 0 1px 2px #000; }
-.battle-log { max-height: 250px; overflow-y: auto; margin-bottom: 16px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 8px; }
-.log-line { padding: 6px 8px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.05); animation: fadeIn 0.3s; }
-.log-player { color: #7fbfff; }
-.log-enemy { color: #ff9999; }
+.battle-log { max-height: 250px; overflow-y: auto; margin-bottom: 16px; padding: 8px; background: rgba(10,10,20,0.5); border-radius: 8px; }
+.log-line { padding: 6px 8px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); animation: fadeIn 0.3s; }
+.log-player { color: #f0d68a; }
+.log-enemy { color: #ff6b35; }
 .log-line b { font-weight: bold; }
-.log-line b.crit { color: #ffcc00; font-size: 15px; }
-.crit-tag { color: #ffcc00; font-size: 11px; margin-left: 4px; }
+.log-line b.crit { color: #ffd700; font-size: 15px; }
+.crit-tag { color: #ffd700; font-size: 11px; margin-left: 4px; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .battle-result { text-align: center; padding: 16px 0; animation: fadeIn 0.5s; }
-.result-victory .result-title { font-size: 28px; color: #daa520; font-weight: bold; text-shadow: 0 0 20px rgba(218,165,32,0.5); margin-bottom: 12px; }
+.result-victory .result-title { font-size: 28px; color: #ffd700; font-weight: bold; text-shadow: 0 0 20px rgba(255,215,0,0.4); margin-bottom: 12px; }
 .result-defeat .result-title { font-size: 28px; color: #888; font-weight: bold; margin-bottom: 8px; }
 .result-sub { color: #999; font-size: 14px; margin-bottom: 12px; }
 .reward-list { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 16px; }
-.reward-item { background: rgba(218,165,32,0.15); border: 1px solid rgba(218,165,32,0.3); padding: 6px 14px; border-radius: 8px; font-size: 14px; color: #daa520; }
-.btn-back { background: linear-gradient(135deg, #daa520, #b8860b); color: #000; border: none; padding: 10px 32px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
+.reward-item { background: rgba(212,168,67,0.1); border: 1px solid rgba(212,168,67,0.2); padding: 6px 14px; border-radius: 8px; font-size: 14px; color: #d4a843; }
+.btn-back { background: linear-gradient(135deg, #8b2000, #ff6b35); color: #fff; border: none; padding: 10px 32px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
 .btn-back:hover { opacity: 0.9; }
 .history-section { margin-top: 8px; }
-.section-title { font-size: 16px; color: #daa520; font-weight: bold; margin-bottom: 12px; border-left: 3px solid #daa520; padding-left: 10px; }
-.empty-hint { color: #666; font-size: 14px; text-align: center; padding: 20px; }
-.history-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 6px; font-size: 14px; }
+.section-title { font-size: 16px; color: #d4a843; font-weight: bold; margin-bottom: 12px; border-left: 3px solid #d4a843; padding-left: 10px; }
+.empty-hint { color: #555; font-size: 14px; text-align: center; padding: 20px; }
+.history-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: rgba(20,20,35,0.5); border-radius: 8px; margin-bottom: 6px; font-size: 14px; border: 1px solid rgba(212,168,67,0.06); }
 .h-name { color: #ccc; flex: 1; }
-.h-result.victory { color: #7fff7f; }
-.h-result.defeat { color: #ff6666; }
-.h-rewards { color: #daa520; }
+.h-result.victory { color: #ffd700; }
+.h-result.defeat { color: #a0522d; }
+.h-rewards { color: #d4a843; }
 </style>
