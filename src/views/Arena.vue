@@ -82,6 +82,7 @@
         <div class="tab" :class="{active:tab==='arena'}" @click="tab='arena'">⚔️ 竞技场</div>
         <div class="tab" :class="{active:tab==='log'}" @click="tab='log';loadHistory()">📜 战报</div>
         <div class="tab" :class="{active:tab==='notif'}" @click="tab='notif';loadNotifs()">🔔 通知<span v-if="unreadNotifs>0" class="badge">{{ unreadNotifs }}</span></div>
+        <div class="tab" :class="{active:tab==='rank'}" @click="tab='rank';loadRankings()">🏆 排行</div>
       </div>
 
       <div v-if="tab==='arena'">
@@ -162,6 +163,29 @@
           <span v-else-if="n.revenged" class="revenged">已复仇</span>
         </div>
       </div>
+
+      <!-- 段位排行 -->
+      <div v-if="tab==='rank'">
+        <div v-if="rankLoading" class="empty">加载中...</div>
+        <div v-else>
+          <div v-if="myRankPos" class="my-rank-bar">我的排名: 第 <span class="gold">{{ myRankPos }}</span> 名</div>
+          <div class="rank-list">
+            <div v-for="r in rankings" :key="r.wallet" class="rank-item" :class="{'is-me': r.wallet===myWallet}">
+              <div class="rank-pos" :class="'top'+r.rank">{{ r.rank <= 3 ? ['🥇','🥈','🥉'][r.rank-1] : '#'+r.rank }}</div>
+              <div class="rank-info">
+                <div class="rank-name">{{ r.name }}</div>
+                <div class="rank-detail">Lv.{{ r.level }} · {{ r.realm }} · 战力{{ r.combatPower }}</div>
+              </div>
+              <div class="rank-stats">
+                <div class="rank-score" :style="{color:tierColor[r.rankTier]}">{{ tierEmoji[r.rankTier] }} {{ r.rankScore }}</div>
+                <div class="rank-wr">{{ r.wins }}W/{{ r.losses }}L ({{ r.winRate }}%)</div>
+              </div>
+            </div>
+          </div>
+          <div v-if="rankings.length===0" class="empty">暂无排名数据</div>
+        </div>
+      </div>
+
     </template>
   </div>
 </template>
@@ -185,6 +209,9 @@ const daily = ref({ used: 0, max: 5, wins: 0 })
 const unreadNotifs = ref(0)
 const myStreak = ref(0)
 const battles = ref([])
+const rankings = ref([])
+const myRankPos = ref(null)
+const rankLoading = ref(false)
 const detailPlayer = ref(null)
 const notifs = ref([])
 
@@ -473,6 +500,21 @@ onUnmounted(() => { clearTimer() })
 .detail-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(212,168,67,0.1); font-size: 14px; }
 .detail-row span:first-child { color: #a08030; }
 .detail-row span:last-child { color: #ffd700; }
+.my-rank-bar { text-align: center; padding: 10px; background: rgba(212,168,67,0.1); border-radius: 10px; margin-bottom: 12px; font-size: 14px; color: #ccc; }
+.my-rank-bar .gold { color: #ffd700; font-weight: bold; font-size: 18px; }
+.rank-list { display: flex; flex-direction: column; gap: 8px; }
+.rank-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(20,15,30,0.6); border: 1px solid rgba(212,168,67,0.12); border-radius: 10px; }
+.rank-item.is-me { border-color: #ffd700; background: rgba(212,168,67,0.1); }
+.rank-pos { min-width: 36px; text-align: center; font-size: 16px; font-weight: bold; color: #a08030; }
+.rank-pos.top1 { color: #ffd700; font-size: 20px; }
+.rank-pos.top2 { color: #c0c0c0; font-size: 18px; }
+.rank-pos.top3 { color: #cd7f32; font-size: 18px; }
+.rank-info { flex: 1; }
+.rank-name { color: #ffd700; font-size: 14px; font-weight: bold; }
+.rank-detail { color: #888; font-size: 11px; margin-top: 2px; }
+.rank-stats { text-align: right; }
+.rank-score { font-size: 15px; font-weight: bold; }
+.rank-wr { color: #888; font-size: 11px; margin-top: 2px; }
 .clickable { cursor: pointer; transition: background 0.2s; }
 .clickable:active { background: rgba(212,168,67,0.15); }
 @keyframes battle-shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }

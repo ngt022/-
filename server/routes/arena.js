@@ -349,5 +349,56 @@ export default function(pool, auth, runPkBattle, computeFinalStats, getMountTitl
     }
   });
 
+  // === 段位排行榜 ===
+  router.get('/rankings', async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+      const rows = (await pool.query(
+        `SELECT pk.wallet, pk.rank_score, pk.rank_tier, pk.wins, pk.losses, pk.win_streak, pk.max_win_streak,
+                p.name, p.level, p.realm, p.combat_power
+         FROM pk_rankings pk
+         JOIN players p ON pk.wallet = p.wallet
+         WHERE pk.wallet NOT LIKE '0xbot%'
+         ORDER BY pk.rank_score DESC
+         LIMIT $1`, [limit]
+      )).rows;
+      
+      const rankings = rows.map((r, i) => ({
+        rank: i + 1,
+        wallet: r.wallet,
+        name: r.name || '无名焰修',
+        level: r.level,
+        realm: r.realm,
+        combatPower: r.combat_power || 0,
+        rankScore: r.rank_score,
+        rankTier: r.rank_tier,
+        wins: r.wins,
+        losses: r.losses,
+        winRate: (r.wins + r.losses) > 0 ? Math.round(r.wins / (r.wins + r.losses) * 100) : 0,
+        winStreak: r.win_streak,
+        maxWinStreak: r.max_win_streak
+      }));
+      
+      // My rank
+      let myRank = null;
+      if (req.headers.authorization) {
+        try {
+          const jwt = await import('jsonwebtoken');
+          const token = req.headers.authorization.replace('Bearer ', '');
+          const decoded = jwt.default.verify(token, process.env.JWT_SECRET || 'xiuxian-secret-key');
+          const myRow = (await pool.query(
+            `SELECT COUNT(*)+1 as rank FROM pk_rankings WHERE rank_score > (SELECT rank_score FROM pk_rankings WHERE wallet=$1) AND wallet NOT LIKE '0xbot%'`,
+            [decoded.wallet]
+          )).rows[0];
+          myRank = parseInt(myRow?.rank) || null;
+        } catch(e) {}
+      }
+      
+      res.json({ success: true, rankings, myRank });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   return router;
 };
