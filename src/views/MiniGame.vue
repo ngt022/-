@@ -999,11 +999,3 @@ onUnmounted(() => {
 }
 </style>
 
-<svg width="0" height="0" style="position: absolute;">
-  <defs>
-    <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ff6b35"/>
-      <stop offset="100%" stop-color="#ffd700"/>
-    </linearGradient>
-  </defs>
-</svg>
