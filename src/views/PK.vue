@@ -155,14 +155,27 @@
             <n-text depth="3" style="margin-left:12px">胜者获得 {{ PK_REWARD }} 焰晶</n-text>
           </n-alert>
 
+          <div v-if="seasonInfo" class="season-banner">
+            <span>🏆 第{{ seasonInfo.season_num }}赛季</span>
+            <span style="color:#a08030;font-size:12px">剩余{{ seasonInfo.daysLeft }}天</span>
+          </div>
           <n-tabs type="segment" v-model:value="activeTab">
             <n-tab-pane name="lobby" tab="⚔️ 大厅">
-              <n-button type="primary" block @click="refreshPlayers" :loading="refreshing" style="margin-top:12px">
-                🔄 刷新在线玩家
-              </n-button>
+              <div style="display:flex;gap:8px;margin-top:12px">
+                <n-button type="primary" style="flex:1" @click="refreshPlayers" :loading="refreshing">
+                  🔄 刷新在线玩家
+                </n-button>
+                <n-button type="warning" style="flex:1" @click="startAiMatch" :loading="aiMatching">
+                  🤖 焰灵傀儡
+                </n-button>
+              </div>
               <div v-if="onlinePlayers.length === 0" style="text-align:center;padding:30px 0">
                 <span style="font-size:32px">🏜️</span>
                 <n-text depth="3" tag="div" style="margin-top:8px">暂无其他在线玩家</n-text>
+                <n-button type="warning" style="margin-top:16px" @click="startAiMatch" :loading="aiMatching">
+                  🤖 挑战焰灵傀儡
+                </n-button>
+                <n-text depth="3" tag="div" style="margin-top:4px;font-size:12px">AI对手，随时可战，胜利+200焰晶+15积分</n-text>
               </div>
               <div v-for="p in onlinePlayers" :key="p.fullWallet" class="player-card" style="margin-top:10px">
                 <div class="player-left">
@@ -249,6 +262,8 @@ const wsConnected = ref(false)
 const onlinePlayers = ref([])
 const refreshing = ref(false)
 const challengeSent = ref(false)
+const aiMatching = ref(false)
+const seasonInfo = ref(null)
 const showChallengeModal = ref(false)
 const incomingChallenge = ref(null)
 const battleResult = ref(null)
@@ -633,6 +648,34 @@ onUnmounted(() => {
   if (reconnectTimer) clearTimeout(reconnectTimer)
   if (ws) { ws.onclose = null; ws.close() }
 })
+
+// AI Match
+const startAiMatch = async () => {
+  aiMatching.value = true
+  try {
+    const res = await authStore.apiPost('/pk/ai-match')
+    if (res.success) {
+      battleResult.value = res.result
+      showCountdown.value = true
+      currentRound.value = -1
+      setTimeout(() => { showCountdown.value = false; currentRound.value = 0; autoPlayRounds() }, 3000)
+    } else {
+      window.$message?.error(res.message || 'AI匹配失败')
+    }
+  } catch (e) { window.$message?.error('网络错误') }
+  aiMatching.value = false
+}
+
+// Load season info
+const loadSeason = async () => {
+  try {
+    const res = await authStore.apiGet('/pk/season')
+    if (res.success) seasonInfo.value = res.season
+  } catch (e) {}
+}
+
+// Call on mount
+loadSeason()
 </script>
 
 
@@ -921,4 +964,6 @@ onUnmounted(() => {
   80% { transform: translateX(2px); }
 }
 .screen-shake { animation: battle-shake 0.4s ease-out; }
+
+.season-banner { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; margin-bottom: 8px; background: linear-gradient(135deg, rgba(212,168,67,0.15), rgba(139,32,0,0.1)); border: 1px solid rgba(212,168,67,0.3); border-radius: 8px; color: #ffd700; font-weight: bold; font-size: 14px; }
 </style>
