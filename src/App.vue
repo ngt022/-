@@ -336,7 +336,7 @@ import { useGameConfigStore } from './stores/gameConfig'
       { key: 'dungeon', label: '焚天塔', icon: '🏔️', img: '/assets/images/menu/menu_dungeon.webp' },
       { key: 'daily-dungeon', label: '秘境', icon: '🌀', img: '/assets/images/menu/menu_daily_dungeon.webp' },
       { key: 'boss', label: '世界Boss', icon: '👹', img: '/assets/images/menu/menu_boss.webp' },
-      { key: 'minigame', label: '焰灵试炼', icon: '🎮', img: '/assets/images/menu/menu_minigame.webp' },
+      { key: 'minigame', label: '焰灵试炼', icon: '🎮' },
     ]},
     { key: 'character', label: '角色', icon: '🎒', children: [
       { key: 'profile', label: '角色', icon: '👤', img: '/assets/images/menu/menu_profile.webp' },
