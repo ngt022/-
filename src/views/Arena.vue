@@ -89,7 +89,7 @@
           <div class="tier-icon">{{ tierEmoji[myRank.tier] || '🔰' }}</div>
           <div class="my-detail">
             <div class="my-tier">{{ tierName[myRank.tier]||铜段 }} · {{ myRank.score }}分</div>
-            <div class="my-daily">今日 {{ daily.used }}/{{ daily.max }} · {{ daily.wins }}胜</div>
+            <div class="my-daily">今日 {{ daily.used }}/{{ daily.max }}次{{ daily.used>=daily.max?" (额外200💎/次)":"" }} · {{ daily.wins }}胜</div>
           </div>
         </div>
         <div v-if="loading" class="loading">加载中...</div>
@@ -107,7 +107,7 @@
                 </div>
               </div>
             </div>
-            <button class="btn fire" @click="challenge(o)" :disabled="challenging">⚔️ 挑战</button>
+            <button class="btn fire" @click="challenge(o)" :disabled="challenging">⚔️ {{ daily.used>=daily.max ? "挑战(200💎)" : "挑战" }}</button>
           </div>
         </div>
         <button class="btn gold full" @click="loadOpponents" :disabled="loading" style="margin-top:12px">🔄 刷新对手</button>
@@ -310,7 +310,7 @@ const challenge = async (opp) => {
   try {
     const res = await authStore.apiPost("/arena/challenge", { targetWallet: opp.wallet })
     if (res.success) { daily.value.used++; if (res.result.winner === "attacker") daily.value.wins++; startBattle(res) }
-    else alert(res.message || "挑战失败")
+    else { if (res.needPay && confirm("免费次数已用完，花费200焰晶继续挑战？")) { /* 前端已处理，后端自动扣费 */ } else alert(res.message || "挑战失败") }
   } catch (e) { alert("网络错误") }
   challenging.value = false
 }
