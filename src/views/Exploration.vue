@@ -132,7 +132,11 @@ const locationBgImages = {
   celestial_mountain: img('/assets/images/area-chixiaofeng.png'),
   phoenix_valley: img('/assets/images/area-niepangu.png'),
   dragon_abyss: img('/assets/images/area-yanyuan.png'),
-  immortal_realm: img('/assets/images/area-yantianshenyu.png')
+  immortal_realm: img('/assets/images/area-yantianshenyu.png'),
+  void_realm: img('/assets/images/area-yanxumijing.png'),
+  fusion_forbidden: img('/assets/images/area-yanhejindi.png'),
+  great_flame_palace: img('/assets/images/area-dayantiangong.png'),
+  tribulation_temple: img('/assets/images/area-duyanshengdian.png')
 }
 
 // 所有地点（含图标）
@@ -428,6 +432,10 @@ const clearLogPanel = () => {
 .bg-phoenix_valley { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('/assets/images/area-niepangu.png') center/cover no-repeat; }
 .bg-dragon_abyss { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('/assets/images/area-yanyuan.png') center/cover no-repeat; }
 .bg-immortal_realm { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('/assets/images/area-yantianshenyu.png') center/cover no-repeat; }
+.bg-void_realm { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('/assets/images/area-yanxumijing.png') center/cover no-repeat; }
+.bg-fusion_forbidden { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('/assets/images/area-yanhejindi.png') center/cover no-repeat; }
+.bg-great_flame_palace { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('/assets/images/area-dayantiangong.png') center/cover no-repeat; }
+.bg-tribulation_temple { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('/assets/images/area-duyanshengdian.png') center/cover no-repeat; }
 
 .node-content {
   position: relative;
