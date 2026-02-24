@@ -98,7 +98,7 @@
               </div>
             </div>
             <div class="flip-actions">
-              <n-button type="warning" @click="flipAllCards" v-if="!allFlipped">跳过动画</n-button>
+              <n-button type="warning" @click="flipAllCards" v-if="!allFlipped">一键翻牌</n-button>
               <n-button type="primary" @click="closeFlipAnimation" v-else>确认</n-button>
             </div>
           </div>
@@ -414,17 +414,6 @@ const startFlipAnimation = (results) => {
   flipCards.value = results.map(r => getCardInfo(r))
   allFlipped.value = false
   showFlipAnimation.value = true
-  let delay = 300
-  flipCards.value.forEach((card, i) => {
-    setTimeout(() => {
-      card.flipped = true
-      sfx.cardFlip()
-      if (['mythic', 'legendary', 'epic', 'divine', 'celestial'].includes(card.qualityKey)) {
-        setTimeout(() => sfx.cardRare(), 200)
-      }
-      if (i === flipCards.value.length - 1) allFlipped.value = true
-    }, delay + i * 400)
-  })
 }
 
 const flipSingleCard = (i) => {
