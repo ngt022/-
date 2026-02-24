@@ -67,16 +67,9 @@
                     <span class="sub-page-title">{{ currentPageTitle }}</span>
                     <span class="sub-page-level">{{ playerStore.realm }} Lv.{{ playerStore.level }}</span>
                   </div>
-                  <Suspense>
-                      <template #default>
-                        <transition name="page-fade" mode="out-in">
-                          <component :is="pageComponents[currentPage]" :key="currentPage" />
-                        </transition>
-                      </template>
-                      <template #fallback>
-                        <SkeletonLoader :type="getSkeletonType(currentPage)" />
-                      </template>
-                    </Suspense>
+                  <transition name="page-fade" mode="out-in">
+                    <component :is="pageComponents[currentPage]" :key="currentPage" />
+                  </transition>
                 </div>
                 </transition>
               </div>
@@ -250,16 +243,16 @@ function startSplash() {
     gacha: defineAsyncComponent(() => import('./views/Gacha.vue')),
     alchemy: defineAsyncComponent(() => import('./views/Alchemy.vue')),
     dungeon: defineAsyncComponent(() => import('./views/Dungeon.vue')),
-    'daily-dungeon': defineAsyncComponent({ loader: () => import('./views/DailyDungeon.vue'), loadingComponent: { render() { return h(SkeletonLoader, { type: 'grid' }) } }, delay: 100 }),
+    'daily-dungeon': defineAsyncComponent({ loader: () => import('./views/DailyDungeon.vue'), loadingComponent: { render() { return h(SkeletonLoader, { type: 'grid' }) } }, delay: 0 }),
     pk: defineAsyncComponent(() => import('./views/PK.vue')),
     boss: defineAsyncComponent(() => import('./views/WorldBoss.vue')),
     sect: defineAsyncComponent(() => import('./views/Sect.vue')),
-    'sect-war': defineAsyncComponent({ loader: () => import('./views/SectWar.vue'), loadingComponent: { render() { return h(SkeletonLoader, { type: 'list' }) } }, delay: 100 }),
+    'sect-war': defineAsyncComponent({ loader: () => import('./views/SectWar.vue'), loadingComponent: { render() { return h(SkeletonLoader, { type: 'list' }) } }, delay: 0 }),
     friends: defineAsyncComponent(() => import('./views/Friends.vue')),
     auction: defineAsyncComponent(() => import('./views/Auction.vue')),
     shop: defineAsyncComponent(() => import('./views/Shop.vue')),
     events: defineAsyncComponent(() => import('./views/Events.vue')),
-    'mount-title': defineAsyncComponent({ loader: () => import('./views/MountTitle.vue'), loadingComponent: { render() { return h(SkeletonLoader, { type: 'grid' }) } }, delay: 100 }),
+    'mount-title': defineAsyncComponent({ loader: () => import('./views/MountTitle.vue'), loadingComponent: { render() { return h(SkeletonLoader, { type: 'grid' }) } }, delay: 0 }),
     ascension: defineAsyncComponent(() => import('./views/Ascension.vue')),
     recharge: defineAsyncComponent(() => import('./views/Recharge.vue')),
     vip: defineAsyncComponent(() => import('./views/Vip.vue')),
@@ -268,7 +261,7 @@ function startSplash() {
     mail: defineAsyncComponent(() => import('./views/Mail.vue')),
     settings: defineAsyncComponent(() => import('./views/Settings.vue')),
     admin: defineAsyncComponent(() => import('./views/Admin.vue')),
-    'admin-events': defineAsyncComponent({ loader: () => import('./views/AdminEvents.vue'), loadingComponent: { render() { return h(SkeletonLoader, { type: 'list' }) } }, delay: 100 }),
+    'admin-events': defineAsyncComponent({ loader: () => import('./views/AdminEvents.vue'), loadingComponent: { render() { return h(SkeletonLoader, { type: 'list' }) } }, delay: 0 }),
     gm: defineAsyncComponent(() => import('./views/GM.vue')),
     profile: defineAsyncComponent(() => import('./views/Profile.vue')),
   }
