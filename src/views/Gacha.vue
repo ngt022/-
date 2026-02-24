@@ -880,1220 +880,185 @@ const handleAutoReleaseChange = values => {
 </script>
 
 <style scoped>
-/* === 页面整体 === */
+/* === 页面 === */
 .gacha-page {
   position: relative;
-  min-height: 100vh;
-  background: #0a0a14;
+  min-height: 80vh;
+  background: #0b0b18;
   color: #e8e0d0;
   overflow-x: hidden;
 }
-
-/* 浮动粒子背景 */
-.gacha-page::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: 
-    radial-gradient(2px 2px at 20px 30px, rgba(212,168,67,0.4), transparent),
-    radial-gradient(2px 2px at 40px 70px, rgba(153,50,204,0.3), transparent),
-    radial-gradient(1px 1px at 90px 40px, rgba(255,215,0,0.4), transparent),
-    radial-gradient(2px 2px at 160px 120px, rgba(212,168,67,0.3), transparent),
-    radial-gradient(1px 1px at 230px 80px, rgba(153,50,204,0.4), transparent),
-    radial-gradient(2px 2px at 300px 150px, rgba(255,215,0,0.3), transparent),
-    radial-gradient(1px 1px at 350px 50px, rgba(212,168,67,0.4), transparent),
-    radial-gradient(2px 2px at 450px 200px, rgba(153,50,204,0.3), transparent);
-  background-repeat: repeat;
-  background-size: 500px 250px;
-  animation: particle-float 20s linear infinite;
-  pointer-events: none;
-  z-index: 0;
-}
-
-@keyframes particle-float {
-  0% { transform: translateY(0) translateX(0); }
-  25% { transform: translateY(-10px) translateX(5px); }
-  50% { transform: translateY(-5px) translateX(-5px); }
-  75% { transform: translateY(-15px) translateX(3px); }
-  100% { transform: translateY(0) translateX(0); }
-}
-
 .gacha-page-bg {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 320px;
-  background: 
-    linear-gradient(180deg, #1a1030 0%, #12091e 30%, transparent 100%),
-    radial-gradient(ellipse at 50% 0%, rgba(212,168,67,0.2) 0%, transparent 50%),
-    radial-gradient(ellipse at 30% 20%, rgba(153,50,204,0.15) 0%, transparent 40%),
-    radial-gradient(ellipse at 70% 10%, rgba(255,215,0,0.1) 0%, transparent 35%);
+  position: absolute; top: 0; left: 0; right: 0; height: 200px;
+  background: radial-gradient(ellipse at center top, rgba(212,168,67,0.06) 0%, transparent 70%);
   pointer-events: none;
-  z-index: 0;
 }
 
-/* 顶部光晕装饰 */
-.gacha-page-bg::after {
-  content: '';
-  position: absolute;
-  top: -50px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 600px;
-  height: 200px;
-  background: radial-gradient(ellipse, rgba(212,168,67,0.15) 0%, transparent 70%);
-  filter: blur(20px);
-  animation: halo-pulse 4s ease-in-out infinite;
-}
-
-@keyframes halo-pulse {
-  0%, 100% { opacity: 0.6; transform: translateX(-50%) scale(1); }
-  50% { opacity: 1; transform: translateX(-50%) scale(1.1); }
-}
-
+/* === 主卡片 === */
 .gacha-main-card {
-  position: relative;
-  z-index: 1;
-  background: transparent !important;
-}
-.gacha-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-  padding: 20px 0;
+  position: relative; z-index: 1;
+  background: rgba(15,15,30,0.9) !important;
+  border: 1px solid rgba(212,168,67,0.12) !important;
+  border-radius: 12px !important;
 }
 
-/* === 卡池信息区 === */
-.pool-info-section {
-  text-align: center;
-  position: relative;
-}
+/* === 卡池信息 === */
+.pool-info-section { text-align: center; margin-bottom: 12px; }
 .pool-title {
-  font-size: 32px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #d4a843 0%, #f0d060 30%, #fff8a0 50%, #f0d060 70%, #d4a843 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: none;
-  margin: 0 0 20px 0;
-  letter-spacing: 4px;
-  position: relative;
-  filter: drop-shadow(0 2px 4px rgba(212,168,67,0.3));
+  font-size: 18px; font-weight: 700; color: #ffd700;
+  margin: 0 0 10px; letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(255,215,0,0.2);
 }
+.gacha-type-selector { display: flex; justify-content: center; }
 
-.pool-title::after {
-  content: attr(data-text);
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.8) 50%, transparent 60%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: title-shine 3s ease-in-out infinite;
-}
-
-@keyframes title-shine {
-  0%, 100% { background-position: -200% center; }
-  50% { background-position: 200% center; }
-}
-
-/* 卡池选择器 - 美化n-radio-group样式 */
-.gacha-type-selector {
-  margin-bottom: 8px;
-}
-
-.gacha-type-selector :deep(.n-radio-group) {
-  background: rgba(20,15,35,0.6);
-  padding: 6px;
-  border-radius: 16px;
-  border: 1px solid rgba(212,168,67,0.2);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
-}
-
-.gacha-type-selector :deep(.n-radio-button) {
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  color: #a09080;
-  font-weight: 600;
-  padding: 10px 28px;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.gacha-type-selector :deep(.n-radio-button)::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(212,168,67,0.1), rgba(153,50,204,0.1));
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.gacha-type-selector :deep(.n-radio-button:hover) {
-  color: #d4a843;
-  background: rgba(212,168,67,0.1);
-}
-
-.gacha-type-selector :deep(.n-radio-button.n-radio-button--checked) {
-  background: linear-gradient(135deg, rgba(212,168,67,0.2), rgba(153,50,204,0.15));
-  border-color: rgba(212,168,67,0.5);
-  color: #f0d060;
-  box-shadow: 
-    0 4px 15px rgba(212,168,67,0.3),
-    inset 0 1px 0 rgba(255,255,255,0.1),
-    0 0 20px rgba(212,168,67,0.2);
-  text-shadow: 0 0 10px rgba(240,208,96,0.5);
-}
-
-.gacha-type-selector :deep(.n-radio-button.n-radio-button--checked)::after {
-  content: '✦';
-  position: absolute;
-  top: 2px;
-  right: 6px;
-  font-size: 8px;
-  color: #f0d060;
-  animation: star-twinkle 1.5s ease-in-out infinite;
-}
-
-@keyframes star-twinkle {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.2); }
-}
-
-/* === 焰晶显示 === */
+/* === 焰晶 === */
 .spirit-stones {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: linear-gradient(135deg, rgba(212,168,67,0.12), rgba(212,168,67,0.05));
-  border: 1px solid rgba(212,168,67,0.3);
-  border-radius: 24px;
-  padding: 8px 24px;
-  box-shadow: 
-    0 4px 15px rgba(212,168,67,0.15),
-    inset 0 1px 0 rgba(255,255,255,0.1);
-  position: relative;
-  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; margin-bottom: 12px;
+  padding: 8px 16px;
+  background: rgba(212,168,67,0.06);
+  border: 1px solid rgba(212,168,67,0.1);
+  border-radius: 8px;
 }
-
-.spirit-stones::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-  animation: crystal-shine 3s ease-in-out infinite;
-}
-
-@keyframes crystal-shine {
-  0%, 100% { left: -100%; }
-  50% { left: 100%; }
-}
-
-.spirit-stones-icon {
-  font-size: 22px;
-  filter: drop-shadow(0 0 8px rgba(212,168,67,0.6));
-  animation: crystal-pulse 2s ease-in-out infinite;
-}
-
-@keyframes crystal-pulse {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(212,168,67,0.6)); }
-  50% { transform: scale(1.1); filter: drop-shadow(0 0 15px rgba(212,168,67,0.9)); }
-}
+.spirit-stones-icon { font-size: 20px; }
 
 /* === 抽卡动画区 === */
 .gacha-item-container {
   position: relative;
-  width: 240px;
-  height: 240px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display: flex; align-items: center; justify-content: center;
+  height: 160px; margin: 16px 0;
 }
-
-/* 多层光晕背景 */
 .gacha-item-glow {
-  position: absolute;
-  width: 200px; 
-  height: 200px;
+  position: absolute; width: 120px; height: 120px;
+  background: radial-gradient(circle, rgba(212,168,67,0.12) 0%, transparent 70%);
   border-radius: 50%;
-  background: 
-    radial-gradient(circle at 30% 30%, rgba(212,168,67,0.4) 0%, transparent 50%),
-    radial-gradient(circle at 70% 70%, rgba(153,50,204,0.3) 0%, transparent 50%),
-    radial-gradient(circle, rgba(212,168,67,0.2) 0%, transparent 70%);
   animation: glow-pulse 3s ease-in-out infinite;
 }
-
-.gacha-item-glow::before {
-  content: '';
-  position: absolute;
-  inset: -20px;
-  border-radius: 50%;
-  border: 2px solid rgba(212,168,67,0.1);
-  animation: ring-expand 3s ease-out infinite;
-}
-
-.gacha-item-glow::after {
-  content: '';
-  position: absolute;
-  inset: -40px;
-  border-radius: 50%;
-  border: 1px solid rgba(153,50,204,0.1);
-  animation: ring-expand 3s ease-out infinite 0.5s;
-}
-
-@keyframes ring-expand {
-  0% { transform: scale(0.8); opacity: 0.6; }
-  100% { transform: scale(1.3); opacity: 0; }
-}
-
 @keyframes glow-pulse {
-  0%, 100% { transform: scale(1); opacity: 0.6; }
-  50% { transform: scale(1.1); opacity: 1; }
+  0%,100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.15); opacity: 1; }
 }
-
-/* 粒子环绕效果 */
-.gacha-item-container::before {
-  content: '';
-  position: absolute;
-  width: 220px;
-  height: 220px;
+.gacha-pool-ring {
+  position: absolute; width: 130px; height: 130px;
+  border: 2px solid rgba(212,168,67,0.2);
   border-radius: 50%;
-  background: 
-    radial-gradient(circle at 0% 50%, rgba(212,168,67,0.3) 0%, transparent 8%),
-    radial-gradient(circle at 25% 10%, rgba(153,50,204,0.3) 0%, transparent 6%),
-    radial-gradient(circle at 75% 10%, rgba(212,168,67,0.3) 0%, transparent 6%),
-    radial-gradient(circle at 100% 50%, rgba(153,50,204,0.3) 0%, transparent 8%),
-    radial-gradient(circle at 75% 90%, rgba(212,168,67,0.3) 0%, transparent 6%),
-    radial-gradient(circle at 25% 90%, rgba(153,50,204,0.3) 0%, transparent 6%);
-  animation: orbit-rotate 8s linear infinite;
+  display: flex; align-items: center; justify-content: center;
+  animation: ring-spin 15s linear infinite;
 }
-
-@keyframes orbit-rotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+@keyframes ring-spin { to { transform: rotate(360deg); } }
+.ring-text {
+  font-size: 14px; color: rgba(212,168,67,0.4);
+  letter-spacing: 6px; transform: rotate(0deg);
+  animation: ring-spin-reverse 15s linear infinite;
 }
-
+@keyframes ring-spin-reverse { to { transform: rotate(-360deg); } }
 .gacha-item {
-  font-size: 100px;
-  transition: all 0.3s ease;
-  position: relative;
-  z-index: 1;
-  filter: drop-shadow(0 0 20px rgba(212,168,67,0.5));
+  font-size: 56px; z-index: 1;
+  filter: drop-shadow(0 0 10px rgba(212,168,67,0.3));
+  transition: transform 0.3s;
 }
-
-.gacha-item:hover {
-  transform: scale(1.05);
-  filter: drop-shadow(0 0 30px rgba(212,168,67,0.8));
-}
-
-.gacha-item.shake { animation: shake 0.5s ease-in-out infinite; }
-.gacha-item.open { animation: open 1s ease-in-out; }
-
+.gacha-item.shake { animation: shake 0.4s ease; }
+.gacha-item.open { animation: open-pop 0.5s ease; }
 @keyframes shake {
-  0%, 100% { transform: rotate(0deg) scale(1); }
-  25% { transform: rotate(-8deg) scale(1.02); }
-  75% { transform: rotate(8deg) scale(1.02); }
+  0%,100% { transform: rotate(0); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
 }
-
-@keyframes open {
-  0% { transform: scale(1); opacity: 1; filter: brightness(1); }
-  30% { transform: scale(1.15); filter: brightness(1.5) drop-shadow(0 0 40px rgba(212,168,67,0.8)); }
-  60% { transform: scale(0.8); opacity: 0.7; }
-  100% { transform: scale(0); opacity: 0; }
+@keyframes open-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
 }
 
 /* === 抽卡按钮 === */
-.gacha-buttons {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 18px;
-  width: 100%;
-}
+.gacha-buttons { margin: 12px 0; }
 .gacha-btn-row {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 16px;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 6px; margin-bottom: 8px;
 }
-
 .gacha-btn {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 14px 32px;
-  border: none;
-  border-radius: 30px;
-  background: linear-gradient(135deg, #b8860b, #d4a843, #f0d060, #d4a843, #b8860b);
-  background-size: 200% 200%;
-  color: #1a1a2e;
-  font-weight: 800;
-  font-size: 15px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
-    0 4px 15px rgba(212,168,67,0.4),
-    0 0 0 1px rgba(212,168,67,0.3),
-    inset 0 1px 0 rgba(255,255,255,0.3);
-  overflow: hidden;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 4px; border: none; border-radius: 8px;
+  cursor: pointer; transition: all 0.15s;
+  background: linear-gradient(135deg, #6b2000, #8b3010);
+  border: 1px solid rgba(139,48,16,0.4);
+  color: rgba(255,255,255,0.9);
 }
-
-/* 流光效果 */
-.gacha-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    135deg, 
-    transparent 30%, 
-    rgba(255,255,255,0.4) 45%, 
-    rgba(255,255,255,0.6) 50%, 
-    rgba(255,255,255,0.4) 55%, 
-    transparent 70%
-  );
-  transform: translateX(-100%);
-  transition: transform 0.6s;
+.gacha-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139,48,16,0.3);
 }
-
-.gacha-btn:hover::before { 
-  transform: translateX(100%); 
-}
-
-.gacha-btn:hover {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 
-    0 8px 30px rgba(212,168,67,0.6),
-    0 0 0 2px rgba(212,168,67,0.5),
-    0 0 40px rgba(212,168,67,0.3),
-    inset 0 1px 0 rgba(255,255,255,0.4);
-  background-position: 100% 100%;
-}
-
-.gacha-btn:active {
-  transform: translateY(1px) scale(0.97);
-  box-shadow: 
-    0 2px 10px rgba(212,168,67,0.3),
-    inset 0 2px 4px rgba(0,0,0,0.2);
-}
-
-.gacha-btn:disabled {
-  background: linear-gradient(135deg, #3a3a45, #4a4a55, #3a3a45);
-  color: #888;
-  cursor: not-allowed;
-  box-shadow: none;
-  transform: none;
-}
-
-.gacha-btn:disabled:hover { 
-  transform: none; 
-  box-shadow: none; 
-}
-
-.gacha-btn:disabled::before { display: none; }
-
-/* 多抽按钮 - 更大更华丽 */
+.gacha-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .gacha-btn-multi {
-  padding: 16px 40px;
-  font-size: 16px;
-  border: 2px solid rgba(255,215,0,0.7);
-  box-shadow: 
-    0 4px 20px rgba(212,168,67,0.5), 
-    inset 0 0 20px rgba(255,215,0,0.15),
-    0 0 0 1px rgba(212,168,67,0.4);
-  animation: multi-pulse 2s ease-in-out infinite;
+  background: linear-gradient(135deg, #8b5500, #a06800);
+  border-color: rgba(160,104,0,0.4);
 }
-
-@keyframes multi-pulse {
-  0%, 100% { box-shadow: 0 4px 20px rgba(212,168,67,0.5), inset 0 0 20px rgba(255,215,0,0.15), 0 0 0 1px rgba(212,168,67,0.4); }
-  50% { box-shadow: 0 6px 30px rgba(212,168,67,0.7), inset 0 0 30px rgba(255,215,0,0.25), 0 0 0 2px rgba(212,168,67,0.6), 0 0 30px rgba(255,215,0,0.2); }
-}
-
-.gacha-btn-multi:hover {
-  box-shadow: 
-    0 10px 40px rgba(212,168,67,0.8), 
-    inset 0 0 30px rgba(255,215,0,0.25), 
-    0 0 0 3px rgba(255,215,0,0.5),
-    0 0 60px rgba(255,215,0,0.3);
-  animation: none;
-}
-
-/*  mega按钮 - 最华丽 */
 .gacha-btn-mega {
-  padding: 18px 48px;
-  font-size: 18px;
-  background: linear-gradient(135deg, #c9952c, #f0d060, #fff8a0, #f0d060, #d4a843, #c9952c);
-  background-size: 300% 300%;
-  border: 3px solid rgba(255,223,0,0.9);
-  box-shadow: 
-    0 4px 30px rgba(212,168,67,0.6), 
-    inset 0 0 30px rgba(255,215,0,0.2),
-    0 0 0 2px rgba(212,168,67,0.5);
-  animation: mega-shine 3s ease-in-out infinite, mega-glow 2s ease-in-out infinite;
+  background: linear-gradient(135deg, #8b7500, #a08b00);
+  border-color: rgba(160,139,0,0.4);
 }
-
-@keyframes mega-shine {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+.gacha-btn-100 {
+  background: linear-gradient(135deg, #c49b30, #e6b800);
+  border-color: rgba(230,184,0,0.4);
+  color: #1a1a2e;
 }
-
-@keyframes mega-glow {
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.1); }
-}
-
-.gacha-btn-mega:hover {
-  box-shadow: 
-    0 12px 50px rgba(212,168,67,0.9), 
-    inset 0 0 40px rgba(255,215,0,0.3),
-    0 0 0 4px rgba(255,223,0,0.6),
-    0 0 80px rgba(255,215,0,0.4);
-  animation: none;
-  filter: brightness(1.15);
-}
-
-.gacha-btn-label { 
-  position: relative; 
-  z-index: 1;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-}
-
-.gacha-btn-cost {
-  position: relative; 
-  z-index: 1;
-  font-size: 12px;
-  opacity: 0.9;
-  font-weight: 600;
-}
+.gacha-btn-label { font-size: 13px; font-weight: 700; }
+.gacha-btn-cost { font-size: 10px; opacity: 0.7; margin-top: 2px; }
 
 .gacha-tool-row {
-  display: flex;
-  gap: 12px;
+  display: flex; justify-content: center; gap: 12px;
 }
 
-.gacha-tool-row :deep(.n-button) {
-  background: rgba(212,168,67,0.1);
-  border: 1px solid rgba(212,168,67,0.2);
-  transition: all 0.3s;
-}
-
-.gacha-tool-row :deep(.n-button:hover) {
-  background: rgba(212,168,67,0.2);
-  border-color: rgba(212,168,67,0.4);
-  box-shadow: 0 0 15px rgba(212,168,67,0.3);
-  transform: translateY(-2px);
-}
-
-/* === 结果卡片 === */
-.result-summary {
-  padding: 20px;
-  margin-bottom: 20px;
-  background: linear-gradient(135deg, rgba(212,168,67,0.12), rgba(212,168,67,0.05));
-  border-radius: 12px;
-  border: 1px solid rgba(212,168,67,0.25);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
-}
-
-.filter-section {
-  padding: 20px;
-  margin-bottom: 20px;
-  background: rgba(255,255,255,0.03);
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.08);
-}
-
-.result-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
-  margin: 20px 0;
-}
-
+/* === 结果展示 === */
 .result-item {
-  position: relative;
-  background: linear-gradient(135deg, rgba(25,25,40,0.9), rgba(15,15,25,0.9));
-  border: 2px solid;
-  border-radius: 12px;
-  padding: 16px;
-  text-align: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
-}
-
-.result-item::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-}
-
-.result-item:hover {
-  transform: translateY(-5px) scale(1.02);
-}
-
-.result-item-glow {
-  position: absolute;
-  inset: 0;
-  border-radius: 12px;
-  pointer-events: none;
-  opacity: 0.5;
-}
-
-.result-item h4 {
-  margin: 0 0 10px 0;
-  position: relative;
-  z-index: 1;
-  font-size: 15px;
-}
-
-.result-item p {
-  margin: 6px 0;
-  font-size: 0.9em;
-  position: relative;
-  z-index: 1;
-}
-
-.result-quality-text {
-  font-weight: 700;
-}
-
-/* 品质特效 - 结果卡片 - 大幅提升 */
-.result-quality-common { border-color: rgba(158,158,158,0.5); }
-.result-quality-uncommon { border-color: rgba(76,175,80,0.5); box-shadow: 0 0 8px rgba(76,175,80,0.2); }
-.result-quality-rare { border-color: rgba(33,150,243,0.5); box-shadow: 0 0 10px rgba(33,150,243,0.25); }
-
-.result-quality-epic,
-.result-quality-mystic {
-  border-color: rgba(156,39,176,0.6);
-  box-shadow: 
-    0 0 15px rgba(156,39,176,0.3),
-    inset 0 0 20px rgba(156,39,176,0.1);
-}
-
-.result-quality-epic::after,
-.result-quality-mystic::after {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: 12px;
-  border: 1px solid transparent;
-  background: linear-gradient(135deg, rgba(156,39,176,0.4), transparent, rgba(156,39,176,0.4)) border-box;
-  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-}
-
-.result-quality-legendary,
-.result-quality-celestial {
-  border-color: rgba(255,152,0,0.7);
-  box-shadow: 
-    0 0 20px rgba(255,152,0,0.4),
-    0 0 40px rgba(255,152,0,0.15),
-    inset 0 0 30px rgba(255,152,0,0.1);
-  animation: legendary-breathe 3s ease-in-out infinite;
-}
-
-@keyframes legendary-breathe {
-  0%, 100% { 
-    box-shadow: 0 0 20px rgba(255,152,0,0.4), 0 0 40px rgba(255,152,0,0.15), inset 0 0 30px rgba(255,152,0,0.1);
-  }
-  50% { 
-    box-shadow: 0 0 30px rgba(255,152,0,0.6), 0 0 60px rgba(255,152,0,0.25), inset 0 0 40px rgba(255,152,0,0.15);
-  }
-}
-
-.result-quality-mythic,
-.result-quality-divine {
-  border-color: rgba(244,67,54,0.8);
-  box-shadow: 
-    0 0 25px rgba(244,67,54,0.5),
-    0 0 50px rgba(244,67,54,0.2),
-    0 0 80px rgba(244,67,54,0.1),
-    inset 0 0 40px rgba(244,67,54,0.15);
-  animation: mythic-breathe 2.5s ease-in-out infinite;
-}
-
-@keyframes mythic-breathe {
-  0%, 100% { 
-    box-shadow: 0 0 25px rgba(244,67,54,0.5), 0 0 50px rgba(244,67,54,0.2), 0 0 80px rgba(244,67,54,0.1), inset 0 0 40px rgba(244,67,54,0.15);
-    filter: brightness(1);
-  }
-  50% { 
-    box-shadow: 0 0 40px rgba(244,67,54,0.8), 0 0 80px rgba(244,67,54,0.35), 0 0 120px rgba(244,67,54,0.2), inset 0 0 50px rgba(244,67,54,0.2);
-    filter: brightness(1.1);
-  }
-}
-
-/* === 概率说明 === */
-.prob-card {
-  background: linear-gradient(135deg, rgba(20,18,35,0.95), rgba(15,13,25,0.95)) !important;
+  padding: 8px; border-radius: 8px;
   border: 1px solid rgba(212,168,67,0.15);
-  border-radius: 12px;
+  background: rgba(15,15,30,0.8);
+  text-align: center; transition: all 0.2s;
 }
+.result-item:hover { transform: translateY(-2px); }
 
-.probability-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+/* 品质发光 */
+.quality-common { border-color: rgba(150,150,150,0.3); }
+.quality-good { border-color: rgba(212,168,67,0.4); box-shadow: 0 0 8px rgba(212,168,67,0.15); }
+.quality-rare { border-color: rgba(255,215,0,0.5); box-shadow: 0 0 10px rgba(255,215,0,0.2); }
+.quality-epic { border-color: rgba(255,165,0,0.5); box-shadow: 0 0 12px rgba(255,165,0,0.25); }
+.quality-legendary { border-color: rgba(255,215,0,0.6); box-shadow: 0 0 15px rgba(255,215,0,0.3); }
+.quality-mythic {
+  border-color: rgba(255,100,0,0.6);
+  box-shadow: 0 0 18px rgba(255,100,0,0.3);
+  animation: mythic-glow 2s ease-in-out infinite;
 }
-
-.prob-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 4px 0;
-}
-
-.prob-label {
-  min-width: 70px;
-  text-align: right;
-  font-weight: 700;
-}
-
-.prob-item :deep(.n-progress) {
-  flex: 1;
-}
-
-.prob-item :deep(.n-progress .n-progress-rail) {
-  background: rgba(255,255,255,0.05);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.prob-item :deep(.n-progress .n-progress-rail::after) {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-  animation: progress-shimmer 3s ease-in-out infinite;
-}
-
-@keyframes progress-shimmer {
-  0%, 100% { transform: translateX(-100%); }
-  50% { transform: translateX(100%); }
-}
-
-/* === 心愿单 === */
-@keyframes rotate-stars {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.wish-bonus {
-  position: relative;
-  z-index: 1;
-  border-color: #ffd700 !important;
-  box-shadow: 
-    0 0 20px rgba(255,215,0,0.4),
-    inset 0 0 30px rgba(255,215,0,0.1) !important;
-  animation: wish-pulse 2s ease-in-out infinite;
-}
-
-@keyframes wish-pulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(255,215,0,0.4), inset 0 0 30px rgba(255,215,0,0.1); }
-  50% { box-shadow: 0 0 30px rgba(255,215,0,0.6), inset 0 0 40px rgba(255,215,0,0.15); }
-}
-
-.wish-bonus::before {
-  content: '★';
-  position: absolute;
-  top: -12px;
-  right: -12px;
-  color: #ffd700;
-  font-size: 24px;
-  text-shadow: 0 0 12px rgba(255,215,0,1), 0 0 24px rgba(255,215,0,0.8);
-  animation: rotate-stars 3s linear infinite;
-  transform-origin: center;
-  z-index: 2;
-}
-
-/* 心愿单弹窗美化 */
-:deep(.n-modal .n-card) {
-  background: linear-gradient(135deg, rgba(25,22,40,0.98), rgba(15,12,25,0.98)) !important;
-  border: 1px solid rgba(212,168,67,0.2);
-}
-
-:deep(.n-modal .n-divider) {
-  border-color: rgba(212,168,67,0.15);
-}
-
-:deep(.n-modal .n-divider__title) {
-  color: #d4a843;
-  font-weight: 600;
-}
-
-:deep(.n-modal .n-alert) {
-  background: rgba(212,168,67,0.08);
-  border-color: rgba(212,168,67,0.2);
-}
-
-:deep(.n-modal .n-alert .n-alert__header) {
-  color: #f0d060;
+@keyframes mythic-glow {
+  0%,100% { box-shadow: 0 0 12px rgba(255,100,0,0.2); }
+  50% { box-shadow: 0 0 22px rgba(255,100,0,0.4); }
 }
 
 /* === 翻牌动画 === */
-.flip-stage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-  padding: 24px;
-  background: rgba(10,10,20,0.6);
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
-}
-
-.flip-cards {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 16px;
-}
-
 .flip-card {
-  width: 110px;
-  height: 155px;
-  perspective: 1000px;
-  cursor: pointer;
+  perspective: 600px; cursor: pointer;
 }
-
 .flip-card-inner {
-  position: relative;
-  width: 100%; 
-  height: 100%;
-  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.6s;
   transform-style: preserve-3d;
 }
-
-.flip-card.flipped .flip-card-inner { 
-  transform: rotateY(180deg); 
-}
-
-.flip-card-back, .flip-card-front {
-  position: absolute;
-  inset: 0;
-  backface-visibility: hidden;
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-/* 卡牌背面 - 精致花纹 */
-.flip-card-back {
-  background: 
-    linear-gradient(135deg, #1a1535 0%, #2a1f4e 50%, #1a1535 100%);
-  border: 2px solid rgba(212,168,67,0.5);
-  box-shadow: 
-    0 0 20px rgba(212,168,67,0.2),
-    inset 0 0 30px rgba(0,0,0,0.3);
-  position: relative;
-  overflow: hidden;
-}
-
-/* 背面花纹装饰 */
-.flip-card-back::before {
-  content: '';
-  position: absolute;
-  inset: 8px;
-  border: 1px solid rgba(212,168,67,0.3);
-  border-radius: 8px;
-}
-
-.flip-card-back::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: 
-    radial-gradient(circle at 20% 20%, rgba(212,168,67,0.1) 0%, transparent 20%),
-    radial-gradient(circle at 80% 20%, rgba(212,168,67,0.1) 0%, transparent 20%),
-    radial-gradient(circle at 20% 80%, rgba(212,168,67,0.1) 0%, transparent 20%),
-    radial-gradient(circle at 80% 80%, rgba(212,168,67,0.1) 0%, transparent 20%),
-    radial-gradient(circle at 50% 50%, rgba(153,50,204,0.05) 0%, transparent 30%);
-}
-
-.card-back-icon {
-  font-size: 36px;
-  color: rgba(212,168,67,0.7);
-  text-shadow: 0 0 20px rgba(212,168,67,0.5);
-  animation: back-pulse 2s ease-in-out infinite;
-  position: relative;
-  z-index: 1;
-}
-
-/* 四角装饰 */
-.flip-card-back .corner-decoration {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  border-color: rgba(212,168,67,0.4);
-  border-style: solid;
-  border-width: 0;
-}
-
-@keyframes back-pulse {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.15); }
-}
-
-.flip-card-front {
-  background: linear-gradient(135deg, #12121a, #1a1a2e);
-  border: 2px solid;
-  transform: rotateY(180deg);
-  gap: 8px;
-  padding: 10px;
-  overflow: hidden;
-  position: relative;
-}
-
-/* 正面光效 */
-.flip-card-front::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: conic-gradient(from 0deg, transparent, rgba(255,255,255,0.1), transparent 30%);
-  animation: front-rotate 4s linear infinite;
-}
-
-@keyframes front-rotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.card-glow {
-  position: absolute;
-  inset: 0;
-  border-radius: 12px;
-  pointer-events: none;
-}
-
-.card-icon { 
-  font-size: 32px; 
-  position: relative; 
-  z-index: 1;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-}
-
-.card-name {
-  font-size: 12px; 
-  color: #e8e0d0; 
-  text-align: center;
-  font-weight: 700; 
-  position: relative; 
-  z-index: 1;
-  line-height: 1.3; 
-  max-height: 2.6em; 
-  overflow: hidden;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-}
-
-.card-quality { 
-  font-size: 11px; 
-  font-weight: 800; 
-  position: relative; 
-  z-index: 1;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-/* 翻牌品质特效 - 大幅提升 */
-.flip-card.quality-common.flipped { filter: drop-shadow(0 0 5px rgba(158,158,158,0.5)); }
-.flip-card.quality-uncommon.flipped { filter: drop-shadow(0 0 8px rgba(76,175,80,0.6)); }
-.flip-card.quality-rare.flipped { filter: drop-shadow(0 0 10px rgba(33,150,243,0.6)); }
-
-.flip-card.quality-epic.flipped,
-.flip-card.quality-mystic.flipped { 
-  animation: epic-flip-glow 2s ease-in-out infinite;
-}
-
-@keyframes epic-flip-glow {
-  0%, 100% { filter: drop-shadow(0 0 10px #9c27b0) drop-shadow(0 0 20px #9c27b080); }
-  50% { filter: drop-shadow(0 0 20px #9c27b0) drop-shadow(0 0 40px #9c27b0) drop-shadow(0 0 60px #9c27b040); }
-}
-
-.flip-card.quality-legendary.flipped,
-.flip-card.quality-celestial.flipped { 
-  animation: legendary-flip-glow 2s ease-in-out infinite;
-}
-
-@keyframes legendary-flip-glow {
-  0%, 100% { filter: drop-shadow(0 0 15px #ff9800) drop-shadow(0 0 30px #ff980060) drop-shadow(0 0 45px #ff980030); }
-  50% { filter: drop-shadow(0 0 30px #ff9800) drop-shadow(0 0 60px #ff9800) drop-shadow(0 0 90px #ff980060) drop-shadow(0 0 120px #ff980030); }
-}
-
-.flip-card.quality-mythic.flipped,
-.flip-card.quality-divine.flipped { 
-  animation: mythic-flip-glow 1.5s ease-in-out infinite;
-}
-
-@keyframes mythic-flip-glow {
-  0%, 100% { filter: drop-shadow(0 0 20px #e91e63) drop-shadow(0 0 40px #e91e6380) drop-shadow(0 0 60px #e91e6340); }
-  50% { filter: drop-shadow(0 0 40px #e91e63) drop-shadow(0 0 80px #e91e63) drop-shadow(0 0 120px #e91e6380) drop-shadow(0 0 160px #e91e6340); }
-}
-
-.flip-actions { 
-  margin-top: 12px; 
-  display: flex;
-  gap: 16px;
-}
-
-.flip-actions .n-button {
-  padding: 12px 32px;
-  font-weight: 600;
-}
-
-/* === 弹窗整体美化 === */
-:deep(.n-dialog) {
-  background: linear-gradient(135deg, rgba(20,18,35,0.98), rgba(12,10,20,0.98)) !important;
+.flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+.flip-card-front, .flip-card-back {
+  backface-visibility: hidden; border-radius: 8px;
   border: 1px solid rgba(212,168,67,0.2);
-  border-radius: 16px;
+  background: rgba(15,15,30,0.9);
 }
+.flip-card-back { transform: rotateY(180deg); }
 
-:deep(.n-dialog__title) {
-  color: #f0d060;
-  font-weight: 700;
-  font-size: 18px;
-}
-
-:deep(.n-dialog__close) {
-  color: rgba(212,168,67,0.6);
-}
-
-:deep(.n-dialog__close:hover) {
-  color: #f0d060;
-  background: rgba(212,168,67,0.1);
-}
-
-/* Tabs美化 */
-:deep(.n-tabs .n-tabs-nav) {
-  background: rgba(212,168,67,0.05);
-  border-radius: 12px;
-  padding: 4px;
-}
-
-:deep(.n-tabs .n-tabs-tab) {
-  color: #a09080;
-  font-weight: 600;
-  transition: all 0.3s;
-}
-
-:deep(.n-tabs .n-tabs-tab:hover) {
-  color: #d4a843;
-}
-
-:deep(.n-tabs .n-tabs-tab.n-tabs-tab--active) {
-  color: #1a1a2e;
-  background: linear-gradient(135deg, #d4a843, #f0d060);
-  border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(212,168,67,0.4);
-}
+/* === 概率/设置弹窗 === */
+.prob-table { width: 100%; font-size: 12px; }
+.prob-table th { color: #d4a843; padding: 6px; text-align: left; }
+.prob-table td { color: rgba(240,214,138,0.7); padding: 6px; }
 
 /* === 响应式 === */
-@media screen and (max-width: 768px) {
-  .result-grid { grid-template-columns: repeat(2, 1fr); }
-  .pool-title { font-size: 26px; }
-  .gacha-btn { padding: 12px 24px; font-size: 14px; }
-  .gacha-btn-multi { padding: 14px 32px; font-size: 15px; }
-  .gacha-btn-mega { padding: 16px 36px; font-size: 16px; }
-  .gacha-item-container { width: 200px; height: 200px; }
-  .gacha-item { font-size: 80px; }
+@media (max-width: 400px) {
+  .gacha-btn-row { grid-template-columns: repeat(2, 1fr); }
+  .gacha-btn-label { font-size: 12px; }
+  .pool-title { font-size: 16px; }
 }
-
-@media (max-width: 480px) {
-  .flip-card { width: 90px; height: 126px; }
-  .card-icon { font-size: 26px; }
-  .card-name { font-size: 10px; }
-  .gacha-btn-row { gap: 10px; }
-  .pool-title { font-size: 22px; letter-spacing: 2px; }
-  .gacha-type-selector :deep(.n-radio-button) {
-    padding: 8px 18px;
-    font-size: 13px;
-  }
-}
-
-/* === Light theme 适配 === */
-:root .gacha-page {
-  --gacha-bg: #0a0a14;
-}
-
-@media (prefers-color-scheme: light) {
-  .gacha-page {
-    background: #f5f0e8;
-    color: #2c2c2c;
-  }
-  
-  .gacha-page::before {
-    opacity: 0.5;
-  }
-  
-  .gacha-page-bg {
-    background: 
-      linear-gradient(180deg, #e8dcc8 0%, #f0e8d8 30%, transparent 100%),
-      radial-gradient(ellipse at 50% 0%, rgba(212,168,67,0.12) 0%, transparent 50%),
-      radial-gradient(ellipse at 30% 20%, rgba(153,50,204,0.1) 0%, transparent 40%);
-  }
-  
-  .pool-title {
-    filter: drop-shadow(0 2px 4px rgba(212,168,67,0.2));
-  }
-  
-  .gacha-type-selector :deep(.n-radio-group) {
-    background: rgba(255,255,255,0.8);
-    border-color: rgba(212,168,67,0.3);
-  }
-  
-  .spirit-stones {
-    background: linear-gradient(135deg, rgba(212,168,67,0.15), rgba(212,168,67,0.08));
-    border-color: rgba(212,168,67,0.4);
-  }
-  
-  .gacha-btn {
-    color: #1a1a2e;
-    box-shadow: 0 4px 15px rgba(212,168,67,0.3);
-  }
-  
-  .gacha-btn:hover {
-    box-shadow: 0 8px 30px rgba(212,168,67,0.5);
-  }
-  
-  .result-item {
-    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(245,245,250,0.95));
-    border-color: rgba(0,0,0,0.1);
-  }
-  
-  .filter-section {
-    background: rgba(0,0,0,0.03);
-    border-color: rgba(0,0,0,0.08);
-  }
-  
-  .flip-stage {
-    background: rgba(255,255,255,0.8);
-  }
-  
-  .flip-card-front {
-    background: linear-gradient(135deg, #f8f6f0, #ede8dc);
-  }
-  
-  .card-name { color: #2c2c2c; }
-  
-  :deep(.n-modal .n-card),
-  :deep(.n-dialog) {
-    background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(250,248,245,0.98)) !important;
-  }
-}
-
-/* === 卡池环形装饰 === */
-.gacha-pool-ring {
-  position: absolute;
-  width: 180px;
-  height: 180px;
-  border-radius: 50%;
-  border: 2px solid rgba(212,168,67,0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: ring-rotate 12s linear infinite;
-  z-index: 0;
-}
-.gacha-pool-ring::before {
-  content: '';
-  position: absolute;
-  inset: -8px;
-  border-radius: 50%;
-  border: 1px dashed rgba(212,168,67,0.15);
-  animation: ring-rotate 20s linear infinite reverse;
-}
-.gacha-pool-ring::after {
-  content: '';
-  position: absolute;
-  inset: 8px;
-  border-radius: 50%;
-  border: 1px solid rgba(153,50,204,0.2);
-  animation: ring-rotate 8s linear infinite;
-}
-.ring-text {
-  position: absolute;
-  bottom: -28px;
-  font-size: 13px;
-  color: rgba(212,168,67,0.6);
-  letter-spacing: 8px;
-  font-weight: 600;
-}
-@keyframes ring-rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* === 按钮网格优化 === */
-.gacha-btn-row {
-  display: grid !important;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px !important;
-  width: 100%;
-  max-width: 360px;
-}
-.gacha-btn {
-  width: 100%;
-  justify-content: center;
-}
-.gacha-btn-100 {
-  background: linear-gradient(135deg, #8b2fc9, #c850c0, #ff6ec7, #c850c0, #8b2fc9) !important;
-  background-size: 300% 300% !important;
-  border: 3px solid rgba(200,80,192,0.8) !important;
-  color: #fff !important;
-  animation: mega-shine 3s ease-in-out infinite, btn100-glow 2s ease-in-out infinite !important;
-}
-.gacha-btn-100:hover {
-  box-shadow: 0 12px 50px rgba(200,80,192,0.7), 0 0 80px rgba(200,80,192,0.3) !important;
-}
-@keyframes btn100-glow {
-  0%, 100% { box-shadow: 0 4px 30px rgba(200,80,192,0.5), inset 0 0 20px rgba(255,110,199,0.15); }
-  50% { box-shadow: 0 6px 40px rgba(200,80,192,0.7), inset 0 0 30px rgba(255,110,199,0.25), 0 0 40px rgba(200,80,192,0.3); }
-}
-
-/* === 焰晶显示优化 === */
-.spirit-stones {
-  background: linear-gradient(135deg, rgba(20,15,35,0.8), rgba(30,20,50,0.6)) !important;
-  border: 1px solid rgba(212,168,67,0.3) !important;
-  border-radius: 16px !important;
-  padding: 8px 24px !important;
-  backdrop-filter: blur(10px);
-}
-
-/* === 移动端按钮优化 === */
-@media (max-width: 480px) {
-  .gacha-btn-row {
-    max-width: 300px;
-    gap: 8px !important;
-  }
-  .gacha-btn { padding: 10px 16px !important; font-size: 13px !important; }
-  .gacha-btn-multi { padding: 12px 20px !important; font-size: 14px !important; }
-  .gacha-btn-mega, .gacha-btn-100 { padding: 14px 24px !important; font-size: 15px !important; }
-  .gacha-pool-ring { width: 140px; height: 140px; }
-  .gacha-item-container { width: 180px !important; height: 180px !important; }
-  .gacha-item { font-size: 70px !important; }
-}
-
 </style>
