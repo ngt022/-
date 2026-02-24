@@ -519,7 +519,7 @@ const particleStyle = (i) => ({
   transform: scale(0.9);
 }
 .sc-icon-wrap {
-  width: 44px; height: 44px; border-radius: 12px;
+  width: 56px; height: 56px; border-radius: 14px;
   display: flex; align-items: center; justify-content: center;
   border: 1.5px solid;
   transition: all 0.2s;
@@ -528,8 +528,8 @@ const particleStyle = (i) => ({
 .shortcut-btn:active .sc-icon-wrap {
   box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
-.sc-icon { font-size: 1.3rem; }
-.sc-text { font-size: 0.7rem; color: #8a8070; }
+.sc-icon { font-size: 1.6rem; }
+.sc-text { font-size: 0.8rem; color: #8a8070; }
 
 /* 公告 */
 .announce-list { display: flex; flex-direction: column; gap: 6px; }

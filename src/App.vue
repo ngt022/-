@@ -673,7 +673,8 @@ watch(() => authStore.wallet, (w) => { if (w) { setTimeout(checkAnnouncementPopu
     -webkit-text-fill-color: transparent;
     background-clip: text;
     white-space: nowrap;
-    .sub-page-level {
+  }
+  .sub-page-level {
     font-size: 0.75rem;
     color: #d4a843;
     opacity: 0.85;

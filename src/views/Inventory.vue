@@ -1369,12 +1369,12 @@ const router = useRouter()
   .eq-empty { border: 1.5px dashed rgba(212,168,67,0.2); }
   .eq-empty:hover { border-color: rgba(212,168,67,0.5); box-shadow: 0 0 10px rgba(212,168,67,0.15); }
 
-  .eq-slot-icon { width: 28px; height: 28px; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 0 4px rgba(212,168,67,0.5)); }
+  .eq-slot-icon { width: 40px; height: 40px; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 0 4px rgba(212,168,67,0.5)); }
   .eq-slot-icon-empty { opacity: 0.3; filter: grayscale(0.6); }
-  .eq-slot-emoji { font-size: 20px; }
+  .eq-slot-emoji { font-size: 28px; }
   .eq-slot-emoji-empty { opacity: 0.3; filter: grayscale(0.6); }
-  .eq-slot-name { font-size: 9px; color: #a09070; text-align: center; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; margin-top: 2px; }
-  .eq-enhance { position: absolute; top: 1px; right: 2px; font-size: 9px; color: #FFD700; font-weight: bold; text-shadow: 0 0 4px rgba(255,215,0,0.6); }
+  .eq-slot-name { font-size: 11px; color: #a09070; text-align: center; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; margin-top: 2px; }
+  .eq-enhance { position: absolute; top: 1px; right: 2px; font-size: 11px; color: #FFD700; font-weight: bold; text-shadow: 0 0 4px rgba(255,215,0,0.6); }
 
   /* 装备栏品质 */
   .eq-quality-common { border: 1.5px solid #555; }
