@@ -419,6 +419,11 @@ app.monthlyRankings = monthlyRankingsRoutes;
 // PK赛季+AI匹配
 const { default: pkSeasonInit } = await import("./routes/pk-season.js"); const pkSeasonRoutes = pkSeasonInit(pool, auth, runPkBattle, computeFinalStats, getMountTitleBonuses);
 app.use("/api/pk", pkSeasonRoutes);
+
+// 异步竞技场
+const { default: arenaInit } = await import("./routes/arena.js");
+const arenaRoutes = arenaInit(pool, auth, runPkBattle, computeFinalStats, getMountTitleBonuses);
+app.use("/api/arena", arenaRoutes);
 app.use('/api/shop', shopRoutes(pool, auth));
 app.use('/api/inventory', inventoryRoutes(pool, auth));
 

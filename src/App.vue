@@ -347,7 +347,8 @@ import { useGameConfigStore } from './stores/gameConfig'
       { key: 'achievements', label: '焰功', icon: '🏆', img: '/assets/images/menu/menu_achievements.webp' },
     ]},
     { key: 'social', label: '社交', icon: '👥', children: [
-      { key: 'pk', label: '切磋', icon: '⚔️', img: '/assets/images/menu/menu_pk.webp' },
+      { key: 'arena', label: '竞技场', icon: '⚔️', img: '/assets/images/menu/menu_pk.webp' },
+      { key: 'pk', label: '实时切磋', icon: '🤺' },
       { key: 'sect', label: '宗门', icon: '🏛️', img: '/assets/images/menu/menu_sect.webp' },
       { key: 'sect-war', label: '宗门战', icon: '🏛️', img: '/assets/images/menu/menu_sect_war.webp' },
       { key: 'friends', label: '好友', icon: '👥', img: '/assets/images/menu/menu_friends.webp' },
@@ -439,6 +440,7 @@ function startSplash() {
     recharge: defineAsyncComponent(() => import('./views/Recharge.vue')),
     vip: defineAsyncComponent(() => import('./views/Vip.vue')),
     achievements: defineAsyncComponent(() => import('./views/Achievements.vue')),
+    arena: defineAsyncComponent({ loader: () => import('./views/Arena.vue'), loadingComponent: { render() { return h(SkeletonLoader, { type: 'grid' }) } }, delay: 0 }),
     rank: defineAsyncComponent(() => import('./views/Rank.vue')),
     'monthly-rankings': defineAsyncComponent({ loader: () => import('./views/MonthlyRankings.vue'), loadingComponent: { render() { return h(SkeletonLoader, { type: 'grid' }) } }, delay: 0 }),
     mail: defineAsyncComponent(() => import('./views/Mail.vue')),
