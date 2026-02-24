@@ -169,7 +169,7 @@
                   <div class="player-av">{{ p.name[0] }}</div>
                   <div class="player-info">
                     <n-text strong>{{ p.name }}</n-text>
-                    <n-text depth="3" style="font-size:11px">{{ p.realm }} · 战力 {{ p.combatPower }}</n-text>
+                    <n-text depth="3" style="font-size:11px">{{ p.realm }} Lv.{{ p.level }} · 战力 {{ p.combatPower }}</n-text>
                   </div>
                 </div>
                 <n-button type="error" size="small" @click="sendChallenge(p)" :disabled="challengeSent">

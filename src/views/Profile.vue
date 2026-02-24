@@ -10,13 +10,13 @@
         <div class="profile-realm-row">
           <img :src="realmIcon" class="profile-realm-icon" loading="lazy" />
           <div class="profile-realm-info">
-            <span class="profile-realm-name">{{ realmName }}</span>
+            <span class="profile-realm-name">{{ realmName }} <span style="opacity:0.7;font-size:0.85em">Lv.{{ playerStore.level }}</span></span>
             <span class="profile-player-name">{{ playerStore.name || '无名焰修' }}</span>
           </div>
         </div>
         <n-descriptions bordered>
           <n-descriptions-item label="焰名">{{ playerStore.name || '无名焰修' }}</n-descriptions-item>
-          <n-descriptions-item label="焰阶">{{ realmName }}</n-descriptions-item>
+          <n-descriptions-item label="焰阶">{{ realmName }} (Lv.{{ playerStore.level }})</n-descriptions-item>
           <n-descriptions-item label="焰力">{{ playerStore.cultivation || 0 }} / {{ playerStore.maxCultivation || 100 }}</n-descriptions-item>
           <n-descriptions-item label="焰灵">{{ (Number(playerStore.spirit) || 0).toFixed(2) }}</n-descriptions-item>
           <n-descriptions-item label="焰晶">{{ playerStore.spiritStones || 0 }}</n-descriptions-item>
