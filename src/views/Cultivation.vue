@@ -67,33 +67,21 @@
           
           <!-- 焰灵状态区 -->
           <div class="spirit-status" :class="{ 'spirit-full': isSpiritFull }">
-            <div class="spirit-bar-container">
-              <svg class="spirit-arc" viewBox="0 0 200 60">
-                <defs>
-                  <linearGradient id="spiritGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#ff6b35" />
-                    <stop offset="100%" stop-color="#ffd700" />
-                  </linearGradient>
-                </defs>
-                <!-- 背景弧 -->
-                <path d="M 20 50 A 80 80 0 0 1 180 50" fill="none" stroke="rgba(255,107,53,0.2)" stroke-width="6" stroke-linecap="round" />
-                <!-- 进度弧 -->
-                <path 
-                  class="spirit-arc-progress"
-                  d="M 20 50 A 80 80 0 0 1 180 50" 
-                  fill="none" 
-                  stroke="url(#spiritGradient)" 
-                  stroke-width="6" 
-                  stroke-linecap="round"
-                  :stroke-dasharray="spiritArcLength"
-                  :stroke-dashoffset="spiritArcOffset"
-                />
-              </svg>
-              <div class="spirit-info">
-                <span class="spirit-label">焰灵</span>
-                <span class="spirit-value">{{ Math.floor(playerStore.spirit) }} / {{ playerStore.maxSpirit }}</span>
-                <span class="spirit-rate">(+{{ playerStore.getSpiritRegen().toFixed(1) }}/s)</span>
+            <div class="spirit-header">
+              <span class="spirit-icon">🔥</span>
+              <span class="spirit-title">焰灵</span>
+              <span class="spirit-regen">+{{ playerStore.getSpiritRegen().toFixed(1) }}/s</span>
+            </div>
+            <div class="spirit-bar-outer">
+              <div class="spirit-bar-inner" :style="{ width: spiritPercent + '%' }">
+                <div class="spirit-bar-glow"></div>
               </div>
+              <span class="spirit-bar-text">{{ Math.floor(playerStore.spirit) }} / {{ playerStore.maxSpirit }}</span>
+            </div>
+            <div class="spirit-percent-row">
+              <span class="spirit-pct">{{ spiritPercent }}%</span>
+              <span class="spirit-hint" v-if="isSpiritFull">✨ 焰灵充盈</span>
+              <span class="spirit-hint" v-else>恢复中...</span>
             </div>
           </div>
         </div>
@@ -187,6 +175,11 @@ const spiritArcLength = 251 // 近似弧长
 const spiritArcOffset = computed(() => {
   const progress = Math.min(playerStore.spirit / playerStore.maxSpirit, 1)
   return spiritArcLength - (progress * spiritArcLength)
+})
+
+// 焰灵百分比
+const spiritPercent = computed(() => {
+  return Math.min(100, Math.round(playerStore.spirit / playerStore.maxSpirit * 100))
 })
 
 // 焰灵是否充满
@@ -607,25 +600,82 @@ const playerStore = usePlayerStore()
 
 /* === 焰灵状态 === */
 .spirit-status {
-  width: 90%; max-width: 240px; margin-top: 12px;
-  padding: 8px 12px;
-  background: rgba(212,168,67,0.04);
-  border: 1px solid rgba(212,168,67,0.1);
-  border-radius: 8px;
+  width: 92%; max-width: 300px; margin-top: 16px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(139,0,0,0.08) 0%, rgba(212,168,67,0.06) 100%);
+  border: 1px solid rgba(212,168,67,0.12);
+  border-radius: 12px;
+  transition: all 0.4s ease;
 }
 .spirit-status.spirit-full {
-  border-color: rgba(255,215,0,0.25);
-  box-shadow: 0 0 12px rgba(255,215,0,0.08);
+  border-color: rgba(255,215,0,0.3);
+  box-shadow: 0 0 20px rgba(255,215,0,0.1), inset 0 0 20px rgba(255,215,0,0.03);
+  animation: spirit-breathe 3s ease-in-out infinite;
 }
-.spirit-arc { width: 100%; }
-.spirit-arc-progress { transition: stroke-dashoffset 0.5s ease; }
-.spirit-info {
+@keyframes spirit-breathe {
+  0%,100% { box-shadow: 0 0 15px rgba(255,215,0,0.08), inset 0 0 15px rgba(255,215,0,0.02); }
+  50% { box-shadow: 0 0 25px rgba(255,215,0,0.15), inset 0 0 25px rgba(255,215,0,0.05); }
+}
+
+.spirit-header {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
+}
+.spirit-icon { font-size: 14px; }
+.spirit-title {
+  font-size: 13px; font-weight: 700; color: #d4a843;
+  letter-spacing: 1px;
+}
+.spirit-regen {
+  margin-left: auto;
+  font-size: 11px; color: rgba(212,168,67,0.5);
+  background: rgba(212,168,67,0.08);
+  padding: 1px 6px; border-radius: 4px;
+}
+
+.spirit-bar-outer {
+  position: relative; height: 18px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 9px; overflow: hidden;
+  border: 1px solid rgba(212,168,67,0.08);
+}
+.spirit-bar-inner {
+  position: absolute; top: 0; left: 0; height: 100%;
+  background: linear-gradient(90deg, #8b2000, #d4820b, #ffa500);
+  border-radius: 9px;
+  transition: width 0.8s ease;
+  min-width: 2px;
+}
+.spirit-bar-glow {
+  position: absolute; top: 0; right: 0;
+  width: 30px; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,215,0,0.4));
+  border-radius: 0 9px 9px 0;
+  animation: bar-shimmer 2s ease-in-out infinite;
+}
+@keyframes bar-shimmer {
+  0%,100% { opacity: 0.4; } 50% { opacity: 1; }
+}
+.spirit-bar-text {
+  position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
-  gap: 6px; font-size: 12px;
+  font-size: 11px; font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  z-index: 1;
 }
-.spirit-label { color: #d4a843; font-weight: 600; font-size: 11px; }
-.spirit-value { color: rgba(240,214,138,0.85); font-size: 13px; }
-.spirit-rate { color: rgba(240,214,138,0.35); font-size: 10px; }
+
+.spirit-percent-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 6px;
+}
+.spirit-pct {
+  font-size: 12px; font-weight: 700; color: #ffa500;
+}
+.spirit-hint {
+  font-size: 10px; color: rgba(212,168,67,0.4);
+}
+.spirit-full .spirit-hint { color: #ffd700; }
+.spirit-full .spirit-pct { color: #ffd700; text-shadow: 0 0 6px rgba(255,215,0,0.3); }
 
 /* === 按钮组 === */
 .cultivation-buttons {
