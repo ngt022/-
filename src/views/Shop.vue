@@ -598,18 +598,18 @@ onMounted(async () => {
 .equip-price { font-size: 11px; color: #ffd54f; position: relative; z-index: 1; }
 
 /* 通用商品网格 */
-.section-title { font-size: 14px; font-weight: 600; margin: 12px 0 6px; color: #ddd; }
-.item-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.section-title { font-size: 13px; font-weight: 600; margin: 8px 0 4px; color: #ddd; }
+.item-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .item-card {
-  cursor: pointer; padding: 10px; border-radius: 8px;
+  cursor: pointer; padding: 6px; border-radius: 8px; text-align: center;
   border: 1px solid rgba(255,255,255,0.08);
   background: rgba(30,30,40,0.6); transition: all 0.3s; position: relative;
 }
 .item-card:hover { transform: translateY(-2px); border-color: rgba(212,168,67,0.4); }
 .item-icon { font-size: 28px; margin-bottom: 4px; }
-.item-name { font-size: 13px; font-weight: 600; color: #eee; }
-.item-desc { font-size: 11px; color: #999; margin: 2px 0; }
-.item-price { font-size: 12px; color: #ffd54f; font-weight: 600; }
+.item-name { font-size: 11px; font-weight: 600; color: #eee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item-desc { font-size: 10px; color: #999; margin: 1px 0; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.item-price { font-size: 11px; color: #ffd54f; font-weight: 600; }
 .discount-tag { position: absolute; top: 6px; right: 6px; }
 .tier-tag { position: absolute; top: 6px; right: 6px; }
 .grade-tag { margin: 4px 0; }
@@ -705,8 +705,8 @@ onMounted(async () => {
   margin: 8px auto;
 }
 .shop-item-img {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
   image-rendering: pixelated;
   filter: drop-shadow(0 0 4px rgba(212,168,67,0.5));
