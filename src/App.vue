@@ -123,7 +123,7 @@
   import { usePlayerStore } from './stores/player'
 import { useGameConfigStore } from './stores/gameConfig'
   import { useAuthStore } from './stores/auth'
-  import { h, ref, watch, onMounted, onUnmounted, computed, provide, defineAsyncComponent } from 'vue'
+  import { h, ref, watch, onMounted, onUnmounted, computed, provide, defineAsyncComponent, nextTick } from 'vue'
   import { NIcon, darkTheme, createDiscreteApi } from 'naive-ui'
   import {
     BookOutlined,
@@ -320,8 +320,17 @@ if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
 
   const selectSubItem = (childKey) => {
     expandedTab.value = null
-    pageHistory.value = []  // 子菜单进入，返回直接回主城
-    currentPage.value = childKey
+    pageHistory.value = []
+    if (currentPage.value !== 'home') {
+      // 已在子页面，先回主城再进新页面，避免transition卡住
+      currentPage.value = 'home'
+      activeTab.value = 'home'
+      nextTick(() => {
+        currentPage.value = childKey
+      })
+    } else {
+      currentPage.value = childKey
+    }
   }
 
   // 点击其他地方关闭子菜单
