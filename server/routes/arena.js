@@ -82,7 +82,7 @@ export default function(pool, auth, runPkBattle, computeFinalStats, getMountTitl
   // Get arena opponent list
   router.get('/opponents', auth, async (req, res) => {
     try {
-      const wallet = req.wallet;
+      const wallet = req.user.wallet;
       // Get my rank
       await pool.query('INSERT INTO pk_rankings (wallet) VALUES ($1) ON CONFLICT DO NOTHING', [wallet]);
       const myRank = (await pool.query('SELECT rank_score, rank_tier FROM pk_rankings WHERE wallet=$1', [wallet])).rows[0];
@@ -137,7 +137,7 @@ export default function(pool, auth, runPkBattle, computeFinalStats, getMountTitl
   // Challenge an opponent
   router.post('/challenge', auth, async (req, res) => {
     try {
-      const wallet = req.wallet;
+      const wallet = req.user.wallet;
       const { targetWallet, isRevenge } = req.body;
       if (!targetWallet) return res.json({ success: false, message: '缺少目标' });
       if (targetWallet === wallet) return res.json({ success: false, message: '不能挑战自己' });
@@ -283,10 +283,10 @@ export default function(pool, auth, runPkBattle, computeFinalStats, getMountTitl
     try {
       const rows = (await pool.query(
         'SELECT n.*, ab.attacker_power, ab.defender_power FROM arena_notifications n LEFT JOIN arena_battles ab ON ab.id = n.battle_id WHERE n.wallet=$1 ORDER BY n.created_at DESC LIMIT 20',
-        [req.wallet]
+        [req.user.wallet]
       )).rows;
       // Mark as read
-      await pool.query('UPDATE arena_notifications SET read=true WHERE wallet=$1 AND read=false', [req.wallet]);
+      await pool.query('UPDATE arena_notifications SET read=true WHERE wallet=$1 AND read=false', [req.user.wallet]);
       res.json({ success: true, notifications: rows });
     } catch (e) {
       res.json({ success: false, message: e.message });
@@ -298,7 +298,7 @@ export default function(pool, auth, runPkBattle, computeFinalStats, getMountTitl
     try {
       const rows = (await pool.query(
         'SELECT id, attacker_wallet, defender_wallet, winner, attacker_score_change, defender_score_change, reward_stones, is_revenge, attacker_name, defender_name, attacker_power, defender_power, created_at FROM arena_battles WHERE attacker_wallet=$1 OR defender_wallet=$1 ORDER BY created_at DESC LIMIT 30',
-        [req.wallet]
+        [req.user.wallet]
       )).rows;
       res.json({ success: true, battles: rows });
     } catch (e) {
