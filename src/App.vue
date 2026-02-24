@@ -511,19 +511,21 @@ if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
 
   // 点击其他地方关闭子菜单
   // 成就定期检查（每30秒）
-  let achCheckTimer = null
-  const startAchCheck = () => {
-    if (achCheckTimer) return
-    achCheckTimer = setInterval(() => {
-      const newAchs = checkAchievements(playerStore)
-      if (newAchs.length > 0) {
-        achQueue.value.push(...newAchs)
-        if (!showAchPopup.value) showNextAch()
-      }
-    }, 30000)
-  }
-  // 登录后启动
-  watch(() => authStore.isLoggedIn, (v) => { if (v) setTimeout(startAchCheck, 5000) }, { immediate: true })
+  // 登录后检查一次成就（不循环）
+  let achChecked = false
+  watch(() => authStore.isLoggedIn, (v) => {
+    if (v && !achChecked) {
+      achChecked = true
+      setTimeout(() => {
+        const newAchs = checkAchievements(playerStore)
+        if (newAchs.length > 0) {
+          // 只弹第一个，其余静默记录
+          achPopupData.value = newAchs[0]
+          showAchPopup.value = true
+        }
+      }, 5000)
+    }
+  }, { immediate: true })
 
   const closeSubMenu = () => {
     expandedTab.value = null
