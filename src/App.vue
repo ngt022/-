@@ -320,7 +320,8 @@ if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
 
   const selectSubItem = (childKey) => {
     expandedTab.value = null
-    navigateTo(childKey)
+    pageHistory.value = []  // 子菜单进入，返回直接回主城
+    currentPage.value = childKey
   }
 
   // 点击其他地方关闭子菜单
