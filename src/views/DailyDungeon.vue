@@ -131,7 +131,6 @@ async function fetchHistory() {
 }
 
 async function enterDungeon(d) {
-  // 战斗时停止自动冥想
   playerStore.stopAutoCultivation()
   if (d.locked || d.remaining <= 0 || loading.value) return
   sfx.click()
@@ -174,7 +173,6 @@ async function enterDungeon(d) {
     battleDone.value = true
     data.result === "victory" ? sfx.victory() : sfx.defeat()
 
-    // 同步焰晶奖励
     if (data.rewards?.spiritStones) playerStore.spiritStones += data.rewards.spiritStones
     if (data.rewards?.cultivation) playerStore.cultivation += data.rewards.cultivation
     if (data.rewards?.petEssence) playerStore.petEssence = (playerStore.petEssence || 0) + data.rewards.petEssence
@@ -193,34 +191,34 @@ onMounted(() => { fetchList(); fetchHistory() })
 </script>
 
 <style scoped>
-.daily-dungeon { padding: 16px; max-width: 800px; margin: 0 auto; }
-.page-title { font-size: 22px; font-weight: bold; color: #d4a843; text-align: center; margin-bottom: 20px; text-shadow: 0 0 10px rgba(212,168,67,0.3); }
+.daily-dungeon { padding: 16px; max-width: 800px; margin: 0 auto; background: #0b0b18; min-height: 100vh; }
+.page-title { font-size: 22px; font-weight: bold; color: #ffd700; text-align: center; margin-bottom: 20px; text-shadow: 0 0 10px rgba(255,215,0,0.3); }
 .dungeon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
-.dungeon-card { background: rgba(15,15,30,0.9); border: 1px solid rgba(212,168,67,0.12); border-radius: 12px; padding: 16px; cursor: pointer; position: relative; overflow: hidden; transition: all 0.3s; }
-.dungeon-card:hover:not(.locked):not(.exhausted) { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(212,168,67,0.15); border-color: rgba(212,168,67,0.4); }
+.dungeon-card { background: rgba(15,15,30,0.9); border: 1px solid rgba(212,168,67,0.15); border-radius: 12px; padding: 16px; cursor: pointer; position: relative; overflow: hidden; transition: all 0.3s; }
+.dungeon-card:hover:not(.locked):not(.exhausted) { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(212,168,67,0.2); border-color: rgba(212,168,67,0.3); }
 .dungeon-card.locked { opacity: 0.5; cursor: not-allowed; }
 .dungeon-card.exhausted { opacity: 0.6; cursor: not-allowed; }
 .card-diff { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 12px; font-weight: bold; margin-bottom: 8px; }
-.card-diff.easy { background: rgba(212,168,67,0.15); color: #f0d68a; }
-.card-diff.normal { background: rgba(212,168,67,0.25); color: #d4a843; }
-.card-diff.hard { background: rgba(255,107,53,0.2); color: #ff6b35; }
-.card-diff.hell { background: rgba(139,32,0,0.4); color: #ff4444; text-shadow: 0 0 6px rgba(255,68,68,0.5); }
-.card-name { font-size: 18px; font-weight: bold; color: #eee; margin-bottom: 6px; }
-.card-desc { font-size: 13px; color: #888; margin-bottom: 10px; line-height: 1.4; }
-.card-info { display: flex; justify-content: space-between; font-size: 13px; color: #999; margin-bottom: 8px; }
-.card-reward { display: flex; gap: 12px; font-size: 13px; color: #d4a843; }
-.lock-mask { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); font-size: 18px; color: #888; font-weight: bold; border-radius: 12px; }
-.exhausted-mask { color: #a0522d; }
-.battle-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(5,5,15,0.95); display: flex; align-items: center; justify-content: center; padding: 16px; }
-.battle-box { width: 100%; max-width: 500px; background: rgba(15,15,30,0.95); border: 1px solid rgba(212,168,67,0.2); border-radius: 16px; padding: 20px; }
+.card-diff.easy { background: rgba(212,168,67,0.15); color: #f0d68a; border: 1px solid rgba(212,168,67,0.2); }
+.card-diff.normal { background: rgba(212,168,67,0.2); color: #ffd700; border: 1px solid rgba(212,168,67,0.3); }
+.card-diff.hard { background: rgba(255,107,53,0.15); color: #ff6b35; border: 1px solid rgba(255,107,53,0.25); }
+.card-diff.hell { background: rgba(139,32,0,0.25); color: #ff4444; border: 1px solid rgba(139,32,0,0.4); }
+.card-name { font-size: 18px; font-weight: bold; color: #f0d68a; margin-bottom: 6px; }
+.card-desc { font-size: 13px; color: #aaa; margin-bottom: 10px; line-height: 1.4; }
+.card-info { display: flex; justify-content: space-between; font-size: 13px; color: #888; margin-bottom: 8px; }
+.card-reward { display: flex; gap: 12px; font-size: 13px; color: #ffd700; }
+.lock-mask { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(11,11,24,0.85); font-size: 18px; color: #888; font-weight: bold; border-radius: 12px; }
+.exhausted-mask { color: #ff6b35; }
+.battle-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(11,11,24,0.95); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.battle-box { width: 100%; max-width: 500px; background: linear-gradient(180deg, #12101f, #151528); border: 1px solid rgba(212,168,67,0.2); border-radius: 16px; padding: 20px; }
 .battle-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .enemy-name { font-size: 20px; font-weight: bold; color: #ff6b35; }
-.enemy-level { font-size: 14px; color: #999; }
-.hp-bar-wrap { position: relative; height: 22px; background: rgba(30,30,50,0.8); border-radius: 11px; overflow: hidden; margin-bottom: 16px; border: 1px solid rgba(139,32,0,0.3); }
-.hp-bar { height: 100%; background: linear-gradient(90deg, #8b2000, #ff4444); transition: width 0.5s ease; border-radius: 11px; }
+.enemy-level { font-size: 14px; color: #888; }
+.hp-bar-wrap { position: relative; height: 22px; background: #1a1a2e; border-radius: 11px; overflow: hidden; margin-bottom: 16px; }
+.hp-bar { height: 100%; background: linear-gradient(90deg, #8b2000, #ff6b35, #ff4444); transition: width 0.5s ease; border-radius: 11px; }
 .hp-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; text-shadow: 0 1px 2px #000; }
-.battle-log { max-height: 250px; overflow-y: auto; margin-bottom: 16px; padding: 8px; background: rgba(10,10,20,0.5); border-radius: 8px; }
-.log-line { padding: 6px 8px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); animation: fadeIn 0.3s; }
+.battle-log { max-height: 250px; overflow-y: auto; margin-bottom: 16px; padding: 8px; background: rgba(15,15,30,0.6); border-radius: 8px; }
+.log-line { padding: 6px 8px; font-size: 13px; border-bottom: 1px solid rgba(212,168,67,0.1); animation: fadeIn 0.3s; }
 .log-player { color: #f0d68a; }
 .log-enemy { color: #ff6b35; }
 .log-line b { font-weight: bold; }
@@ -228,19 +226,19 @@ onMounted(() => { fetchList(); fetchHistory() })
 .crit-tag { color: #ffd700; font-size: 11px; margin-left: 4px; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .battle-result { text-align: center; padding: 16px 0; animation: fadeIn 0.5s; }
-.result-victory .result-title { font-size: 28px; color: #ffd700; font-weight: bold; text-shadow: 0 0 20px rgba(255,215,0,0.4); margin-bottom: 12px; }
+.result-victory .result-title { font-size: 28px; color: #ffd700; font-weight: bold; text-shadow: 0 0 20px rgba(255,215,0,0.5); margin-bottom: 12px; }
 .result-defeat .result-title { font-size: 28px; color: #888; font-weight: bold; margin-bottom: 8px; }
-.result-sub { color: #999; font-size: 14px; margin-bottom: 12px; }
+.result-sub { color: #666; font-size: 14px; margin-bottom: 12px; }
 .reward-list { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 16px; }
-.reward-item { background: rgba(212,168,67,0.1); border: 1px solid rgba(212,168,67,0.2); padding: 6px 14px; border-radius: 8px; font-size: 14px; color: #d4a843; }
-.btn-back { background: linear-gradient(135deg, #8b2000, #ff6b35); color: #fff; border: none; padding: 10px 32px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
+.reward-item { background: rgba(212,168,67,0.12); border: 1px solid rgba(212,168,67,0.2); padding: 6px 14px; border-radius: 8px; font-size: 14px; color: #ffd700; }
+.btn-back { background: linear-gradient(135deg, #8b2000, #ff6b35, #ffa500); color: #fff; border: none; padding: 10px 32px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
 .btn-back:hover { opacity: 0.9; }
 .history-section { margin-top: 8px; }
-.section-title { font-size: 16px; color: #d4a843; font-weight: bold; margin-bottom: 12px; border-left: 3px solid #d4a843; padding-left: 10px; }
-.empty-hint { color: #555; font-size: 14px; text-align: center; padding: 20px; }
-.history-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: rgba(20,20,35,0.5); border-radius: 8px; margin-bottom: 6px; font-size: 14px; border: 1px solid rgba(212,168,67,0.06); }
+.section-title { font-size: 16px; color: #ffd700; font-weight: bold; margin-bottom: 12px; border-left: 3px solid #d4a843; padding-left: 10px; }
+.empty-hint { color: #666; font-size: 14px; text-align: center; padding: 20px; }
+.history-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: rgba(20,20,35,0.65); border-radius: 8px; margin-bottom: 6px; font-size: 14px; }
 .h-name { color: #ccc; flex: 1; }
 .h-result.victory { color: #ffd700; }
-.h-result.defeat { color: #a0522d; }
+.h-result.defeat { color: #ff6b35; }
 .h-rewards { color: #d4a843; }
 </style>

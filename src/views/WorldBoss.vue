@@ -21,7 +21,7 @@
               <td>{{ h.name }}</td>
               <td>Lv.{{ h.level }}</td>
               <td>{{ formatNum(h.maxHp) }}</td>
-              <td><n-tag :type="h.status==='dead'?'error':'info'" size="small">{{ h.status==='dead'?'已击杀':'进行中' }}</n-tag></td>
+              <td><n-tag :type="h.status==='dead'?'error':'default'" size="small">{{ h.status==='dead'?'已击杀':'进行中' }}</n-tag></td>
               <td>{{ formatTime(h.spawnTime) }}</td>
             </tr>
           </tbody>
@@ -172,7 +172,6 @@ const myWallet = localStorage.getItem('xx_wallet') || ''
 const token = localStorage.getItem('xx_token') || ''
 const headers = { 'Authorization': `Bearer ${token}` }
 
-// Boss 图片映射
 const bossImageMap = {
   '焰蚀蛛母': img('/assets/images/boss/boss_yanShi.png'),
   '魔焰龙': img('/assets/images/boss/boss_moYanLong.png'),
@@ -237,7 +236,7 @@ async function fetchBoss() {
     myAttacks.value = data.myAttacks || 0
     myRank.value = data.myRank || 0
     totalPlayers.value = data.totalPlayers || 0
-  } catch (e) { console.error("获取奖励失败:", e) }
+  } catch (e) { console.error("获取失败:", e) }
 }
 
 async function fetchRanking() {
@@ -245,7 +244,7 @@ async function fetchRanking() {
     const res = await fetch('/api/boss/ranking', { headers })
     const data = await res.json()
     ranking.value = data.ranking || []
-  } catch (e) { console.error("获取奖励失败:", e) }
+  } catch (e) { console.error("获取失败:", e) }
 }
 
 async function fetchRewards() {
@@ -253,7 +252,7 @@ async function fetchRewards() {
     const res = await fetch('/api/boss/rewards', { headers })
     const data = await res.json()
     rewards.value = data.rewards || []
-  } catch (e) { console.error("获取奖励失败:", e) }
+  } catch (e) { console.error("获取失败:", e) }
 }
 
 async function fetchHistory() {
@@ -261,11 +260,10 @@ async function fetchHistory() {
     const res = await fetch('/api/boss/history', { headers })
     const data = await res.json()
     history.value = data.bosses || []
-  } catch (e) { console.error("获取奖励失败:", e) }
+  } catch (e) { console.error("获取失败:", e) }
 }
 
 async function doAttack() {
-  // 战斗时停止自动冥想
   playerStore.stopAutoCultivation()
   if (!canAttack.value || attacking.value) return
   attacking.value = true
@@ -273,28 +271,16 @@ async function doAttack() {
     const res = await fetch('/api/boss/attack', { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' } })
     const data = await res.json()
     if (!res.ok) { message.error(data.error); return }
-    // 更新数据
-    if (boss.value) {
-      boss.value.currentHp = data.bossHp
-    }
+    if (boss.value) boss.value.currentHp = data.bossHp
     myDamage.value = data.myTotalDamage
-    // 更新焰灵
-    if (playerStore.spirit !== undefined) {
-      playerStore.spirit = data.spirit
-    }
-    // 浮动伤害
+    if (playerStore.spirit !== undefined) playerStore.spirit = data.spirit
     addFloatingDmg(data.damage, data.isCrit)
-    // 音效
-    if (data.isCrit) { try { sfx.crit() } catch (e) { console.error("获取奖励失败:", e) } }
-    else { try { sfx.hit() } catch (e) { console.error("获取奖励失败:", e) } }
+    if (data.isCrit) { try { sfx.crit() } catch (e) {} }
+    else { try { sfx.hit() } catch (e) {} }
     startCooldown()
-    // 刷新排行
     fetchRanking()
-  } catch (e) {
-    message.error('攻击失败')
-  } finally {
-    attacking.value = false
-  }
+  } catch (e) { message.error('攻击失败') }
+  finally { attacking.value = false }
 }
 
 async function claimRewards() {
@@ -306,11 +292,8 @@ async function claimRewards() {
     message.success(`领取成功！获得 ${formatNum(data.totalStones)} 焰晶`)
     playerStore.spiritStones = data.newSpiritStones
     fetchRewards()
-  } catch {
-    message.error('领取失败')
-  } finally {
-    claiming.value = false
-  }
+  } catch { message.error('领取失败') }
+  finally { claiming.value = false }
 }
 
 function connectWs() {
@@ -318,9 +301,7 @@ function connectWs() {
   ws = new WebSocket(`${proto}//${location.host}/ws`)
   ws.onopen = () => {
     wsConnected.value = true
-    if (token) {
-      ws.send(JSON.stringify({ type: 'auth', token, name: playerStore.name }))
-    }
+    if (token) ws.send(JSON.stringify({ type: 'auth', token, name: playerStore.name }))
   }
   ws.onmessage = (e) => {
     try {
@@ -329,18 +310,14 @@ function connectWs() {
         const d = data.data
         battleLogs.value.push({ playerName: d.playerName, damage: d.damage, isCrit: d.isCrit })
         if (battleLogs.value.length > 30) battleLogs.value.shift()
-        if (boss.value) {
-          boss.value.currentHp = d.bossHp
-        }
-        nextTick(() => {
-          if (logRef.value) logRef.value.scrollTop = logRef.value.scrollHeight
-        })
+        if (boss.value) boss.value.currentHp = d.bossHp
+        nextTick(() => { if (logRef.value) logRef.value.scrollTop = logRef.value.scrollHeight })
       }
       if (data.type === 'boss_dead') {
         const d = data.data
         message.success(`🐉 ${d.bossName} 已被击杀！最大功臣: ${d.killerName}`)
         if (boss.value) boss.value.status = 'dead'
-        try { sfx.victory() } catch (e) { console.error("获取奖励失败:", e) }
+        try { sfx.victory() } catch (e) {}
         fetchRewards()
         fetchHistory()
       }
@@ -351,23 +328,13 @@ function connectWs() {
         fetchRanking()
         battleLogs.value = []
       }
-    } catch (e) { console.error("获取奖励失败:", e) }
+    } catch (e) {}
   }
-  ws.onclose = () => {
-    wsConnected.value = false
-    reconnectTimer = setTimeout(connectWs, 3000)
-  }
+  ws.onclose = () => { wsConnected.value = false; reconnectTimer = setTimeout(connectWs, 3000) }
   ws.onerror = () => { ws.close() }
 }
 
-onMounted(() => {
-  fetchBoss()
-  fetchRanking()
-  fetchRewards()
-  fetchHistory()
-  connectWs()
-})
-
+onMounted(() => { fetchBoss(); fetchRanking(); fetchRewards(); fetchHistory(); connectWs() })
 onUnmounted(() => {
   if (reconnectTimer) clearTimeout(reconnectTimer)
   if (cooldownTimer) clearInterval(cooldownTimer)
@@ -376,40 +343,33 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.boss-page { max-width: 1000px; margin: 0 auto; padding: 12px; }
-.boss-card { background: rgba(15,15,30,0.9); border: 1px solid rgba(212,168,67,0.12); border-radius: 12px; }
+.boss-page { max-width: 1000px; margin: 0 auto; padding: 12px; background: #0b0b18; min-height: 100vh; }
+.boss-card { background: rgba(20,20,35,0.65); border: 1px solid rgba(212,168,67,0.12); border-radius: 12px; }
 .boss-main { margin-bottom: 12px; }
 .boss-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .boss-title { display: flex; align-items: center; gap: 8px; }
 .boss-icon { font-size: 32px; }
-.boss-avatar { width: 64px; height: 64px; border-radius: 10px; border: 2px solid rgba(212,168,67,0.4); box-shadow: 0 0 14px rgba(139,32,0,0.5); object-fit: cover; }
-.boss-name { font-size: 22px; font-weight: bold; color: #ffd700; text-shadow: 0 0 10px rgba(255,215,0,0.4); }
-.boss-desc { color: #999; font-size: 13px; margin: 8px 0; }
+.boss-avatar { width: 64px; height: 64px; border-radius: 10px; border: 2px solid rgba(212,168,67,0.4); box-shadow: 0 0 14px rgba(139,32,0,0.4); object-fit: cover; }
+.boss-name { font-size: 22px; font-weight: bold; color: #ffd700; text-shadow: 0 0 10px rgba(255,215,0,0.3); }
+.boss-desc { color: #888; font-size: 13px; margin: 8px 0; }
 .hp-bar-wrap { margin: 12px 0; }
-.hp-bar-bg { height: 28px; background: rgba(30,30,50,0.8); border-radius: 14px; overflow: hidden; position: relative; border: 1px solid rgba(139,32,0,0.3); }
-.hp-bar-fill { height: 100%; background: linear-gradient(90deg, #8b2000, #ff4444, #8b2000); border-radius: 14px; transition: width 0.5s ease; box-shadow: 0 0 15px rgba(139,32,0,0.6); }
-.hp-text { text-align: center; margin-top: 4px; font-size: 13px; color: #ddd; font-weight: bold; }
+.hp-bar-bg { height: 28px; background: #1a1a2e; border-radius: 14px; overflow: hidden; position: relative; border: 1px solid rgba(139,32,0,0.3); }
+.hp-bar-fill { height: 100%; background: linear-gradient(90deg, #8b2000, #ff6b35, #ff4444); border-radius: 14px; transition: width 0.5s ease; box-shadow: 0 0 15px rgba(255,107,53,0.4); }
+.hp-text { text-align: center; margin-top: 4px; font-size: 13px; color: #ccc; font-weight: bold; }
 .boss-info-row { display: flex; gap: 8px; margin-top: 8px; }
 .boss-body { display: flex; gap: 12px; }
 .boss-left { flex: 1; min-width: 0; }
 .boss-right { width: 340px; flex-shrink: 0; }
-@media (max-width: 768px) {
-  .boss-body { flex-direction: column; }
-  .boss-right { width: 100%; }
-}
+@media (max-width: 768px) { .boss-body { flex-direction: column; } .boss-right { width: 100%; } }
 .attack-area { text-align: center; position: relative; padding: 20px 0; }
-.attack-btn { width: 200px; height: 50px; font-size: 18px; font-weight: bold; }
-.attack-cost { color: #888; font-size: 12px; margin-top: 8px; }
-.my-stats { margin-top: 12px; color: #ccc; font-size: 13px; }
+.attack-btn { width: 200px; height: 50px; font-size: 18px; font-weight: bold; background: linear-gradient(135deg, #8b2000, #ff6b35, #ffa500) !important; border: none !important; }
+.attack-cost { color: #666; font-size: 12px; margin-top: 8px; }
+.my-stats { margin-top: 12px; color: #aaa; font-size: 13px; }
 .gold { color: #ffd700; font-weight: bold; }
 .damage-float-container { position: absolute; top: 0; left: 0; right: 0; height: 60px; pointer-events: none; overflow: hidden; }
-.damage-float { position: absolute; top: 0; font-weight: bold; font-size: 18px; color: #ffa500; animation: floatUp 1.5s ease-out forwards; text-shadow: 0 0 6px rgba(0,0,0,0.8); }
-.damage-float.crit { font-size: 26px; color: #ff4444; text-shadow: 0 0 12px rgba(255,68,68,0.8); }
-@keyframes floatUp {
-  0% { opacity: 1; transform: translateY(40px) scale(1); }
-  50% { opacity: 1; transform: translateY(0px) scale(1.2); }
-  100% { opacity: 0; transform: translateY(-30px) scale(0.8); }
-}
+.damage-float { position: absolute; top: 0; font-weight: bold; font-size: 18px; color: #fff; animation: floatUp 1.5s ease-out forwards; text-shadow: 0 0 6px rgba(0,0,0,0.8); }
+.damage-float.crit { font-size: 26px; color: #ff6b35; text-shadow: 0 0 12px rgba(255,107,53,0.8); }
+@keyframes floatUp { 0% { opacity: 1; transform: translateY(40px) scale(1); } 50% { opacity: 1; transform: translateY(0px) scale(1.2); } 100% { opacity: 0; transform: translateY(-30px) scale(0.8); } }
 .float-enter-active { animation: floatUp 1.5s ease-out; }
 .float-leave-active { display: none; }
 .rank-table .my-row { background: rgba(212,168,67,0.1); }
@@ -417,12 +377,12 @@ onUnmounted(() => {
 .medal { font-size: 18px; }
 .dmg-col { color: #ff6b35; font-weight: bold; }
 .battle-log { max-height: 300px; overflow-y: auto; padding: 4px; }
-.log-item { padding: 4px 0; font-size: 13px; color: #ccc; border-bottom: 1px solid rgba(212,168,67,0.06); }
+.log-item { padding: 4px 0; font-size: 13px; color: #aaa; border-bottom: 1px solid rgba(212,168,67,0.1); }
 .log-item.crit { color: #ff6b35; }
 .log-name { color: #d4a843; font-weight: bold; }
 .log-crit { color: #ff4444; font-weight: bold; margin: 0 4px; }
 .log-dmg { color: #fff; font-weight: bold; }
-.log-crit-dmg { color: #ff4444; font-size: 15px; }
-.log-empty { color: #555; text-align: center; padding: 20px; }
-.reward-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(212,168,67,0.08); }
+.log-crit-dmg { color: #ff6b35; font-size: 15px; }
+.log-empty { color: #666; text-align: center; padding: 20px; }
+.reward-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(212,168,67,0.1); }
 </style>

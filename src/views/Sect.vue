@@ -50,7 +50,7 @@
               <n-space vertical :size="8">
                 <div class="info-row">
                   <span class="label">经验:</span>
-                  <n-progress type="line" :percentage="expPercent" :show-indicator="true" indicator-placement="inside" color="#d4a017" rail-color="#333" />
+                  <n-progress type="line" :percentage="expPercent" :show-indicator="true" indicator-placement="inside" color="#d4a843" rail-color="#1a1a2e" />
                   <span class="exp-text">{{ mySect.exp }} / {{ nextLevelExp }}</span>
                 </div>
                 <div class="info-row">
@@ -63,9 +63,9 @@
                 </div>
                 <div class="info-row">
                   <span class="label">我的贡献:</span>
-                  <span style="color:#d4a017">{{ myContribution }}</span>
+                  <span class="contribution-text">{{ myContribution }}</span>
                 </div>
-                <n-divider style="margin:8px 0" />
+                <n-divider style="margin:8px 0; background: rgba(212,168,67,0.15)" />
                 <div class="announcement-box">
                   <div class="label">📢 公告</div>
                   <div class="announcement-text">{{ mySect.announcement || '暂无公告' }}</div>
@@ -111,7 +111,7 @@
                 <n-input-number v-model:value="donateAmount" :min="100" :step="1000" placeholder="最少100" style="width:180px" />
                 <n-button type="warning" @click="donate" :loading="donating">捐献</n-button>
               </n-space>
-              <div style="margin-top:8px;color:#888;font-size:12px">每10焰晶=1贡献度，焰晶全部转为焰盟经验</div>
+              <div class="donate-hint">每10焰晶=1贡献度，焰晶全部转为焰盟经验</div>
             </n-card>
 
             <!-- 成员列表 -->
@@ -201,7 +201,7 @@ function roleLabel(r) {
   return r === 'leader' ? '盟主' : r === 'elder' ? '焰长' : '盟士'
 }
 function roleTagType(r) {
-  return r === 'leader' ? 'warning' : r === 'elder' ? 'info' : 'default'
+  return r === 'leader' ? 'warning' : r === 'elder' ? 'default' : 'default'
 }
 
 const api = async (method, url, body) => {
@@ -339,7 +339,7 @@ const memberColumns = computed(() => {
     { title: '焰名', key: 'name', render: r => r.name || '无名焰修' },
     { title: '身份', key: 'role', width: 70, render: r => h(NTag, { type: roleTagType(r.role), size: 'small' }, () => roleLabel(r.role)) },
     { title: '战力', key: 'combat_power', width: 80, render: r => r.combat_power || 0 },
-    { title: '贡献', key: 'contribution', width: 80 },
+    { title: '贡献', key: 'contribution', width: 80, render: r => h('span', { style: 'color:#d4a843' }, r.contribution) },
   ]
   if (myRole.value === 'leader') {
     cols.push({
@@ -347,8 +347,8 @@ const memberColumns = computed(() => {
       render: r => {
         if (r.role === 'leader') return ''
         const btns = []
-        if (r.role === 'member') btns.push(h(NButton, { size: 'tiny', type: 'info', onClick: () => promoteMember(r.wallet), style: 'margin-right:4px' }, () => '升职'))
-        if (r.role === 'elder') btns.push(h(NButton, { size: 'tiny', type: 'warning', onClick: () => demoteMember(r.wallet), style: 'margin-right:4px' }, () => '降职'))
+        if (r.role === 'member') btns.push(h(NButton, { size: 'tiny', type: 'warning', onClick: () => promoteMember(r.wallet), style: 'margin-right:4px' }, () => '升职'))
+        if (r.role === 'elder') btns.push(h(NButton, { size: 'tiny', type: 'default', onClick: () => demoteMember(r.wallet), style: 'margin-right:4px' }, () => '降职'))
         btns.push(h(NButton, { size: 'tiny', type: 'error', onClick: () => kickMember(r.wallet) }, () => '踢出'))
         return h('div', {}, btns)
       }
@@ -373,33 +373,17 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.gold-card { background: rgba(15,15,30,0.9); border: 1px solid rgba(212,168,67,0.12); }
+.gold-card { background: rgba(20,20,35,0.65); border: 1px solid rgba(212,168,67,0.12); }
 .gold-card :deep(.n-card-header__main) { color: #d4a843; font-weight: bold; }
-.sect-name { font-size: 18px; font-weight: bold; color: #d4a843; text-shadow: 0 0 8px rgba(212,168,67,0.3); }
+.sect-name { font-size: 18px; font-weight: bold; color: #ffd700; text-shadow: 0 0 8px rgba(212,168,67,0.3); }
 .info-row { display: flex; align-items: center; gap: 8px; }
-.info-row .label { color: #999; min-width: 70px; flex-shrink: 0; }
+.info-row .label { color: #888; min-width: 70px; flex-shrink: 0; }
 .exp-text { color: #d4a843; font-size: 12px; white-space: nowrap; }
-.announcement-box { background: rgba(10,10,20,0.5); border-radius: 6px; padding: 8px 12px; border: 1px solid rgba(212,168,67,0.06); }
+.contribution-text { color: #ffd700; font-weight: bold; }
+.announcement-box { background: rgba(15,15,30,0.6); border-radius: 6px; padding: 8px 12px; border: 1px solid rgba(212,168,67,0.1); }
 .announcement-box .label { color: #d4a843; font-size: 13px; margin-bottom: 4px; }
-.announcement-text { color: #ccc; font-size: 13px; line-height: 1.5; }
+.announcement-text { color: #aaa; font-size: 13px; line-height: 1.5; }
 .task-reward { color: #d4a843; font-size: 12px; margin-top: 4px; }
-.gold-card :deep(.n-card) { transition: all 0.2s; }
-.gold-card :deep(.n-card:hover) { border-color: rgba(212,168,67,0.25) !important; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
-:deep(.n-button--warning-type) {
-  background: linear-gradient(135deg, #8b2000, #ff6b35) !important;
-  border: none !important; color: #fff !important; font-weight: 600;
-}
-:deep(.n-button--warning-type:hover) { opacity: 0.9; }
-:deep(.n-button--error-type.n-button--ghost) {
-  color: #a0522d !important; border-color: #a0522d !important;
-}
-:deep(.n-progress .n-progress-graph-line-fill) { background: linear-gradient(90deg, #8b2000, #d4a843) !important; }
-:deep(.n-progress .n-progress-graph-line-rail) { background: rgba(30,30,50,0.8) !important; }
-:deep(.n-tabs .n-tabs-tab--active) { color: #d4a843 !important; }
-:deep(.n-tabs .n-tabs-tab) { color: #888; }
-:deep(.n-list) { background: transparent; }
-:deep(.n-list-item) { border-bottom-color: rgba(212,168,67,0.06) !important; }
-:deep(.n-data-table .n-data-table-th) { color: #d4a843; background: rgba(10,10,20,0.5); }
-:deep(.n-data-table .n-data-table-td) { border-bottom-color: rgba(212,168,67,0.06); }
-:deep(.n-divider) { border-color: rgba(212,168,67,0.1) !important; }
+.donate-hint { margin-top: 8px; color: #666; font-size: 12px; }
+:deep(.n-button--warning-type) { background: linear-gradient(135deg, #8b2000, #ff6b35, #ffa500) !important; border: none !important; color: #fff !important; font-weight: 600; }
 </style>
