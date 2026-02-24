@@ -69,6 +69,58 @@ const locations = [
       { type: 'cultivation', chance: 0.25, amount: [800, 1500] },
       { type: 'pill_fragment', chance: 0.2, amount: [15, 20] }
     ]
+  },
+  {
+    id: 'void_realm',
+    name: '焰虚秘境',
+    description: '虚空与焰气交织的异度空间，时间在此扭曲，蕴含无尽焰道奥秘。',
+    minLevel: 46,
+    spiritCost: 1500,
+    rewards: [
+      { type: 'spirit_stone', chance: 0.25, amount: [120, 250] },
+      { type: 'herb', chance: 0.3, amount: [70, 130] },
+      { type: 'cultivation', chance: 0.25, amount: [1200, 2500] },
+      { type: 'pill_fragment', chance: 0.2, amount: [18, 25] }
+    ]
+  },
+  {
+    id: 'fusion_forbidden',
+    name: '焰合禁地',
+    description: '远古焰帝封印之地，焰气浓郁到凝为实质，踏入者需有焰合之力方可自保。',
+    minLevel: 55,
+    spiritCost: 2000,
+    rewards: [
+      { type: 'spirit_stone', chance: 0.25, amount: [180, 400] },
+      { type: 'herb', chance: 0.3, amount: [100, 180] },
+      { type: 'cultivation', chance: 0.25, amount: [2000, 4000] },
+      { type: 'pill_fragment', chance: 0.2, amount: [22, 30] }
+    ]
+  },
+  {
+    id: 'great_flame_palace',
+    name: '大焰天宫',
+    description: '悬浮于九天之上的焰之宫殿，传说是焰帝飞升前的修炼圣地。',
+    minLevel: 73,
+    spiritCost: 3000,
+    rewards: [
+      { type: 'spirit_stone', chance: 0.25, amount: [300, 600] },
+      { type: 'herb', chance: 0.3, amount: [150, 250] },
+      { type: 'cultivation', chance: 0.25, amount: [3500, 7000] },
+      { type: 'pill_fragment', chance: 0.2, amount: [28, 38] }
+    ]
+  },
+  {
+    id: 'tribulation_temple',
+    name: '渡焰圣殿',
+    description: '焰道尽头的终极试炼之地，唯有渡过焰劫者方能窥见大道真谛。',
+    minLevel: 91,
+    spiritCost: 5000,
+    rewards: [
+      { type: 'spirit_stone', chance: 0.25, amount: [500, 1000] },
+      { type: 'herb', chance: 0.3, amount: [200, 350] },
+      { type: 'cultivation', chance: 0.25, amount: [6000, 12000] },
+      { type: 'pill_fragment', chance: 0.2, amount: [35, 50] }
+    ]
   }
 ];
 
@@ -176,6 +228,10 @@ const locationHerbTier = {
   'phoenix_valley': 3,      // 涅槃谷 - 中级
   'dragon_abyss': 4,        // 焰渊 - 中高级
   'immortal_realm': 5,      // 焰天圣域入口 - 高级
+  'void_realm': 6,          // 焰虚秘境 - 超高级
+  'fusion_forbidden': 7,    // 焰合禁地 - 极高级
+  'great_flame_palace': 8,  // 大焰天宫 - 顶级
+  'tribulation_temple': 9,  // 渡焰圣殿 - 至尊级
 };
 
 // 丹方配置

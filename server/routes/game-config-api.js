@@ -81,7 +81,11 @@ const locations = [
   {id:'celestial_mountain',name:'赤霄峰',description:'赤焰缭绕的焰山，传说是远古焰仙讲道之地。',minLevel:10,spiritCost:300,icon:'⛰️'},
   {id:'phoenix_valley',name:'涅槃谷',description:'常年被烈焰环绕的神秘山谷，据说有凤凰涅槃遗留的焰韵。',minLevel:19,spiritCost:500,icon:'🔥'},
   {id:'dragon_abyss',name:'焰渊',description:'深不见底的神秘深渊，蕴含远古焰龙的气息。',minLevel:28,spiritCost:750,icon:'🐉'},
-  {id:'immortal_realm',name:'焰天圣域入口',description:'焰气最为浓郁的至高圣域，唯有化焰期以上的焰修方可踏入。',minLevel:37,spiritCost:1000,icon:'✨'}
+  {id:'immortal_realm',name:'焰天圣域入口',description:'焰气最为浓郁的至高圣域，唯有化焰期以上的焰修方可踏入。',minLevel:37,spiritCost:1000,icon:'✨'},
+  {id:'void_realm',name:'焰虚秘境',description:'虚空与焰气交织的异度空间，时间在此扭曲，蕴含无尽焰道奥秘。',minLevel:46,spiritCost:1500,icon:'🌀'},
+  {id:'fusion_forbidden',name:'焰合禁地',description:'远古焰帝封印之地，焰气浓郁到凝为实质，踏入者需有焰合之力方可自保。',minLevel:55,spiritCost:2000,icon:'⛓️'},
+  {id:'great_flame_palace',name:'大焰天宫',description:'悬浮于九天之上的焰之宫殿，传说是焰帝飞升前的修炼圣地。',minLevel:73,spiritCost:3000,icon:'🏛️'},
+  {id:'tribulation_temple',name:'渡焰圣殿',description:'焰道尽头的终极试炼之地，唯有渡过焰劫者方能窥见大道真谛。',minLevel:91,spiritCost:5000,icon:'⚡'}
 ];
 
 // ========== 装备配置 ==========

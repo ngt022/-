@@ -104,6 +104,15 @@ const petPool = {
 
 // 装备出售价格
 const sellPrices = { common: 100, uncommon: 150, rare: 300, epic: 800, legendary: 3000, mythic: 15000 }
+// 抽卡费用阶梯（根据玩家等级）
+function getGachaCostTier(level) {
+  if (level >= 91) return { normal: 1800, wishlist: 2500 };
+  if (level >= 55) return { normal: 1200, wishlist: 1800 };
+  if (level >= 37) return { normal: 800, wishlist: 1200 };
+  if (level >= 19) return { normal: 500, wishlist: 800 };
+  return { normal: 300, wishlist: 500 };
+}
+
 
 // 背包容量配置
 const storageConfig = {
@@ -595,8 +604,9 @@ router.post('/draw', auth, async (req, res) => {
     
     // 从配置获取费用
     const gachaCost = await getConfig('gacha_cost')
-    const normalCost = gachaCost?.normal || 300
-    const wishlistCost = gachaCost?.wishlist || 500
+    const costTier = getGachaCostTier(level)
+    const normalCost = gachaCost?.normal ? Math.max(gachaCost.normal, costTier.normal) : costTier.normal
+    const wishlistCost = gachaCost?.wishlist ? Math.max(gachaCost.wishlist, costTier.wishlist) : costTier.wishlist
 
     // 月卡免费抽卡检查
     let freeDraws = 0;
