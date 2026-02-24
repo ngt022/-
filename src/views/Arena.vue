@@ -79,16 +79,16 @@
     <!-- 主界面 -->
     <template v-else>
       <div class="tabs">
-        <div class="tab" :class="{active:tab===arena}" @click="tab=arena">⚔️ 竞技场</div>
-        <div class="tab" :class="{active:tab===log}" @click="tab=log;loadHistory()">📜 战报</div>
-        <div class="tab" :class="{active:tab===notif}" @click="tab=notif;loadNotifs()">🔔 通知<span v-if="unreadNotifs>0" class="badge">{{ unreadNotifs }}</span></div>
+        <div class="tab" :class="{active:tab==='arena'}" @click="tab='arena'">⚔️ 竞技场</div>
+        <div class="tab" :class="{active:tab==='log'}" @click="tab='log';loadHistory()">📜 战报</div>
+        <div class="tab" :class="{active:tab==='notif'}" @click="tab='notif';loadNotifs()">🔔 通知<span v-if="unreadNotifs>0" class="badge">{{ unreadNotifs }}</span></div>
       </div>
 
       <div v-if="tab==='arena'">
         <div class="my-info">
           <div class="tier-icon">{{ tierEmoji[myRank.tier] || '🔰' }}</div>
           <div class="my-detail">
-            <div class="my-tier">{{ tierName[myRank.tier]||铜段 }} · {{ myRank.score }}分</div>
+            <div class="my-tier">{{ tierName[myRank.tier]||'铜段' }} · {{ myRank.score }}分</div>
             <div class="my-streak" v-if="myStreak>0">🔥 {{ myStreak }}连胜</div>
             <div class="my-daily">今日 {{ daily.used }}/{{ daily.max }}次{{ daily.used>=daily.max?" (额外200💎/次)":"" }} · {{ daily.wins }}胜</div>
           </div>
@@ -103,7 +103,7 @@
                 <div class="opp-name">{{ o.name }}</div>
                 <div class="opp-sub">{{ o.realm }} Lv.{{ o.level }}</div>
                 <div class="opp-stats">
-                  <span :class="o.combatPower>myCombatPower?cp-high:cp-low">⚔️{{ o.combatPower }}</span>
+                  <span :class="o.combatPower>myCombatPower?'cp-high':'cp-low'">⚔️{{ o.combatPower }}</span>
                   <span>胜率{{ o.winRate }}%</span>
                 </div>
               </div>
