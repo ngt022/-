@@ -61,8 +61,8 @@
             <span class="ov-val ov-big">{{ serverInfo.ascensionCount }}</span>
           </div>
           <div class="ov-item">
-            <span class="ov-label">总修炼时长</span>
-            <span class="ov-val ov-big">{{ formatTime(playerStore.totalCultivationTime || 0) }}</span>
+            <span class="ov-label">探索次数</span>
+            <span class="ov-val ov-big">{{ playerStore.explorationCount || 0 }}</span>
           </div>
           <div class="ov-item">
             <span class="ov-label">成就完成</span>

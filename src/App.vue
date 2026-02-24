@@ -513,7 +513,7 @@ if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
 
   // 点击其他地方关闭子菜单
   // 成就定期检查（每30秒）
-  // 登录后检查一次成就（不循环）
+  // 登录后检查一次成就（不循环，已弹过的不再弹）
   let achChecked = false
   watch(() => authStore.isLoggedIn, (v) => {
     if (v && !achChecked) {
@@ -521,9 +521,15 @@ if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
       setTimeout(() => {
         const newAchs = checkAchievements(playerStore)
         if (newAchs.length > 0) {
-          // 只弹第一个，其余静默记录
-          achPopupData.value = newAchs[0]
-          showAchPopup.value = true
+          // 过滤掉已弹过的
+          const shown = JSON.parse(localStorage.getItem('xx_ach_shown') || '[]')
+          const unshown = newAchs.filter(a => !shown.includes(a.id))
+          if (unshown.length > 0) {
+            achPopupData.value = unshown[0]
+            showAchPopup.value = true
+            shown.push(...unshown.map(a => a.id))
+            localStorage.setItem('xx_ach_shown', JSON.stringify(shown))
+          }
         }
       }, 5000)
     }
