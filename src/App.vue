@@ -75,11 +75,27 @@
               </div>
             </n-layout-content>
             <WorldChat v-if="!showSplash" />
+            <!-- 子菜单遮罩 -->
+            <transition name="fade">
+              <div v-if="expandedTab" class="submenu-overlay" @click="closeSubMenu"></div>
+            </transition>
+            <!-- 子菜单浮层 -->
+            <transition name="submenu-slide">
+              <div v-if="expandedTab" class="submenu-panel">
+                <div class="submenu-grid">
+                  <div v-for="child in navTabs.find(t => t.key === expandedTab)?.children || []"
+                    :key="child.key" class="submenu-item" @click="selectSubItem(child.key)">
+                    <span class="submenu-icon">{{ child.icon }}</span>
+                    <span class="submenu-label">{{ child.label }}</span>
+                  </div>
+                </div>
+              </div>
+            </transition>
             <div v-if="!showSplash" class="bottom-nav">
               <div class="bottom-nav-inner">
                 <div v-for="tab in navTabs" :key="tab.key"
                   class="nav-tab"
-                  :class="{ active: activeTab === tab.key }"
+                  :class="{ active: activeTab === tab.key, expanded: expandedTab === tab.key }"
                   @click="switchTab(tab.key)">
                   <span class="nav-icon">{{ tab.icon }}</span>
                   <span class="nav-indicator"></span>
@@ -156,13 +172,40 @@ import { useGameConfigStore } from './stores/gameConfig'
   // 底部导航栏
   const navTabs = [
     { key: 'home', label: '主城', icon: '🏠' },
-    { key: 'adventure', label: '冒险', icon: '⚔️' },
-    { key: 'character', label: '角色', icon: '🎒' },
-    { key: 'social', label: '社交', icon: '👥' },
-    { key: 'market', label: '商城', icon: '💰' },
+    { key: 'adventure', label: '冒险', icon: '⚔️', children: [
+      { key: 'cultivation', label: '冥想', icon: '🧘' },
+      { key: 'exploration', label: '探索', icon: '🗺️' },
+      { key: 'dungeon', label: '焚天塔', icon: '🏔️' },
+      { key: 'daily-dungeon', label: '秘境', icon: '🌀' },
+      { key: 'boss', label: '世界Boss', icon: '👹' },
+    ]},
+    { key: 'character', label: '角色', icon: '🎒', children: [
+      { key: 'profile', label: '角色', icon: '👤' },
+      { key: 'inventory', label: '背包', icon: '🎒' },
+      { key: 'alchemy', label: '焰炼', icon: '🧪' },
+      { key: 'mount-title', label: '焰骑', icon: '🐉' },
+      { key: 'ascension', label: '飞升', icon: '🌟' },
+      { key: 'achievements', label: '焰功', icon: '🏆' },
+    ]},
+    { key: 'social', label: '社交', icon: '👥', children: [
+      { key: 'pk', label: '切磋', icon: '⚔️' },
+      { key: 'sect', label: '宗门', icon: '🏛️' },
+      { key: 'sect-war', label: '宗门战', icon: '🏛️' },
+      { key: 'friends', label: '好友', icon: '👥' },
+      { key: 'auction', label: '拍卖行', icon: '💰' },
+      { key: 'rank', label: '排行榜', icon: '🏆' },
+    ]},
+    { key: 'market', label: '商城', icon: '💰', children: [
+      { key: 'shop', label: '商城', icon: '🏪' },
+      { key: 'gacha', label: '抽卡', icon: '🎰' },
+      { key: 'vip', label: '焰阶', icon: '👑' },
+      { key: 'recharge', label: '充值', icon: '💎' },
+      { key: 'events', label: '活动', icon: '🎉' },
+    ]},
   ]
 
   const activeTab = ref('home')
+  const expandedTab = ref(null)
 
 // 开场 Loading
 const showSplash = ref(true)
@@ -251,11 +294,37 @@ if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
   }
 
   const switchTab = (key) => {
-    activeTab.value = key
-    if (currentPage.value !== 'home') {
+    const tab = navTabs.find(t => t.key === key)
+    if (key === 'home') {
+      expandedTab.value = null
+      activeTab.value = 'home'
       currentPage.value = 'home'
       pageHistory.value = []
+      return
     }
+    if (tab && tab.children) {
+      // 有子菜单：toggle 展开/收起
+      if (expandedTab.value === key) {
+        expandedTab.value = null
+      } else {
+        expandedTab.value = key
+      }
+      return
+    }
+    // 无子菜单直接跳转
+    expandedTab.value = null
+    activeTab.value = key
+    navigateTo(key)
+  }
+
+  const selectSubItem = (childKey) => {
+    expandedTab.value = null
+    navigateTo(childKey)
+  }
+
+  // 点击其他地方关闭子菜单
+  const closeSubMenu = () => {
+    expandedTab.value = null
   }
 
   // 根据 currentPage 自动更新 activeTab
@@ -1445,4 +1514,44 @@ watch(() => authStore.wallet, (w) => { if (w) { setTimeout(checkAnnouncementPopu
 .screen-shake {
   animation: battle-shake 0.4s ease-out;
 }
+
+  /* 子菜单浮层 */
+  .submenu-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4); z-index: 998;
+  }
+  .submenu-panel {
+    position: fixed; bottom: 56px; left: 0; right: 0;
+    background: linear-gradient(180deg, rgba(20,20,30,0.98), rgba(15,15,25,0.99));
+    border-top: 1px solid rgba(212,168,67,0.3);
+    border-radius: 16px 16px 0 0;
+    padding: 16px 12px 12px;
+    z-index: 999;
+    backdrop-filter: blur(10px);
+  }
+  .submenu-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  }
+  .submenu-item {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 10px 4px; border-radius: 10px; cursor: pointer;
+    background: rgba(255,255,255,0.05);
+    transition: all 0.2s;
+  }
+  .submenu-item:active {
+    transform: scale(0.92); background: rgba(212,168,67,0.15);
+  }
+  .submenu-icon { font-size: 24px; margin-bottom: 4px; }
+  .submenu-label { font-size: 11px; color: #ccc; white-space: nowrap; }
+  .nav-tab.expanded .nav-icon { transform: scale(1.15); }
+  .nav-tab.expanded .nav-label { color: #d4a843; }
+  /* 子菜单动画 */
+  .submenu-slide-enter-active, .submenu-slide-leave-active {
+    transition: transform 0.25s ease, opacity 0.25s ease;
+  }
+  .submenu-slide-enter-from, .submenu-slide-leave-to {
+    transform: translateY(100%); opacity: 0;
+  }
+  .fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
+  .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>
