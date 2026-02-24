@@ -2,6 +2,15 @@ import express from 'express';
 import { getConfig } from '../game-config.js';
 
 const router = express.Router();
+// 新的随机事件配置（20%概率触发）
+const RANDOM_EVENTS = [
+  { id: "treasure_chest", name: "发现宝箱", desc: "你在角落发现了一个古老的宝箱！", reward: { spiritStones: 500 }, chance: 0.25 },
+  { id: "mysterious_npc", name: "神秘老者", desc: "一位白发老者向你传授了修炼心得。", reward: { cultivation: 200 }, chance: 0.2 },
+  { id: "herb_garden", name: "灵草园", desc: "你误入一片隐秘的灵草园，收获颇丰。", reward: { spiritStones: 300 }, chance: 0.2 },
+  { id: "ancient_ruin", name: "远古遗迹", desc: "你发现了远古修士的遗迹，获得了珍贵的淬火石。", reward: { reinforceStones: 3 }, chance: 0.15 },
+  { id: "spirit_spring", name: "灵泉", desc: "你找到了一处灵泉，焰灵恢复如初。", reward: { spiritFull: true }, chance: 0.15 },
+  { id: "ambush", name: "遭遇伏击", desc: "一群妖兽突然袭击！你奋力击退了它们。", reward: { spiritStones: 100 }, chance: 0.05 },
+]
 
 // 地点配置
 const locations = [
@@ -563,20 +572,58 @@ export default function(pool, auth) {
       const updatedGameData = typeof updatedPlayer.rows[0].game_data === 'string' 
         ? JSON.parse(updatedPlayer.rows[0].game_data) 
         : updatedPlayer.rows[0].game_data;
+      // 20% 触发随机事件
+      let randomEvent = null
+      if (Math.random() < 0.2) {
+        const roll = Math.random()
+        let cumulative = 0
+        for (const evt of RANDOM_EVENTS) {
+          cumulative += evt.chance
+          if (roll < cumulative) {
+            randomEvent = { id: evt.id, name: evt.name, desc: evt.desc, reward: evt.reward }
+            // 发放奖励
+            if (evt.reward.spiritStones) {
+              await pool.query("UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)) WHERE wallet = $2", [evt.reward.spiritStones, wallet])
+            }
+            if (evt.reward.reinforceStones) {
+              await pool.query("UPDATE players SET game_data = jsonb_set(game_data, '{reinforceStones}', to_jsonb((COALESCE((game_data->>'reinforceStones')::int, 0) + $1)::int)) WHERE wallet = $2", [evt.reward.reinforceStones, wallet])
+            }
+            if (evt.reward.cultivation) {
+              await pool.query("UPDATE players SET game_data = jsonb_set(game_data, '{cultivation}', to_jsonb((COALESCE((game_data->>'cultivation')::numeric, 0) + $1)::numeric)) WHERE wallet = $2", [evt.reward.cultivation, wallet])
+            }
+            if (evt.reward.spiritFull) {
+              // 恢复满焰灵 — 读取 level 计算 maxSpirit
+              const pRow = await pool.query("SELECT level FROM players WHERE wallet = $1", [wallet])
+              const lv = pRow.rows[0]?.level || 1
+              const maxSpirit = 200 + lv * 100
+              await pool.query("UPDATE players SET game_data = jsonb_set(game_data, '{spirit}', to_jsonb($1::numeric)) WHERE wallet = $2", [maxSpirit, wallet])
+            }
+            break
+          }
+        }
+      }
+
+      // 重新获取spirit_stones（随机事件后再次查询）
+      const finalPlayer = await pool.query("SELECT spirit_stones, game_data FROM players WHERE wallet = $1", [wallet]);
+      const finalGameData = typeof finalPlayer.rows[0].game_data === "string"
+        ? JSON.parse(finalPlayer.rows[0].game_data)
+        : finalPlayer.rows[0].game_data;
+
 
       res.json({
         success: true,
         reward: reward,
         event: eventResult,
+        randomEvent,
         buffs: {
           doubleCrystal: doubleCrystalActive,
           cultivationBoost: cultivationBoostActive,
           luckyCharm: luckyCharmActive
         },
         vipLevel,
-        spiritStones: updatedGameData.spiritStones ?? updatedPlayer.rows[0].spirit_stones ?? 0,
-        spirit: updatedGameData.spirit ?? 0,
-        cultivation: updatedGameData.cultivation ?? 0
+        spiritStones: finalGameData.spiritStones ?? finalPlayer.rows[0].spirit_stones ?? updatedPlayer.rows[0].spirit_stones ?? 0,
+        spirit: finalGameData.spirit ?? 0,
+        cultivation: finalGameData.cultivation ?? 0
       });
     } catch (e) {
       res.status(500).json({ error: e.message });

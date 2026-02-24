@@ -128,20 +128,16 @@
 
   <!-- 突破全屏特效 -->
   <teleport to="body">
-    <transition name="breakthrough-fx">
-      <div v-if="showBreakthrough" class="breakthrough-overlay" @click="showBreakthrough = false">
-        <div class="bt-particles">
-          <span v-for="i in 30" :key="i" class="bt-particle" :style="btParticleStyle(i)"></span>
-        </div>
-        <div class="bt-content">
-          <div class="bt-flash"></div>
-          <div class="bt-icon">⚡</div>
-          <div class="bt-title">突破成功</div>
+    <div v-if="showBreakthrough" class="breakthrough-overlay" @click="showBreakthrough = false">
+      <div class="breakthrough-content">
+        <div class="breakthrough-light"></div>
+        <div class="breakthrough-text">
+          <div class="bt-title">突破成功！</div>
           <div class="bt-realm">{{ breakthroughRealm }}</div>
-          <div class="bt-hint">点击继续</div>
+          <div class="bt-hint">点击任意处继续</div>
         </div>
       </div>
-    </transition>
+    </div>
   </teleport>
 </template>
 
@@ -736,50 +732,41 @@ const playerStore = usePlayerStore()
 
 /* === 突破特效 === */
 .breakthrough-overlay {
-  position: fixed; inset: 0; z-index: 99999;
-  background: rgba(0,0,0,0.92);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 9999; display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.85); cursor: pointer;
+  animation: bt-fade-in 0.5s ease;
 }
-.bt-particles { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-.bt-particle {
-  position: absolute; top: 50%; left: 50%;
-  width: 4px; height: 4px; border-radius: 50%;
-  animation: bt-exp 1.5s ease-out forwards;
+@keyframes bt-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.breakthrough-content { text-align: center; position: relative; }
+.breakthrough-light {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(255,215,0,0.3) 0%, rgba(212,168,67,0.1) 40%, transparent 70%);
+  animation: bt-light-pulse 2s ease-in-out infinite;
 }
-@keyframes bt-exp {
-  0% { transform: translate(-50%,-50%) scale(0); opacity: 1; }
-  100% { transform: translate(calc(-50% + cos(var(--angle))*var(--dist)*3), calc(-50% + sin(var(--angle))*var(--dist)*3)) scale(0); opacity: 0; }
+@keyframes bt-light-pulse {
+  0%,100% { transform: translate(-50%,-50%) scale(1); opacity: 0.6; }
+  50% { transform: translate(-50%,-50%) scale(1.3); opacity: 1; }
 }
-.bt-content { position: relative; z-index: 2; text-align: center; }
-.bt-flash {
-  position: fixed; inset: 0;
-  background: radial-gradient(circle, rgba(255,215,0,0.25) 0%, transparent 70%);
-  animation: btf 0.8s ease-out forwards; pointer-events: none;
+.breakthrough-text { position: relative; z-index: 1; }
+.breakthrough-text .bt-title {
+  font-size: 32px; font-weight: 900; color: #ffd700;
+  text-shadow: 0 0 20px rgba(255,215,0,0.5), 0 0 40px rgba(255,215,0,0.3);
+  margin-bottom: 12px;
+  animation: bt-text-in 0.8s ease;
 }
-@keyframes btf { 0% { opacity:1; transform:scale(0.5); } 100% { opacity:0; transform:scale(2); } }
-.bt-icon {
-  font-size: 56px;
-  animation: bti 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards;
-  filter: drop-shadow(0 0 16px rgba(255,215,0,0.6));
+@keyframes bt-text-in { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.breakthrough-text .bt-realm {
+  font-size: 24px; color: #f0d68a; font-weight: 700;
+  animation: bt-text-in 1s ease;
 }
-@keyframes bti { 0% { transform:scale(0) rotate(-180deg); opacity:0; } 100% { transform:scale(1) rotate(0); opacity:1; } }
-.bt-title {
-  font-size: 24px; font-weight: 800; letter-spacing: 4px; margin-top: 10px;
-  background: linear-gradient(180deg, #fff, #ffd700);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  animation: btt 0.8s ease-out 0.3s both;
+.breakthrough-text .bt-hint {
+  font-size: 12px; color: rgba(212,168,67,0.4); margin-top: 24px;
+  animation: bt-blink 2s ease-in-out infinite;
 }
-@keyframes btt { 0% { transform:translateY(12px); opacity:0; } 100% { transform:translateY(0); opacity:1; } }
-.bt-realm {
-  font-size: 16px; color: #d4a843; margin-top: 4px;
-  text-shadow: 0 0 10px rgba(212,168,67,0.4);
-  animation: btt 0.8s ease-out 0.5s both;
-}
-.bt-hint { font-size: 10px; color: #444; margin-top: 16px; animation: btt 0.8s ease-out 0.8s both; }
-.breakthrough-fx-enter-active { transition: opacity 0.3s; }
-.breakthrough-fx-leave-active { transition: opacity 0.5s; }
-.breakthrough-fx-enter-from, .breakthrough-fx-leave-to { opacity: 0; }
+@keyframes bt-blink { 0%,100% { opacity: 0.3; } 50% { opacity: 0.7; } }
 
 @media (max-width: 400px) {
   .progress-ring-container { width: 180px; height: 180px; }

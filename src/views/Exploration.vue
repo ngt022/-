@@ -92,6 +92,23 @@
       <n-button size="small" @click="clearLogPanel" type="error" secondary>清空日志</n-button>
     </n-space>
     <log-panel ref="logRef" title="探索日志" />
+    <!-- 随机事件弹窗 -->
+    <n-modal v-model:show="showRandomEvent" preset="card" title="✨ 随机事件" style="width: 85%; max-width: 400px">
+      <div v-if="randomEventData" style="text-align: center; padding: 16px 0;">
+        <div style="font-size: 40px; margin-bottom: 12px;">
+          {{ {treasure_chest:"🎁",mysterious_npc:"👴",herb_garden:"🌿",ancient_ruin:"🏛️",spirit_spring:"💧",ambush:"⚔️"}[randomEventData.id] || "✨" }}
+        </div>
+        <h3 style="color: #ffd700; margin: 0 0 8px; font-size: 18px;">{{ randomEventData.name }}</h3>
+        <p style="color: rgba(240,214,138,0.7); font-size: 14px; margin: 0 0 16px;">{{ randomEventData.desc }}</p>
+        <div style="background: rgba(212,168,67,0.08); border: 1px solid rgba(212,168,67,0.15); border-radius: 8px; padding: 10px; color: #d4a843; font-size: 13px;">
+          奖励：
+          <span v-if="randomEventData.reward.spiritStones">💎 {{ randomEventData.reward.spiritStones }} 焰晶</span>
+          <span v-if="randomEventData.reward.reinforceStones">🔨 {{ randomEventData.reward.reinforceStones }} 淬火石</span>
+          <span v-if="randomEventData.reward.cultivation">📖 {{ randomEventData.reward.cultivation }} 焰修</span>
+          <span v-if="randomEventData.reward.spiritFull">🔥 焰灵恢复满</span>
+        </div>
+      </div>
+    </n-modal>
   </div>
   <GuideTooltip v-if="showGuide" v-bind="guideTexts.exploration || {}" @dismiss="dismissGuide" />
 </template>
@@ -110,7 +127,9 @@ import LogPanel from '../components/LogPanel.vue'
 import GameGuide from '../components/GameGuide.vue'
 
 const logRef = ref(null)
-const showGuide = ref(!hasSeenGuide("exploration"))
+const showGuide = ref(!hasSeenGuide("explomation"))
+const randomEventData = ref(null)
+const showRandomEvent = ref(false)
 const dismissGuide = () => { markGuideSeen("exploration"); showGuide.value = false }
 const playerStore = usePlayerStore()
 const authStore = useAuthStore()
@@ -268,6 +287,12 @@ const exploreLocation = async (location) => {
           // 丹方碎片已在服务端添加到game_data，前端需要刷新数据
           await refreshPlayerData()
         }
+      }
+
+      // 检查随机事件
+      if (result.randomEvent) {
+        randomEventData.value = result.randomEvent
+        showRandomEvent.value = true
       }
 
       playerStore.saveData()

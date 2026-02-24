@@ -108,6 +108,7 @@
           </n-layout>
         </n-spin>
       <BugReporter />
+          <AchievementPopup :show="showAchPopup" :achievement="achPopupData" @close="closeAchPopup" />
       </n-dialog-provider>
     </n-message-provider>
   </n-config-provider>
@@ -115,6 +116,35 @@
       <div v-for="a in popupAnnouncements" :key="a.id" style="padding:8px 0;border-bottom:1px solid #333">
         <n-tag :type="a.type==='event'?'warning':a.type==='promo'?'success':'info'" size="small" style="margin-right:8px">{{ a.type==='event'?'活动':a.type==='promo'?'促销':'公告' }}</n-tag>
         {{ a.content }}
+      </div>
+    </n-modal>
+
+    <!-- 离线收益弹窗 -->
+    <n-modal v-model:show="showOfflineReward" preset="card" title="🌙 离线收益" style="width: 85%; max-width: 400px">
+      <div v-if="offlineRewardData" style="text-align: center; padding: 16px 0;">
+        <div style="font-size: 14px; color: rgba(240,214,138,0.5); margin-bottom: 16px;">
+          你离线了 {{ Math.floor(offlineRewardData.minutes / 60) }}小时{{ offlineRewardData.minutes % 60 }}分钟
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+          <div v-if="offlineRewardData.spirit" style="background: rgba(212,168,67,0.06); border: 1px solid rgba(212,168,67,0.12); border-radius: 8px; padding: 12px;">
+            <div style="font-size: 24px;">🔥</div>
+            <div style="color: #d4a843; font-size: 12px;">焰灵恢复</div>
+            <div style="color: #ffd700; font-size: 18px; font-weight: 700;">+{{ offlineRewardData.spirit }}</div>
+          </div>
+          <div v-if="offlineRewardData.cultivation" style="background: rgba(212,168,67,0.06); border: 1px solid rgba(212,168,67,0.12); border-radius: 8px; padding: 12px;">
+            <div style="font-size: 24px;">📖</div>
+            <div style="color: #d4a843; font-size: 12px;">焰修增长</div>
+            <div style="color: #ffd700; font-size: 18px; font-weight: 700;">+{{ offlineRewardData.cultivation }}</div>
+          </div>
+          <div v-if="offlineRewardData.spiritStones" style="background: rgba(212,168,67,0.06); border: 1px solid rgba(212,168,67,0.12); border-radius: 8px; padding: 12px;">
+            <div style="font-size: 24px;">💎</div>
+            <div style="color: #d4a843; font-size: 12px;">焰晶收入</div>
+            <div style="color: #ffd700; font-size: 18px; font-weight: 700;">+{{ offlineRewardData.spiritStones }}</div>
+          </div>
+        </div>
+        <div v-if="offlineRewardData.vipBoost > 1" style="margin-top: 16px; font-size: 12px; color: #d4a843;">
+          VIP加成 x{{ offlineRewardData.vipBoost }}
+        </div>
       </div>
     </n-modal>
   </template>
@@ -256,6 +286,8 @@ import { useGameConfigStore } from './stores/gameConfig'
   import WorldChat from './components/WorldChat.vue'
   import GameScene from './components/GameScene.vue'
   import BugReporter from "./components/BugReporter.vue"
+  import AchievementPopup from "./components/AchievementPopup.vue"
+  import { checkAchievements } from "./plugins/achievements"
   // === App化导航系统 ===
   const currentPage = ref('home')
   const pageLoading = ref(false)
@@ -332,6 +364,22 @@ import { useGameConfigStore } from './stores/gameConfig'
 
   const activeTab = ref('home')
   const expandedTab = ref(null)
+
+  // 成就弹窗
+  const showAchPopup = ref(false)
+  const achPopupData = ref(null)
+  const achQueue = ref([])
+
+  const showNextAch = () => {
+    if (achQueue.value.length > 0) {
+      achPopupData.value = achQueue.value.shift()
+      showAchPopup.value = true
+    }
+  }
+  const closeAchPopup = () => {
+    showAchPopup.value = false
+    setTimeout(showNextAch, 300)
+  }
 
 // 开场 Loading
 const showSplash = ref(true)
@@ -462,6 +510,21 @@ if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
   }
 
   // 点击其他地方关闭子菜单
+  // 成就定期检查（每30秒）
+  let achCheckTimer = null
+  const startAchCheck = () => {
+    if (achCheckTimer) return
+    achCheckTimer = setInterval(() => {
+      const newAchs = checkAchievements(playerStore)
+      if (newAchs.length > 0) {
+        achQueue.value.push(...newAchs)
+        if (!showAchPopup.value) showNextAch()
+      }
+    }, 30000)
+  }
+  // 登录后启动
+  watch(() => authStore.isLoggedIn, (v) => { if (v) setTimeout(startAchCheck, 5000) }, { immediate: true })
+
   const closeSubMenu = () => {
     expandedTab.value = null
   }
@@ -535,31 +598,14 @@ if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
     // 离线收益
     const reward = await playerStore.calculateOfflineReward()
     if (reward) {
-      const hours = Math.floor(reward.offlineMin / 60)
-      const mins = reward.offlineMin % 60
-      const timeStr = hours > 0 ? `${hours}小时${mins}分钟` : `${mins}分钟`
-      dialog.success({
-        title: '🌙 离线焰力',
-        content: () => h('div', { style: 'text-align:center;padding:8px 0' }, [
-          h('div', { style: 'font-size:14px;color:#a09880;margin-bottom:12px' }, `你离开了 ${timeStr}`),
-          h('div', { style: 'display:flex;justify-content:center;gap:20px' }, [
-            h('div', { style: 'text-align:center' }, [
-              h('div', { style: 'font-size:24px;font-weight:bold;color:#7c5cbf' }, `+${reward.cultivation}`),
-              h('div', { style: 'font-size:12px;color:#a09880' }, '焰力')
-            ]),
-            h('div', { style: 'text-align:center' }, [
-              h('div', { style: 'font-size:24px;font-weight:bold;color:#d4a843' }, `+${reward.stones}`),
-              h('div', { style: 'font-size:12px;color:#a09880' }, '焰晶')
-            ]),
-            h('div', { style: 'text-align:center' }, [
-              h('div', { style: 'font-size:24px;font-weight:bold;color:#4caf50' }, `+${reward.spirit}`),
-              h('div', { style: 'font-size:12px;color:#a09880' }, '焰灵')
-            ])
-          ]),
-          reward.vipBoost > 1 ? h('div', { style: 'margin-top:10px;font-size:12px;color:#d4a843' }, `VIP加成 x${reward.vipBoost}`) : null
-        ]),
-        positiveText: '太好了！',
-      })
+      offlineRewardData.value = {
+        spirit: reward.spirit || 0,
+        cultivation: reward.cultivation || 0,
+        spiritStones: reward.stones || 0,
+        minutes: reward.offlineMin || 0,
+        vipBoost: reward.vipBoost || 1
+      }
+      showOfflineReward.value = true
     }
 
     // 首次登录改名引导
@@ -784,8 +830,12 @@ window.addEventListener('mail-read', fetchUnreadMail)
 // 每60秒刷新未读数
 setInterval(fetchUnreadMail, 60000)
 
+const showOfflineReward = ref(false)
+const offlineRewardData = ref(null)
 const showAnnouncementPopup = ref(false)
 const popupAnnouncements = ref([])
+
+// 离线收益弹窗
 
 const checkAnnouncementPopup = async () => {
   const today = new Date().toISOString().split('T')[0]
