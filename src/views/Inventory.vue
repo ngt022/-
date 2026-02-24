@@ -1390,7 +1390,7 @@ const navigateTo = inject('navigateTo')
   }
 
   /* === 筛选 tab === */
-  .filter-tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
+  .filter-tabs { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
 
   /* === 容量条 === */
   .capacity-bar { display: flex; align-items: center; gap: 8px; padding: 4px 8px; margin-bottom: 8px; }
@@ -1503,7 +1503,7 @@ const navigateTo = inject('navigateTo')
     .equip-bar-grid { grid-template-columns: repeat(4, 1fr); }
   }
 .material-section { padding: 8px 0; }
-.material-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.material-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .material-card { background: rgba(26,26,46,0.8); border: 1px solid rgba(212,168,67,0.2); border-radius: 10px; padding: 16px; text-align: center; transition: all 0.2s; }
 .material-card:hover { border-color: rgba(212,168,67,0.5); }
 .material-icon { font-size: 32px; margin-bottom: 6px; }
