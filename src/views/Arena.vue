@@ -84,7 +84,7 @@
         <div class="tab" :class="{active:tab===notif}" @click="tab=notif;loadNotifs()">🔔 通知<span v-if="unreadNotifs>0" class="badge">{{ unreadNotifs }}</span></div>
       </div>
 
-      <div v-if="tab===arena">
+      <div v-if="tab==='arena'">
         <div class="my-info">
           <div class="tier-icon">{{ tierEmoji[myRank.tier] || '🔰' }}</div>
           <div class="my-detail">
