@@ -249,6 +249,40 @@ async function getGlobalMythicEquipCount(slot) {
   }
 }
 
+// 仙品装备全服编号系统
+async function getNextMythicSerial(pool) {
+  try {
+    // 确保计数器表存在
+    await pool.query(`CREATE TABLE IF NOT EXISTS mythic_serials (
+      id SERIAL PRIMARY KEY,
+      slot TEXT NOT NULL,
+      serial_number INT NOT NULL,
+      player_wallet TEXT,
+      equipment_name TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`)
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_mythic_serial_slot ON mythic_serials(slot, serial_number)`)
+    
+    // 获取全局下一个编号（不分槽位，全服统一编号）
+    const res = await pool.query('SELECT COALESCE(MAX(serial_number), 0) + 1 as next_serial FROM mythic_serials')
+    return res.rows[0].next_serial
+  } catch (e) {
+    logger.error('Get next mythic serial error:', e)
+    return Date.now() // fallback
+  }
+}
+
+async function registerMythicSerial(pool, slot, serialNumber, playerWallet, equipmentName) {
+  try {
+    await pool.query(
+      'INSERT INTO mythic_serials (slot, serial_number, player_wallet, equipment_name) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
+      [slot, serialNumber, playerWallet, equipmentName]
+    )
+  } catch (e) {
+    logger.error('Register mythic serial error:', e)
+  }
+}
+
 // 统计全服神品焰兽数量
 async function getGlobalDivinePetCount() {
   try {
@@ -460,7 +494,16 @@ async function drawSingleEquip(level, wishlistEnabled, wishEquipQuality, gachaRa
     }
   }
   
-  return { item: generateEquipment(level, type, quality), quality }
+  const item = generateEquipment(level, type, quality)
+  
+  // 仙品装备分配全服编号
+  if (quality === 'mythic') {
+    const serialNumber = await getNextMythicSerial(pool)
+    item.serialNumber = serialNumber
+    item.serialTag = '仙品 #' + String(serialNumber).padStart(3, '0')
+  }
+  
+  return { item, quality }
 }
 
 // 抽取单个宠物（带保底和限量检查）
@@ -768,10 +811,14 @@ router.post('/draw', auth, async (req, res) => {
     gameData.gachaPity = pity
     
     // 添加物品到背包
-    results.forEach(item => {
+    for (const item of results) {
       item.id = Date.now() + Math.random()
+      // 注册仙品编号
+      if (item.quality === 'mythic' && item.serialNumber) {
+        await registerMythicSerial(pool, item.type, item.serialNumber, wallet, item.name)
+      }
       items.push(item)
-    })
+    }
     gameData.items = items
     
     // 保存到数据库

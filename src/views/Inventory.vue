@@ -129,6 +129,7 @@
           <span v-else class="cell-emoji">{{ item._emoji }}</span>
         </div>
         <span class="cell-label">{{ item._displayName || item.name }}</span>
+        <span v-if="item.serialTag" class="serial-tag">{{ item.serialTag }}</span>
         <span v-if="item._count > 1" class="cell-count">×{{ item._count }}</span>
         <span v-if="item._category === 'pill'" class="cell-use-hint">详情</span>
         <span v-if="item._category === 'herb'" class="cell-recycle-btn" @click.stop="recycleItem(item, 'herb')">♻️</span>
@@ -312,6 +313,7 @@
         >
           <span class="cell-emoji">{{ equipTypeIcons[equipment.type] || '📦' }}</span>
           <span class="cell-label">{{ equipment.name }}</span>
+            <span v-if="equipment.serialTag" class="serial-tag">{{ equipment.serialTag }}</span>
           <span v-if="equipment.enhanceLevel" class="eq-enhance" style="position:static">+{{ equipment.enhanceLevel }}</span>
           <span class="cell-meta">{{ equipment.qualityInfo?.name }}</span>
           <span class="cell-recycle-btn" @click.stop="recycleEquipment(equipment)">♻️</span>
@@ -750,6 +752,16 @@ const navigateTo = inject('navigateTo')
     })
     items.push(...Object.values(petGroups))
     
+    // 按价值排序：品质高→低，同品质按等级/数量降序
+    items.sort((a, b) => {
+      // 先按类别分组：equip > pill > herb > formula > pet
+      const catOrder = { equip: 5, pill: 4, herb: 3, formula: 2, pet: 1 }
+      if (a._category !== b._category) return (catOrder[b._category] || 0) - (catOrder[a._category] || 0)
+      // 同类别按品质
+      const qDiff = (qualityValue[b._quality] || 0) - (qualityValue[a._quality] || 0)
+      if (qDiff !== 0) return qDiff
+      return (b.level || b._count || 0) - (a.level || a._count || 0)
+    })
     return items
   })
 
@@ -795,8 +807,12 @@ const navigateTo = inject('navigateTo')
 
   const filteredPets = computed(() => {
     const pets = playerStore.items.filter(item => item.type === 'pet')
-    if (selectedRarityToRelease.value === 'all') return pets
-    return pets.filter(pet => pet.rarity === selectedRarityToRelease.value)
+    const filtered = selectedRarityToRelease.value === 'all' ? pets : pets.filter(pet => pet.rarity === selectedRarityToRelease.value)
+    return filtered.sort((a, b) => {
+      const rDiff = (petRarityValue[b.rarity] || 0) - (petRarityValue[a.rarity] || 0)
+      if (rDiff !== 0) return rDiff
+      return (b.level || 0) - (a.level || 0)
+    })
   })
 
   const displayPets = computed(() => {
@@ -827,6 +843,11 @@ const navigateTo = inject('navigateTo')
     spiritual: { name: '灵品', color: '#1E90FF', probability: 0.25, essenceBonus: 10 },
     mortal: { name: '凡品', color: '#32CD32', probability: 0.5, essenceBonus: 5 }
   }
+
+  // 品质价值排序（高→低）
+  const qualityValue = { mythic: 6, legendary: 5, epic: 4, rare: 3, uncommon: 2, common: 1 }
+  const petRarityValue = { divine: 5, celestial: 4, mystic: 3, spiritual: 2, mortal: 1 }
+
 
   const showPetModal = ref(false)
   const selectedPet = ref(null)
@@ -1005,6 +1026,10 @@ const navigateTo = inject('navigateTo')
       if (item.type !== selectedEquipmentType.value) return false
       if (selectedQuality.value !== 'all' && item.quality !== selectedQuality.value) return false
       return true
+    }).sort((a, b) => {
+      const qDiff = (qualityValue[b.quality] || 0) - (qualityValue[a.quality] || 0)
+      if (qDiff !== 0) return qDiff
+      return (b.level || 0) - (a.level || 0)
     })
   })
 
@@ -1447,6 +1472,7 @@ const navigateTo = inject('navigateTo')
   .cell-img { width: 30px; height: 30px; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 0 4px rgba(212,168,67,0.4)); }
   .cell-emoji { font-size: 22px; }
   .cell-label { font-size: 10px; color: #d4a843; text-align: center; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; font-weight: 600; }
+  .serial-tag { font-size: 8px; color: #ff5000; text-align: center; font-weight: 700; letter-spacing: 0.5px; text-shadow: 0 0 4px rgba(255,80,0,0.5); }
   .cell-count {
     position: absolute; bottom: 3px; right: 3px; background: linear-gradient(135deg, #d4a843, #b8860b);
     color: #000; border-radius: 8px; padding: 0 5px; font-size: 10px; font-weight: bold; line-height: 16px;
