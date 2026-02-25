@@ -4514,9 +4514,10 @@ app.post('/api/storage/expand', auth, async (req, res) => {
 // ============ 背包扩容系统结束 ============
 
 // ============ Admin 后台路由 ============
-import registerAdminRoutes from './admin-routes.js';
+import { default as adminRoutesInit } from './routes/admin.js';
 import { registerDungeonRoutes } from './routes/dungeon.js';
-await registerAdminRoutes(app, pool, auth, adminAuth);
+const adminRoutes = adminRoutesInit(pool, auth, adminAuth);
+app.use("/api/admin", adminRoutes);
 
 // === 焚天塔副本系统 ===
 registerDungeonRoutes(app, pool, auth);
