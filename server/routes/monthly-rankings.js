@@ -244,7 +244,7 @@ export default function(pool, auth) {
       // 所有5榜统一发焰晶奖励
       const types = ['power', 'pk', 'level', 'spending', 'minigame'];
       let totalDistributed = 0;
-      const stoneRewards = {1:5000, 2:3000, 3:3000, 4:1000, 5:1000, 6:1000, 7:1000, 8:1000, 9:1000, 10:1000};
+      const stoneRewards = {1:20000, 2:10000, 3:10000, 4:5000, 5:5000, 6:5000, 7:5000, 8:5000, 9:5000, 10:5000};
 
       for (const type of types) {
         const rankings = (await pool.query(
@@ -255,7 +255,7 @@ export default function(pool, auth) {
         for (const r of rankings) {
           let stones = 0;
           if (r.rank_position <= 10) stones = stoneRewards[r.rank_position] || 1000;
-          else if (r.rank_position <= 50) stones = 500;
+          else if (r.rank_position <= 50) stones = 2000;
           if (stones > 0) {
             await pool.query('UPDATE monthly_rankings SET reward_stones = $1 WHERE id = $2', [stones, r.id]);
             await pool.query(`UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)), spirit_stones = spirit_stones + $1 WHERE wallet = $2`, [stones, r.wallet]);
