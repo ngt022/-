@@ -108,6 +108,7 @@
           </n-layout>
         </n-spin>
       <BugReporter />
+          <NewbieTutorial v-if="showNewbieTutorial" @complete="onTutorialComplete" />
           <AchievementPopup :show="showAchPopup" :achievement="achPopupData" @close="closeAchPopup" />
       </n-dialog-provider>
     </n-message-provider>
@@ -156,6 +157,8 @@ import { useGameConfigStore } from './stores/gameConfig'
   import { useAuthStore } from './stores/auth'
   import { h, ref, watch, onMounted, onUnmounted, computed, provide, defineAsyncComponent, nextTick } from 'vue'
   import SkeletonLoader from './components/SkeletonLoader.vue'
+  import NewbieTutorial from './components/NewbieTutorial.vue'
+  import { hasSeenGuide } from './utils/guide.js'
 
   // 黑金主题覆盖
   const themeOverrides = {
@@ -441,6 +444,7 @@ function startSplash() {
     arena: defineAsyncComponent({ loader: () => import('./views/Arena.vue'), loadingComponent: { render() { return h(SkeletonLoader, { type: 'grid' }) } }, delay: 0 }),
     rank: defineAsyncComponent(() => import('./views/Rank.vue')),
     mail: defineAsyncComponent(() => import('./views/Mail.vue')),
+    'game-help': defineAsyncComponent({ loader: () => import('./views/GameHelp.vue'), loadingComponent: { render() { return h(SkeletonLoader, { type: 'list' }) } }, delay: 0 }),
     settings: defineAsyncComponent(() => import('./views/Settings.vue')),
     admin: defineAsyncComponent(() => import('./views/Admin.vue')),
     'admin-events': defineAsyncComponent({ loader: () => import('./views/AdminEvents.vue'), loadingComponent: { render() { return h(SkeletonLoader, { type: 'list' }) } }, delay: 0 }),
@@ -738,6 +742,14 @@ const getSkeletonType = (page) => {
 }
 
 const isHome = computed(() => currentPage.value === 'home')
+  const showNewbieTutorial = ref(false)
+  // 登录后检查是否需要新手引导
+  watch(() => authStore.isLoggedIn, (loggedIn) => {
+    if (loggedIn && !hasSeenGuide('newbie_tutorial')) {
+      setTimeout(() => { showNewbieTutorial.value = true }, 1000)
+    }
+  }, { immediate: true })
+  const onTutorialComplete = () => { showNewbieTutorial.value = false }
 
   const pageTitles = {
     cultivation: '修炼', inventory: '背包', gacha: '焰运阁', alchemy: '焰炼',

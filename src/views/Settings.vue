@@ -35,6 +35,7 @@
     <!-- 系统工具 -->
     <n-card title="🔧 系统工具" size="small" style="margin-bottom: 12px">
       <n-space>
+        <n-button @click="goToHelp" type="success" size="small">📖 游戏帮助</n-button>
         <n-button @click="resetGuides" type="info" size="small">🔄 重置新手引导</n-button>
         <n-button @click="clearCache" type="warning" size="small">🗑️ 清理缓存</n-button>
       </n-space>
@@ -60,7 +61,7 @@
 <script setup>
   import { usePlayerStore } from '../stores/player'
   import { useAuthStore } from '../stores/auth'
-  import { ref, onMounted } from 'vue'
+  import { ref, onMounted, inject } from 'vue'
   import { useDialog, useMessage } from 'naive-ui'
   import { sfxMute } from '../plugins/sfx'
 
@@ -143,6 +144,9 @@
       } else { message.error(data.error || '修改失败') }
     } catch { message.error('修改失败') }
   }
+
+  const navigateTo = inject('navigateTo')
+  const goToHelp = () => navigateTo('game-help')
 
   const resetGuides = () => {
     localStorage.removeItem('xx_guide_seen')
