@@ -191,9 +191,9 @@
         <input v-if="mailTarget==='custom'" v-model="mailTargetWallet" class="search-input" placeholder="目标钱包地址" style="width:100%;margin:8px 0" />
         <textarea v-model="mailContent" class="search-input" placeholder="邮件内容" rows="3" style="width:100%;margin:8px 0;resize:vertical"></textarea>
         <div class="toolbar" style="gap:8px">
-          <input v-model.number="mailRewardStones" class="search-input" placeholder="焰晶奖励" type="number" style="width:100px" />
-          <input v-model.number="mailRewardReinforce" class="search-input" placeholder="淬火石" type="number" style="width:100px" />
-          <input v-model.number="mailRewardEssence" class="search-input" placeholder="精华" type="number" style="width:100px" />
+          <label class="mail-reward-label">焰晶奖励<input v-model.number="mailRewardStones" class="setting-input" type="number" /></label>
+          <label class="mail-reward-label">淴火石<input v-model.number="mailRewardReinforce" class="setting-input" type="number" /></label>
+          <label class="mail-reward-label">焰兽精华<input v-model.number="mailRewardEssence" class="setting-input" type="number" /></label>
           <button class="gold-btn" @click="sendMail" :disabled="!mailTitle||!mailContent">发送邮件</button>
         </div>
         <div v-if="mailResult" class="stat-card" style="margin-top:12px">{{ mailResult }}</div>
@@ -302,35 +302,69 @@
 
       <!-- 商城配置 -->
       <div v-if="activeTab === 'shopconfig'" class="tab-content">
-        <h3 class="section-title">🛒 材料价格配置</h3>
+        <h3 class="section-title">🛒 材料价格配置 (焰晶)</h3>
         <div class="settings-grid">
           <label>淬火石(单个)<input type="number" v-model.number="shopConfig.reinforce_stone" class="setting-input" /></label>
           <label>淬火石(10连)<input type="number" v-model.number="shopConfig.reinforce_stone_10" class="setting-input" /></label>
           <label>精炼石(单个)<input type="number" v-model.number="shopConfig.refine_stone" class="setting-input" /></label>
           <label>精炼石(10连)<input type="number" v-model.number="shopConfig.refine_stone_10" class="setting-input" /></label>
         </div>
-        <h3 class="section-title" style="margin-top:20px">Buff 价格</h3>
+        <h3 class="section-title" style="margin-top:20px">💊 Buff 价格 (焰晶)</h3>
         <div class="settings-grid">
           <label>焰晶双倍卡<input type="number" v-model.number="shopConfig.buff_doubleCrystal" class="setting-input" /></label>
           <label>修炼加速卡<input type="number" v-model.number="shopConfig.buff_cultivationBoost" class="setting-input" /></label>
           <label>幸运符<input type="number" v-model.number="shopConfig.buff_luckyCharm" class="setting-input" /></label>
+        </div>
+        <h3 class="section-title" style="margin-top:20px">🌍 探索设置</h3>
+        <div class="settings-grid">
+          <label>焰晶收益倍率<input type="number" v-model.number="shopConfig.exploration_spirit_stone" class="setting-input" step="0.05" /></label>
+          <label>探索冷却(秒)<input type="number" v-model.number="shopConfig.exploration_cooldown" class="setting-input" /></label>
+          <label>丹方残页掉率<input type="number" v-model.number="shopConfig.pill_fragment_chance" class="setting-input" step="0.01" /></label>
+        </div>
+        <h3 class="section-title" style="margin-top:20px">🏪 商城限购</h3>
+        <div class="settings-grid">
+          <label>极品装备周限购<input type="number" v-model.number="shopConfig.legendary_equip_per_week" class="setting-input" /></label>
+          <label>价格倍率<input type="number" v-model.number="shopConfig.shop_price_multiplier" class="setting-input" step="0.1" /></label>
         </div>
         <button class="gold-btn save-btn" @click="saveShopConfig()" style="margin-top:16px">💾 保存商城配置</button>
       </div>
 
       <!-- 抽卡配置 -->
       <div v-if="activeTab === 'gachaconfig'" class="tab-content">
-        <h3 class="section-title">🎰 抽卡概率配置 (%)</h3>
+        <h3 class="section-title">⚔️ 装备品质概率</h3>
         <div class="settings-grid">
-          <label>SSR概率<input type="number" v-model.number="gachaConfig.ssr_rate" class="setting-input" step="0.1" /></label>
-          <label>SR概率<input type="number" v-model.number="gachaConfig.sr_rate" class="setting-input" step="0.1" /></label>
-          <label>R概率<input type="number" v-model.number="gachaConfig.r_rate" class="setting-input" step="0.1" /></label>
+          <label>凡品(common)<input type="number" v-model.number="gachaConfig.equip_common" class="setting-input" step="0.01" /></label>
+          <label>下品(uncommon)<input type="number" v-model.number="gachaConfig.equip_uncommon" class="setting-input" step="0.01" /></label>
+          <label>中品(rare)<input type="number" v-model.number="gachaConfig.equip_rare" class="setting-input" step="0.01" /></label>
+          <label>上品(epic)<input type="number" v-model.number="gachaConfig.equip_epic" class="setting-input" step="0.01" /></label>
+          <label>极品(legendary)<input type="number" v-model.number="gachaConfig.equip_legendary" class="setting-input" step="0.001" /></label>
+          <label>仙品(mythic)<input type="number" v-model.number="gachaConfig.equip_mythic" class="setting-input" step="0.001" /></label>
         </div>
-        <h3 class="section-title" style="margin-top:20px">保底设置</h3>
+        <h3 class="section-title" style="margin-top:20px">🐾 焰兽品质概率</h3>
         <div class="settings-grid">
-          <label>SSR保底(抽数)<input type="number" v-model.number="gachaConfig.ssr_pity" class="setting-input" /></label>
-          <label>SR保底(抽数)<input type="number" v-model.number="gachaConfig.sr_pity" class="setting-input" /></label>
-          <label>单抽价格(焰晶)<input type="number" v-model.number="gachaConfig.draw_cost" class="setting-input" /></label>
+          <label>凡兽(mortal)<input type="number" v-model.number="gachaConfig.pet_mortal" class="setting-input" step="0.01" /></label>
+          <label>灵兽(spiritual)<input type="number" v-model.number="gachaConfig.pet_spiritual" class="setting-input" step="0.01" /></label>
+          <label>妙兽(mystic)<input type="number" v-model.number="gachaConfig.pet_mystic" class="setting-input" step="0.01" /></label>
+          <label>天兽(celestial)<input type="number" v-model.number="gachaConfig.pet_celestial" class="setting-input" step="0.001" /></label>
+          <label>神兽(divine)<input type="number" v-model.number="gachaConfig.pet_divine" class="setting-input" step="0.001" /></label>
+        </div>
+        <h3 class="section-title" style="margin-top:20px">💰 抽卡费用 (焰晶)</h3>
+        <div class="settings-grid">
+          <label>普通单抽<input type="number" v-model.number="gachaConfig.cost_normal" class="setting-input" /></label>
+          <label>心愿单抽<input type="number" v-model.number="gachaConfig.cost_wishlist" class="setting-input" /></label>
+        </div>
+        <h3 class="section-title" style="margin-top:20px">🎯 保底设置 (抽数, -1=无保底)</h3>
+        <div class="settings-grid">
+          <label>上品保底<input type="number" v-model.number="gachaConfig.pity_epic" class="setting-input" /></label>
+          <label>极品保底<input type="number" v-model.number="gachaConfig.pity_legendary" class="setting-input" /></label>
+          <label>仙品保底<input type="number" v-model.number="gachaConfig.pity_mythic" class="setting-input" /></label>
+          <label>妙兽保底<input type="number" v-model.number="gachaConfig.pity_pet_mystic" class="setting-input" /></label>
+          <label>天兽保底<input type="number" v-model.number="gachaConfig.pity_pet_celestial" class="setting-input" /></label>
+        </div>
+        <h3 class="section-title" style="margin-top:20px">🌏 全服限量 (-1=不限)</h3>
+        <div class="settings-grid">
+          <label>仙品每槽位限量<input type="number" v-model.number="gachaConfig.limit_mythic_per_slot" class="setting-input" /></label>
+          <label>神兽全服限量<input type="number" v-model.number="gachaConfig.limit_divine_pets" class="setting-input" /></label>
         </div>
         <button class="gold-btn save-btn" @click="saveGachaConfig()" style="margin-top:16px">💾 保存抽卡配置</button>
       </div>
@@ -926,7 +960,7 @@ async function sendAirdrop() {
 }
 
 // ===== Shop Config =====
-const shopConfig = reactive({ reinforce_stone: 1000, reinforce_stone_10: 9000, refine_stone: 1500, refine_stone_10: 13500, buff_doubleCrystal: 5000, buff_cultivationBoost: 3000, buff_luckyCharm: 8000 })
+const shopConfig = reactive({ reinforce_stone: 1000, reinforce_stone_10: 9000, refine_stone: 1500, refine_stone_10: 13500, buff_doubleCrystal: 5000, buff_cultivationBoost: 3000, buff_luckyCharm: 8000, exploration_spirit_stone: 0.65, exploration_cooldown: 30, pill_fragment_chance: 0.12, legendary_equip_per_week: 1, shop_price_multiplier: 1.0 })
 async function loadShopConfig() {
   const d = await apiFetch('/shop-config')
   if (d) Object.assign(shopConfig, d.config || d)
@@ -937,7 +971,7 @@ async function saveShopConfig() {
 }
 
 // ===== Gacha Config =====
-const gachaConfig = reactive({ ssr_rate: 1.5, sr_rate: 10, r_rate: 88.5, ssr_pity: 80, sr_pity: 10, draw_cost: 1000 })
+const gachaConfig = reactive({ equip_common: 0.40, equip_uncommon: 0.30, equip_rare: 0.18, equip_epic: 0.08, equip_legendary: 0.03, equip_mythic: 0.005, pet_mortal: 0.499, pet_spiritual: 0.32, pet_mystic: 0.15, pet_celestial: 0.03, pet_divine: 0.001, cost_normal: 300, cost_wishlist: 500, pity_epic: 50, pity_legendary: 100, pity_mythic: -1, pity_pet_mystic: 80, pity_pet_celestial: 200, limit_mythic_per_slot: 50, limit_divine_pets: 20 })
 async function loadGachaConfig() {
   const d = await apiFetch('/gacha-config')
   if (d) Object.assign(gachaConfig, d.config || d)
