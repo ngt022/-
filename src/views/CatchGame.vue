@@ -504,12 +504,12 @@ const endGame = async () => {
     if (playerStore.fetchPlayerData) {
       await playerStore.fetchPlayerData()
     } else {
-      playerStore.spiritStones = (playerStore.spiritStones || 0) + reward.value
+      playerStore.spiritStones = Number(playerStore.spiritStones || 0) + Number(reward.value)
     }
   } catch (e) {
     console.log('Submit failed:', e)
     // 本地模拟奖励
-    playerStore.spiritStones = (playerStore.spiritStones || 0) + reward.value
+    playerStore.spiritStones = Number(playerStore.spiritStones || 0) + Number(reward.value)
   }
 }
 

@@ -342,7 +342,7 @@ const startBattle = (res) => {
   lastDailyReward.value = res.result.dailyReward || 0
   battleResult.value = res.result
   if (res.result.reward > 0 || res.result.dailyReward > 0) {
-    playerStore.spiritStones = (playerStore.spiritStones || 0) + (res.result.reward || 0) + (res.result.dailyReward || 0)
+    playerStore.spiritStones = Number(playerStore.spiritStones || 0) + Number((res.result.reward) || 0) + (res.result.dailyReward || 0)
   }
   myRank.value = { score: res.result.newRankScore, tier: res.result.newRankTier }
   startCountdown()

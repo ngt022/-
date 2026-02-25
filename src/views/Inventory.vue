@@ -618,7 +618,7 @@ const navigateTo = inject('navigateTo')
       if (data.success) {
         if (!playerStore.storageExpand) playerStore.storageExpand = {}
         playerStore.storageExpand[category] = (playerStore.storageExpand[category] || 0) + 1
-        playerStore.spiritStones = data.remaining
+        playerStore.spiritStones = Number(data.remaining) || 0
         message.success(`扩容成功！${getCategoryName(category)}容量提升至 ${data.newLimit}`)
       } else {
         message.error(data.error || '扩容失败')
@@ -1117,6 +1117,9 @@ const navigateTo = inject('navigateTo')
     { label: '良品及以下', value: 'uncommon' },
     { label: '优品及以下', value: 'rare' },
     { label: '极品及以下', value: 'epic' },
+    { label: '传说及以下', value: 'legendary' },
+    { label: '仙品及以下', value: 'mythic' },
+    { label: '神品及以下', value: 'divine' },
   ]
 
   // 跳转焰市挂售
@@ -1141,7 +1144,7 @@ const navigateTo = inject('navigateTo')
         maxQuality: quality === 'all' ? 'uncommon' : quality
       })
       if (resp.success) {
-        playerStore.spiritStones = resp.spiritStones
+        playerStore.spiritStones = Number(resp.spiritStones) || 0
         await authStore.refreshPlayerData?.()
         message.success('回收了 ' + resp.count + ' 件装备，获得 ' + resp.totalPrice + ' 焰晶')
       }
@@ -1163,7 +1166,7 @@ const navigateTo = inject('navigateTo')
           const idx = playerStore.items.findIndex(i => String(i.id) === String(item.id))
           if (idx > -1) playerStore.items.splice(idx, 1)
         }
-        playerStore.spiritStones = resp.spiritStones
+        playerStore.spiritStones = Number(resp.spiritStones) || 0
         message.success('回收 ' + resp.name + '，获得 ' + resp.price + ' 焰晶')
       }
     } catch (e) { message.error(e.message || '回收失败') }
@@ -1179,7 +1182,7 @@ const navigateTo = inject('navigateTo')
         maxQuality: recycleMaxQuality.value
       })
       if (resp.success) {
-        playerStore.spiritStones = resp.spiritStones
+        playerStore.spiritStones = Number(resp.spiritStones) || 0
         // 重新加载玩家数据
         await authStore.refreshPlayerData?.()
         message.success('回收了 ' + resp.count + ' 件物品，获得 ' + resp.totalPrice + ' 焰晶')

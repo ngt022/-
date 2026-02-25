@@ -5257,7 +5257,7 @@ app.post('/api/recycle/batch', auth, async (req, res) => {
     if (!r.rows.length) return res.status(404).json({ error: '玩家不存在' });
     const gd = typeof r.rows[0].game_data === 'string' ? JSON.parse(r.rows[0].game_data) : (r.rows[0].game_data || {});
 
-    const equipQualityOrder = ['common','uncommon','rare','epic','legendary','mythic'];
+    const equipQualityOrder = ['common','uncommon','rare','epic','legendary','mythic','divine'];
     const petRarityOrder = ['mortal','spiritual','mystic','celestial','divine'];
     const maxEqIdx = maxQuality ? equipQualityOrder.indexOf(maxQuality) : 1; // 默认回收良品及以下
     const maxPetIdx = maxQuality ? petRarityOrder.indexOf(maxQuality) : 1;

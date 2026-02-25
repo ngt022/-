@@ -240,7 +240,7 @@ const exploreLocation = async (location) => {
     if (result.success) {
       // 更新前端状态
       playerStore.spirit = result.spirit
-      playerStore.spiritStones = result.spiritStones
+      playerStore.spiritStones = Number(result.spiritStones) || 0
       playerStore.cultivation = result.cultivation
       playerStore.explorationCount++
 

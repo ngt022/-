@@ -169,7 +169,7 @@
       })
       const data = await res.json()
       if (data.success) {
-        playerStore.spiritStones = data.spiritStones
+        playerStore.spiritStones = Number(data.spiritStones) || 0
         playerStore.name = newName.value.trim()
         playerStore.nameChangeCount = data.nameChangeCount
         message.success(data.nameChangeCount === 1 ? '焰名修改成功！首次修改免费' : '焰名修改成功！')

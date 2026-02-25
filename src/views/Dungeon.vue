@@ -572,7 +572,7 @@ const handleVictory = async () => {
     
     if (data.ok) {
       // 更新前端状态（以服务端返回为准）
-      playerStore.spiritStones = data.newTotal.spiritStones
+      playerStore.spiritStones = Number(data.newTotal.spiritStones) || 0
       playerStore.refinementStones = data.newTotal.refinementStones
       
       // 显示奖励

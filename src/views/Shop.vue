@@ -455,14 +455,14 @@ const confirmBuy = async () => {
     if (target.buyType === 'equip') {
       result = await apiCall('/api/shop/buy-equip', { quality: target.quality, equipType: target.equipType })
       if (result.success) {
-        playerStore.spiritStones = result.spiritStones
+        playerStore.spiritStones = Number(result.spiritStones) || 0
         playerStore.items.push(result.equip)
         message.success('获得装备：' + result.equip.name)
       }
     } else if (target.buyType === 'pill') {
       result = await apiCall('/api/shop/buy-pill', { pillId: target.id, count: buyCount.value })
       if (result.success) {
-        playerStore.spiritStones = result.spiritStones
+        playerStore.spiritStones = Number(result.spiritStones) || 0
         // 同步gameData关键字段
         const gd = result.gameData
         if (gd) {
@@ -479,7 +479,7 @@ const confirmBuy = async () => {
     } else if (target.buyType === 'material') {
       result = await apiCall('/api/shop/buy-material', { itemId: target.id, count: buyCount.value })
       if (result.success) {
-        playerStore.spiritStones = result.spiritStones
+        playerStore.spiritStones = Number(result.spiritStones) || 0
         const items = result.items
         if (items.reinforceStones) playerStore.reinforceStones += items.reinforceStones
         if (items.refinementStones) playerStore.refinementStones += items.refinementStones
@@ -500,7 +500,7 @@ const confirmBuy = async () => {
     } else if (target.buyType === 'herb') {
       result = await apiCall('/api/shop/buy-herb', { herbId: target.id, quality: target.quality, quantity: buyCount.value })
       if (result.success) {
-        playerStore.spiritStones = result.spiritStones
+        playerStore.spiritStones = Number(result.spiritStones) || 0
         message.success(result.message || '购买成功')
         // 刷新焰草数据
         if (typeof playerStore.loadHerbsFromServer === 'function') {
@@ -510,14 +510,14 @@ const confirmBuy = async () => {
     } else if (target.buyType === 'formula') {
       result = await apiCall('/api/shop/buy-formula', { formulaId: target.id })
       if (result.success) {
-        playerStore.spiritStones = result.spiritStones
+        playerStore.spiritStones = Number(result.spiritStones) || 0
         playerStore.pillRecipes.push(target.id)
         message.success(result.message || '焰方解锁成功')
       }
     } else if (target.buyType === 'pack') {
       result = await apiCall('/api/shop/buy-pack', { packId: target.id })
       if (result.success) {
-        playerStore.spiritStones = result.spiritStones
+        playerStore.spiritStones = Number(result.spiritStones) || 0
         purchasedPacks.value.push(target.id)
         if (result.equips) result.equips.forEach(e => playerStore.items.push(e))
         const gd = result.gameData
@@ -535,7 +535,7 @@ const confirmBuy = async () => {
     } else if (target.buyType === 'buff') {
       result = await apiCall('/api/shop/buy-buff', { buffId: target.id })
       if (result.success) {
-        playerStore.spiritStones = result.spiritStones
+        playerStore.spiritStones = Number(result.spiritStones) || 0
         playerBuffs.value[result.buffKey] = result.expiresAt
         message.success('特权激活成功！')
       }

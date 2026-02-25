@@ -369,7 +369,7 @@ const receiveNewPlayerGift = async () => {
     })
     const data = await res.json()
     if (data.success) {
-      playerStore.spiritStones = data.spiritStones
+      playerStore.spiritStones = Number(data.spiritStones) || 0
       playerStore.isNewPlayer = false
       message.success('获得20000焰晶，新手礼包领取成功！')
     } else { message.error(data.error || '领取失败') }

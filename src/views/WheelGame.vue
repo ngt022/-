@@ -313,7 +313,7 @@ const startSpinAnimation = (targetIndex, prize) => {
     
     // 更新玩家数据
     if (prize.type === 'stones') {
-      playerStore.spiritStones = (playerStore.spiritStones || 0) + prize.value
+      playerStore.spiritStones = Number(playerStore.spiritStones || 0) + Number(prize.value)
     } else if (prize.type === 'spirit') {
       playerStore.spirit = (playerStore.spirit || 0) + prize.value
     }

@@ -290,7 +290,7 @@ async function claimRewards() {
     const data = await res.json()
     if (!res.ok) { message.error(data.error); return }
     message.success(`领取成功！获得 ${formatNum(data.totalStones)} 焰晶`)
-    playerStore.spiritStones = data.newSpiritStones
+    playerStore.spiritStones = Number(data.newSpiritStones) || 0
     fetchRewards()
   } catch { message.error('领取失败') }
   finally { claiming.value = false }

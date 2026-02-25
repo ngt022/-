@@ -451,7 +451,8 @@ const equipmentQualities = {
   rare: { name: '中品', color: '#2196f3', statMod: 1.5, maxStatMod: 2.5 },
   epic: { name: '上品', color: '#9c27b0', statMod: 2.0, maxStatMod: 3.0 },
   legendary: { name: '极品', color: '#ff9800', statMod: 2.5, maxStatMod: 3.5 },
-  mythic: { name: '仙品', color: '#e91e63', statMod: 3.0, maxStatMod: 4.0 }
+  mythic: { name: '仙品', color: '#e91e63', statMod: 3.0, maxStatMod: 4.0 },
+  divine: { name: '神品', color: '#FF0000', statMod: 4.0, maxStatMod: 5.0 }
 }
 
 // 装备类型配置
@@ -483,7 +484,7 @@ const petRarities = {
 }
 
 const getEquipProbabilities = {
-  common: 0.5, uncommon: 0.3, rare: 0.12, epic: 0.05, legendary: 0.02, mythic: 0.01
+  common: 0.498, uncommon: 0.3, rare: 0.12, epic: 0.05, legendary: 0.02, mythic: 0.01, divine: 0.002
 }
 
 const wishlistBonus = {
@@ -621,7 +622,7 @@ const performGacha = async (times) => {
       lastResult.value = data
       
       // 更新本地数据
-      playerStore.spiritStones = data.spiritStones
+      playerStore.spiritStones = Number(data.spiritStones) || 0
       if (data.petEssenceGained) {
         playerStore.petEssence = (playerStore.petEssence || 0) + data.petEssenceGained
       }

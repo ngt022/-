@@ -404,7 +404,7 @@ async function endGame(isCompleted) {
     
     // 更新玩家焰晶
     if (data.spiritStones !== undefined) {
-      playerStore.spiritStones = data.spiritStones
+      playerStore.spiritStones = Number(data.spiritStones) || 0
     }
   } catch (err) {
     console.error('提交结果失败:', err)

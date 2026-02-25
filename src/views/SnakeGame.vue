@@ -181,7 +181,7 @@ const endGame = async () => {
       reward.value = res.reward
       remainingPlays.value = res.remainingPlays
       bestScore.value = res.bestScore
-      playerStore.spiritStones = (playerStore.spiritStones || 0) + res.reward
+      playerStore.spiritStones = Number(playerStore.spiritStones || 0) + Number(res.reward)
     }
   } catch (e) { console.error(e) }
 }

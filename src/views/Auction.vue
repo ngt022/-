@@ -342,7 +342,7 @@ async function doList() {
       duration_hours: listDuration.value
     })
     message.success(data.message)
-    playerStore.spiritStones = data.spiritStones
+    playerStore.spiritStones = Number(data.spiritStones) || 0
     // Reload player data
     const pd = await authStore.apiGet('/game/load')
     if (pd.gameData) playerStore.$patch(pd.gameData)

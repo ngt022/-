@@ -307,7 +307,7 @@ async function sendGift() {
     const d = await r.json()
     if (d.ok) { 
       msg.success("礼物已送出")
-      if (d.spiritStones !== undefined) playerStore.spiritStones = d.spiritStones
+      if (d.spiritStones !== undefined) playerStore.spiritStones = Number(d.spiritStones) || 0
       giftRemaining.value = d.remaining
       showGift.value = false
       fetchFriends()

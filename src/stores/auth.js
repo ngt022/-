@@ -127,7 +127,7 @@ export const useAuthStore = defineStore('auth', {
       })
       // Sync server-managed fields back to frontend
       if (result && result.ok) {
-        if (result.spiritStones !== undefined) playerStore.spiritStones = result.spiritStones
+        if (result.spiritStones !== undefined) playerStore.spiritStones = Number(result.spiritStones) || 0
         if (result.items !== undefined) playerStore.items = result.items
       }
     },

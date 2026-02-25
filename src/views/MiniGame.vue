@@ -390,7 +390,7 @@ const endGame = async () => {
       remainingPlays.value = res.remainingPlays
       bestScore.value = res.bestScore
       // 更新前端焰晶显示
-      playerStore.spiritStones = (playerStore.spiritStones || 0) + res.reward
+      playerStore.spiritStones = Number(playerStore.spiritStones || 0) + Number(res.reward)
     } else {
       alert(res.message)
     }

@@ -108,7 +108,7 @@ const claimReward = async () => {
     currentMail.value.is_claimed = true
     // 更新玩家资源
     if (resp.rewards) {
-      if (resp.rewards.spiritStones) playerStore.spiritStones += resp.rewards.spiritStones
+      if (resp.rewards.spiritStones) playerStore.spiritStones = Number(playerStore.spiritStones || 0) + Number(resp.rewards.spiritStones)
       if (resp.rewards.petEssence) playerStore.petEssence = (playerStore.petEssence || 0) + resp.rewards.petEssence
       if (resp.rewards.reinforceStones) playerStore.reinforceStones = (playerStore.reinforceStones || 0) + resp.rewards.reinforceStones
     }

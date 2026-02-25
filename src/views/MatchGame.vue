@@ -418,7 +418,7 @@ const endGame = async () => {
     if (res.success) {
       remainingPlays.value = res.remainingPlays
       if (res.spiritStones !== undefined) {
-        playerStore.spiritStones = res.spiritStones
+        playerStore.spiritStones = Number(res.spiritStones) || 0
       }
     } else {
       console.error('提交失败:', res.message)

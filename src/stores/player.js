@@ -479,7 +479,7 @@ export const usePlayerStore = defineStore('player', {
             // 用后端返回值更新 store
             this.spirit = data.spirit
             this.cultivation = data.cultivation
-            this.spiritStones = data.spiritStones
+            this.spiritStones = Number(data.spiritStones) || 0
             this.level = data.level
             this.realm = data.realm
             this.maxCultivation = data.maxCultivation
@@ -516,7 +516,7 @@ export const usePlayerStore = defineStore('player', {
       const stones = Math.floor(baseStonesPerMin * cappedMin * vipBoost)
       const spirit = Math.floor(baseSpiritPerMin * cappedMin * vipBoost)
       this.cultivation += cultivation
-      this.spiritStones += stones
+      this.spiritStones = Number(this.spiritStones || 0) + Number(stones)
       this.spirit += spirit
       if (this.cultivation >= this.maxCultivation) {
         await this.tryBreakthrough()
