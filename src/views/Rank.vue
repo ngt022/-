@@ -94,10 +94,8 @@ const monthlyDateRange = computed(() => {
   const now = new Date()
   const y = now.getFullYear()
   const m = now.getMonth()
-  const start = new Date(y, m, 1)
   const end = new Date(y, m + 1, 0)
-  const fmt = d => `${d.getMonth()+1}/${d.getDate()}`
-  return `${y}年${m+1}月 (${fmt(start)} - ${fmt(end)})`
+  return `${y}年${m+1}月 (2/25 - ${m+1}/${end.getDate()})`
 })
 const mainTab = ref('realtime')
 
