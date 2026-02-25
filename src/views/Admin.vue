@@ -640,17 +640,17 @@ function bugStatusText(s) { return { pending: '待处理', resolved: '已解决'
 
 async function loadBugs() {
   const params = bugStatusFilter.value ? '?status=' + bugStatusFilter.value : ''
-  const data = await apiFetch('/admin/bug-reports' + params)
+  const data = await apiFetch('/bug-reports' + params)
   if (data) bugs.value = data.reports || data || []
 }
 
 async function updateBugStatus(id, status) {
-  await apiFetch('/admin/bug-reports/' + id + '/status', { method: 'POST', headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) })
+  await apiFetch('/bug-reports/' + id + '/status', { method: 'POST', headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) })
   loadBugs()
 }
 
 async function viewBugDetail(id) {
-  const data = await apiFetch('/admin/bug-reports/' + id)
+  const data = await apiFetch('/bug-reports/' + id)
   if (data) { bugDetail.value = data.report || data; showBugDetail.value = true }
 }
 
@@ -660,7 +660,7 @@ const loginTrend = ref([])
 const levelDist = ref([])
 
 async function loadMonitor() {
-  const data = await apiFetch('/admin/monitor')
+  const data = await apiFetch('/monitor')
   if (data) {
     monitorData.value = data.overview || {}
     loginTrend.value = data.loginTrend || []
