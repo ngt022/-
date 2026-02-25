@@ -2738,6 +2738,24 @@ app.get('/api/admin/boss/list', auth, adminAuth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: safeError(e) }); }
 });
 
+// POST /api/admin/boss/:id/kill - 强制击杀Boss
+app.post('/api/admin/boss/:id/kill', auth, adminAuth, async (req, res) => {
+  try {
+    await pool.query("UPDATE world_bosses SET status = 'dead', current_hp = 0, death_time = NOW() WHERE id = $1", [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
+// DELETE /api/admin/boss/:id - 删除Boss记录
+app.delete('/api/admin/boss/:id', auth, adminAuth, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM boss_damage_log WHERE boss_id = $1', [req.params.id]);
+    await pool.query('DELETE FROM boss_rewards WHERE boss_id = $1', [req.params.id]);
+    await pool.query('DELETE FROM world_bosses WHERE id = $1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: safeError(e) }); }
+});
+
 // POST /api/friend/accept - 接受好友申请
 app.post("/api/friend/accept", auth, async (req, res) => {
   try {

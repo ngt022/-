@@ -151,28 +151,39 @@
       </div>
       <!-- Boss管理 -->
       <div v-if="activeTab === 'boss'" class="tab-content">
-        <div class="toolbar">
-          <button class="gold-btn" @click="spawnBoss()">🐉 生成新Boss</button>
+        <h3 class="section-title">🐉 生成新Boss</h3>
+        <div class="settings-grid">
+          <label>Boss名称<input v-model="bossForm.name" class="setting-input" placeholder="如: 炎魔王" /></label>
+          <label>等级<input type="number" v-model.number="bossForm.level" class="setting-input" /></label>
+          <label>最大血量<input type="number" v-model.number="bossForm.max_hp" class="setting-input" /></label>
+          <label>攻击力<input type="number" v-model.number="bossForm.attack" class="setting-input" /></label>
+          <label>防御力<input type="number" v-model.number="bossForm.defense" class="setting-input" /></label>
         </div>
-        <div v-if="currentBoss" class="boss-current">
-          <h3 class="section-title">当前Boss</h3>
+        <textarea v-model="bossForm.description" class="search-input" placeholder="Boss描述(可选)" rows="2" style="width:100%;margin:8px 0;resize:vertical"></textarea>
+        <button class="gold-btn" @click="spawnBoss()" :disabled="!bossForm.name || !bossForm.max_hp">🐉 发布Boss</button>
+
+        <div v-if="currentBoss" class="boss-current" style="margin-top:20px">
+          <h3 class="section-title">⚔️ 当前Boss</h3>
           <div class="stat-cards">
             <div class="stat-card"><div class="stat-value">{{ currentBoss.name }}</div><div class="stat-label">名称</div></div>
             <div class="stat-card"><div class="stat-value">{{ currentBoss.level }}</div><div class="stat-label">等级</div></div>
-            <div class="stat-card"><div class="stat-value">{{ formatNum(currentBoss.hp) }} / {{ formatNum(currentBoss.max_hp) }}</div><div class="stat-label">血量</div></div>
-            <div class="stat-card"><div class="stat-value">{{ currentBoss.status }}</div><div class="stat-label">状态</div></div>
+            <div class="stat-card"><div class="stat-value">{{ formatNum(currentBoss.current_hp) }} / {{ formatNum(currentBoss.max_hp) }}</div><div class="stat-label">血量</div></div>
+            <div class="stat-card"><div class="stat-value">{{ {active:'存活',dead:'已击杀'}[currentBoss.status] || currentBoss.status }}</div><div class="stat-label">状态</div></div>
           </div>
+          <button class="sm-btn red" @click="killBoss(currentBoss.id)" style="margin-top:8px">☠️ 强制击杀</button>
         </div>
-        <h3 class="section-title">历史Boss</h3>
+
+        <h3 class="section-title" style="margin-top:20px">📜 历史Boss</h3>
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>名称</th><th>等级</th><th>状态</th><th>击杀者</th><th>生成时间</th></tr></thead>
+            <thead><tr><th>名称</th><th>等级</th><th>血量</th><th>状态</th><th>生成时间</th><th>操作</th></tr></thead>
             <tbody>
               <tr v-for="b in bossList" :key="b.id">
                 <td>{{ b.name }}</td><td>{{ b.level }}</td>
-                <td><span :class="['status-badge', b.status === 'dead' ? 'inactive' : 'active']">{{ b.status }}</span></td>
-                <td class="mono">{{ b.killer ? shortAddr(b.killer) : '-' }}</td>
-                <td>{{ fmtDate(b.created_at) }}</td>
+                <td>{{ formatNum(b.current_hp) }}/{{ formatNum(b.max_hp) }}</td>
+                <td><span :class="['status-badge', b.status === 'dead' ? 'inactive' : 'active']">{{ {active:'存活',dead:'已击杀'}[b.status] || b.status }}</span></td>
+                <td>{{ fmtDate(b.spawn_time || b.created_at) }}</td>
+                <td><button class="sm-btn red" @click="deleteBoss(b.id)">🗑 删除</button></td>
               </tr>
             </tbody>
           </table>
@@ -881,6 +892,7 @@ async function deleteEvent(id) {
 // ===== Boss =====
 const bossList = ref([])
 const currentBoss = ref(null)
+const bossForm = reactive({ name: '', level: 100, max_hp: 500000, attack: 5000, defense: 2000, description: '' })
 
 async function loadBoss() {
   const d = await apiFetch('/boss/list')
@@ -891,8 +903,22 @@ async function loadBoss() {
   }
 }
 async function spawnBoss() {
-  if (!confirm('确定生成新Boss?')) return
-  await apiFetch('/boss/spawn', { method: 'POST' })
+  if (!bossForm.name || !bossForm.max_hp) return alert('请填写Boss名称和血量')
+  if (!confirm('确定发布新Boss? 当前存活的Boss会被强制击杀')) return
+  await apiFetch('/boss/spawn', { method: 'POST', body: JSON.stringify(bossForm) })
+  bossForm.name = ''; bossForm.description = ''
+  loadBoss()
+}
+
+async function killBoss(id) {
+  if (!confirm('确定强制击杀当前Boss?')) return
+  await apiFetch('/boss/' + id + '/kill', { method: 'POST' })
+  loadBoss()
+}
+
+async function deleteBoss(id) {
+  if (!confirm('确定删除此Boss记录?')) return
+  await apiFetch('/boss/' + id, { method: 'DELETE' })
   loadBoss()
 }
 
