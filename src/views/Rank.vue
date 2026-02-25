@@ -53,8 +53,9 @@
         </div>
       </div>
       <div class="reward-info">
-        <div class="reward-title">💰 月度奖励池：收入ROON的5%</div>
-        <div class="reward-rules">⚔️ 战力榜: ROON奖励 · 其他榜: 焰晶奖励(1名5000/2-3名3000/4-10名1000/11-50名500)</div>
+        <div class="reward-title">💰 月度荣耀 · {{ monthlyDateRange }}</div>
+        <div class="reward-rules">🏆 焰晶奖励: 1名20000 / 2-3名10000 / 4-10名5000 / 11-50名2000</div>
+        <div class="reward-rules" style="font-size:11px;opacity:0.7">每月自动结算，奖励直接发放到邮箱</div>
       </div>
       <div v-if="monthlyMyRank" class="my-rank-card">
         <span class="my-rank-label">我的排名</span>
@@ -88,6 +89,16 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 
 const authStore = useAuthStore()
+
+const monthlyDateRange = computed(() => {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = now.getMonth()
+  const start = new Date(y, m, 1)
+  const end = new Date(y, m + 1, 0)
+  const fmt = d => `${d.getMonth()+1}/${d.getDate()}`
+  return `${y}年${m+1}月 (${fmt(start)} - ${fmt(end)})`
+})
 const mainTab = ref('realtime')
 
 // === 实时排行 ===

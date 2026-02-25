@@ -271,5 +271,108 @@ export default function(pool, auth) {
     }
   });
 
+  // ===== 自动结算: 每月1号 00:05 自动快照+派奖上月 =====
+  async function autoMonthlySettle() {
+    const now = new Date();
+    if (now.getDate() !== 1) return; // 只在1号执行
+
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const month = lastMonth.getFullYear() + '-' + String(lastMonth.getMonth() + 1).padStart(2, '0');
+
+    try {
+      // 检查是否已快照
+      const rev = (await pool.query('SELECT * FROM monthly_revenue WHERE month = $1', [month])).rows[0];
+      if (rev && rev.snapshot_done && rev.distributed) return; // 已处理过
+
+      console.log('[MONTHLY-AUTO] Starting auto settle for', month);
+
+      // 1. 快照
+      if (!rev || !rev.snapshot_done) {
+        const types = ['power', 'pk', 'level', 'spending', 'minigame'];
+        let totalInserted = 0;
+        for (const type of types) {
+          let rows = [];
+          if (type === 'power') {
+            rows = (await pool.query('SELECT wallet, name, combat_power as score, level, realm FROM players ORDER BY combat_power DESC LIMIT 50')).rows;
+          } else if (type === 'pk') {
+            rows = (await pool.query('SELECT r.wallet, p.name, r.rank_score as score, p.level, p.realm FROM pk_rankings r JOIN players p ON p.wallet = r.wallet ORDER BY r.rank_score DESC LIMIT 50')).rows;
+          } else if (type === 'level') {
+            rows = (await pool.query('SELECT wallet, name, level as score, realm FROM players ORDER BY level DESC LIMIT 50')).rows;
+          } else if (type === 'spending') {
+            rows = (await pool.query('SELECT s.wallet, p.name, s.total_spent as score, p.level, p.realm FROM monthly_spending s JOIN players p ON p.wallet = s.wallet WHERE s.month = $1 ORDER BY s.total_spent DESC LIMIT 50', [month])).rows;
+          } else if (type === 'minigame') {
+            rows = (await pool.query('SELECT s.wallet, p.name, s.total_score as score, p.level, p.realm FROM minigame_scores s JOIN players p ON p.wallet = s.wallet WHERE s.month = $1 ORDER BY s.total_score DESC LIMIT 50', [month])).rows;
+          }
+          for (let i = 0; i < rows.length; i++) {
+            const r = rows[i];
+            await pool.query(
+              'INSERT INTO monthly_rankings (month, rank_type, wallet, player_name, score, rank_position) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING',
+              [month, type, r.wallet, r.name, r.score || 0, i + 1]
+            );
+            totalInserted++;
+          }
+        }
+        await pool.query(
+          'INSERT INTO monthly_revenue (month, snapshot_done) VALUES ($1, true) ON CONFLICT (month) DO UPDATE SET snapshot_done = true',
+          [month]
+        );
+        console.log('[MONTHLY-AUTO] Snapshot done:', totalInserted, 'records');
+      }
+
+      // 2. 派奖
+      const stoneRewards = {1:20000, 2:10000, 3:10000, 4:5000, 5:5000, 6:5000, 7:5000, 8:5000, 9:5000, 10:5000};
+      const types2 = ['power', 'pk', 'level', 'spending', 'minigame'];
+      let totalDistributed = 0;
+      for (const type of types2) {
+        const rankings = (await pool.query(
+          'SELECT * FROM monthly_rankings WHERE month = $1 AND rank_type = $2 ORDER BY rank_position ASC',
+          [month, type]
+        )).rows;
+        for (const r of rankings) {
+          let stones = 0;
+          if (r.rank_position <= 10) stones = stoneRewards[r.rank_position] || 5000;
+          else if (r.rank_position <= 50) stones = 2000;
+          if (stones > 0) {
+            await pool.query('UPDATE monthly_rankings SET reward_stones = $1 WHERE id = $2', [stones, r.id]);
+            await pool.query(
+              "UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)), spirit_stones = spirit_stones + $1 WHERE wallet = $2",
+              [stones, r.wallet]
+            );
+            // 发邮件通知
+            await pool.query(
+              "INSERT INTO player_mail (to_wallet, from_type, from_name, title, content, rewards) VALUES ($1, 'system', '系统', $2, $3, $4)",
+              [r.wallet, '🏆 月度荣耀奖励', '恭喜您在' + month + '月度排行榜中获得第' + r.rank_position + '名！', JSON.stringify({spiritStones: stones})]
+            );
+            totalDistributed++;
+          }
+        }
+      }
+      await pool.query('UPDATE monthly_revenue SET distributed = true WHERE month = $1', [month]);
+      console.log('[MONTHLY-AUTO] Rewards distributed:', totalDistributed, 'players');
+
+      // 3. 自动创建新赛季
+      const seasonNum = now.getFullYear() * 100 + (now.getMonth() + 1);
+      const newMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+      const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      // 结束旧赛季
+      await pool.query("UPDATE pk_seasons SET status = 'ended' WHERE status = 'active'");
+      // 创建新赛季
+      await pool.query(
+        'INSERT INTO pk_seasons (season_num, month, start_date, end_date) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
+        [seasonNum, newMonth, startDate, endDate]
+      );
+      console.log('[MONTHLY-AUTO] New season created:', seasonNum);
+
+    } catch (e) {
+      console.error('[MONTHLY-AUTO] Error:', e.message);
+    }
+  }
+
+  // 每小时检查一次（1号时执行）
+  setInterval(autoMonthlySettle, 3600000);
+  // 启动时也检查一次
+  setTimeout(autoMonthlySettle, 10000);
+
   return router;
 };
