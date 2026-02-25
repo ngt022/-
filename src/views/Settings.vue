@@ -42,6 +42,14 @@
       </n-space>
     </n-card>
 
+    <!-- 管理员工具 (仅管理员可见) -->
+    <n-card v-if="isAdmin" title="🛡️ 管理员工具" size="small" style="margin-bottom: 12px">
+      <n-space>
+        <n-button @click="navigateTo('admin')" type="warning" size="small">📊 后台管理</n-button>
+        <n-button @click="navigateTo('admin-events')" type="warning" size="small">🎉 活动管理</n-button>
+      </n-space>
+    </n-card>
+
     <!-- 危险操作 -->
     <n-card title="⚠️ 危险操作" size="small" style="margin-bottom: 12px">
       <n-button type="error" @click="handleReincarnation" ghost>涅槃重修</n-button>
@@ -72,7 +80,7 @@
 <script setup>
   import { usePlayerStore } from '../stores/player'
   import { useAuthStore } from '../stores/auth'
-  import { ref, onMounted, inject } from 'vue'
+  import { ref, computed, onMounted, inject } from 'vue'
   import { useDialog, useMessage } from 'naive-ui'
   import { sfxMute } from '../plugins/sfx'
 
@@ -157,6 +165,9 @@
   }
 
   const navigateTo = inject('navigateTo')
+  const ADMIN_WALLETS = ['0xfad7eb0814b6838b05191a07fb987957d50c4ca9', '0x82e402b05f3e936b63a874788c73e1552657c4f7']
+  const isAdmin = computed(() => ADMIN_WALLETS.includes(authStore.wallet?.toLowerCase()))
+
   const goToHelp = () => navigateTo('game-help')
 
   // 游戏建议
