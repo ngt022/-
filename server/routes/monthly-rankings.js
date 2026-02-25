@@ -241,7 +241,7 @@ export default function(pool, auth) {
         return rankings;
       };
 
-      // 战力榜发ROON(5%奖励池), 其他4榜发焰晶
+      // 所有5榜统一发焰晶奖励
       const types = ['power', 'pk', 'level', 'spending', 'minigame'];
       let totalDistributed = 0;
       const stoneRewards = {1:5000, 2:3000, 3:3000, 4:1000, 5:1000, 6:1000, 7:1000, 8:1000, 9:1000, 10:1000};
@@ -253,31 +253,19 @@ export default function(pool, auth) {
         )).rows;
 
         for (const r of rankings) {
-          if (type === 'power') {
-            let share = 0;
-            if (r.rank_position === 1) share = pool5 * 0.30;
-            else if (r.rank_position <= 3) share = pool5 * 0.15;
-            else if (r.rank_position <= 10) share = pool5 * 0.25 / 7;
-            else if (r.rank_position <= 50) share = pool5 * 0.15 / 40;
-            if (share > 0) {
-              await pool.query('UPDATE monthly_rankings SET reward_roon = $1 WHERE id = $2', [share.toFixed(6), r.id]);
-              totalDistributed++;
-            }
-          } else {
-            let stones = 0;
-            if (r.rank_position <= 10) stones = stoneRewards[r.rank_position] || 1000;
-            else if (r.rank_position <= 50) stones = 500;
-            if (stones > 0) {
-              await pool.query('UPDATE monthly_rankings SET reward_stones = $1 WHERE id = $2', [stones, r.id]);
-              await pool.query(`UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)), spirit_stones = spirit_stones + $1 WHERE wallet = $2`, [stones, r.wallet]);
-              totalDistributed++;
-            }
+          let stones = 0;
+          if (r.rank_position <= 10) stones = stoneRewards[r.rank_position] || 1000;
+          else if (r.rank_position <= 50) stones = 500;
+          if (stones > 0) {
+            await pool.query('UPDATE monthly_rankings SET reward_stones = $1 WHERE id = $2', [stones, r.id]);
+            await pool.query(`UPDATE players SET game_data = jsonb_set(game_data, '{spiritStones}', to_jsonb((COALESCE((game_data->>'spiritStones')::int, 0) + $1)::int)), spirit_stones = spirit_stones + $1 WHERE wallet = $2`, [stones, r.wallet]);
+            totalDistributed++;
           }
         }
       }
 
       await pool.query('UPDATE monthly_revenue SET distributed = true WHERE month = $1', [month]);
-      res.json({ success: true, message: `奖励分配完成, ${totalDistributed}人获奖, 总池 ${pool5.toFixed(4)} ROON` });
+      res.json({ success: true, message: `奖励分配完成, ${totalDistributed}人获奖` });
     } catch (e) {
       res.json({ success: false, message: e.message });
     }
