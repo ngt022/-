@@ -82,7 +82,7 @@ export default (pool, auth, adminAuth) => {
       const total = parseInt(countResult.rows[0].count)
 
       const result = await pool.query(
-        `SELECT p.id, p.wallet, p.name, p.created_at, p.updated_at, p.is_banned,
+        `SELECT p.id, p.wallet, p.name, p.created_at, p.updated_at, p.banned,
                 p.level, p.realm, p.spirit_stones, p.vip_level, p.combat_power
          FROM players p ${whereClause}
          ORDER BY p.id DESC LIMIT $1 OFFSET $2`,
@@ -113,10 +113,10 @@ export default (pool, auth, adminAuth) => {
       const values = []
       let idx = 1
 
-      // 处理 is_banned
-      if (data.is_banned !== undefined) {
-        updates.push(`is_banned = $${idx}`)
-        values.push(data.is_banned)
+      // 处理 banned
+      if (data.banned !== undefined) {
+        updates.push(`banned = $${idx}`)
+        values.push(data.banned)
         idx++
       }
 
@@ -803,7 +803,7 @@ export default (pool, auth, adminAuth) => {
       const adminWallet = req.user.wallet
 
       const result = await pool.query(
-        'UPDATE players SET is_banned = true WHERE wallet = $1 RETURNING *',
+        'UPDATE players SET banned = true WHERE wallet = $1 RETURNING *',
         [wallet]
       )
 
@@ -825,7 +825,7 @@ export default (pool, auth, adminAuth) => {
       const adminWallet = req.user.wallet
 
       const result = await pool.query(
-        'UPDATE players SET is_banned = false WHERE wallet = $1 RETURNING *',
+        'UPDATE players SET banned = false WHERE wallet = $1 RETURNING *',
         [wallet]
       )
 
