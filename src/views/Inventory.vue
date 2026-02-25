@@ -2,7 +2,7 @@
   <div class="storage-container">
     <game-guide>
       <p>🎒 共<strong>13个装备栏位</strong>：焰杖、头部、衣服、裤子、鞋子、肩甲、手套、护腕、焰心链、符文戒×2、腰带、焰器</p>
-      <p>🎨 6个品质：<strong>凡品→良品→优品→极品→仙品→神品</strong></p>
+      <p>🎨 7个品质：<strong>凡品→下品→中品→上品→极品→仙品→神品</strong>（神品限量全服50件/槽位）</p>
       <p>🔥 <strong>淬火</strong>：消耗淬火石强化装备，每级+10%属性，最高100级</p>
       <p>✨ <strong>铭符</strong>：消耗符文石重随机属性，±30%浮动，30%概率换属性</p>
       <p>⚡ 一键穿戴/卸下快速管理装备</p>
@@ -845,7 +845,7 @@ const navigateTo = inject('navigateTo')
   }
 
   // 品质价值排序（高→低）
-  const qualityValue = { mythic: 6, legendary: 5, epic: 4, rare: 3, uncommon: 2, common: 1 }
+  const qualityValue = { divine: 7, mythic: 6, legendary: 5, epic: 4, rare: 3, uncommon: 2, common: 1 }
   const petRarityValue = { divine: 5, celestial: 4, mystic: 3, spiritual: 2, mortal: 1 }
 
 
@@ -1011,6 +1011,7 @@ const navigateTo = inject('navigateTo')
     playerStore.items.filter(item => !selectedEquipmentType.value || item.type === selectedEquipmentType.value)
       .forEach(item => { equipmentsByQuality[item.quality] = (equipmentsByQuality[item.quality] || 0) + 1 })
     return [
+      { label: '神品', value: 'divine', disabled: !equipmentsByQuality['divine'] },
       { label: '仙品', value: 'mythic', disabled: !equipmentsByQuality['mythic'] },
       { label: '极品', value: 'legendary', disabled: !equipmentsByQuality['legendary'] },
       { label: '上品', value: 'epic', disabled: !equipmentsByQuality['epic'] },
@@ -1076,7 +1077,8 @@ const navigateTo = inject('navigateTo')
     rare: '500💎 + 8淬火石',
     epic: '2000💎 + 20淬火石 + 5洗练石',
     legendary: '8000💎 + 50淬火石 + 15洗练石',
-    mythic: '30000💎 + 100淬火石 + 50洗练石 + 20精华'
+    mythic: '30000💎 + 100淬火石 + 50洗练石 + 20精华',
+    divine: '100000💎 + 200淬火石 + 100洗练石 + 50精华'
   }
   const getRecyclePreview = (equip) => {
     const base = recycleRewards[equip?.quality] || '50💎 + 1淬火石'
@@ -1409,6 +1411,8 @@ const navigateTo = inject('navigateTo')
   .eq-quality-epic { border: 1.5px solid rgba(255,165,0,0.6); box-shadow: 0 0 10px rgba(255,165,0,0.3); }
   .eq-quality-legendary { border: 1.5px solid rgba(255,215,0,0.6); box-shadow: 0 0 10px rgba(255,215,0,0.35); }
   .eq-quality-mythic { border: 1.5px solid rgba(255,80,0,0.6); box-shadow: 0 0 12px rgba(255,80,0,0.4); animation: mythic-pulse 2s ease-in-out infinite; }
+  .eq-quality-divine { border: 2px solid rgba(255,0,0,0.8); box-shadow: 0 0 16px rgba(255,0,0,0.6), 0 0 32px rgba(255,215,0,0.3); animation: divine-pulse 1.5s ease-in-out infinite; }
+  @keyframes divine-pulse { 0%,100% { box-shadow: 0 0 16px rgba(255,0,0,0.6), 0 0 32px rgba(255,215,0,0.3); } 50% { box-shadow: 0 0 24px rgba(255,0,0,0.8), 0 0 48px rgba(255,215,0,0.5); } }
 
   @keyframes mythic-pulse {
     0%,100% { box-shadow: 0 0 8px rgba(255,80,0,0.3); }
@@ -1465,6 +1469,7 @@ const navigateTo = inject('navigateTo')
     50% { box-shadow: 0 0 12px rgba(255,215,0,0.4), inset 0 0 8px rgba(255,215,0,0.08); }
   }
   .sq-mythic { border: 1.5px solid rgba(255,80,0,0.4); animation: mythic-pulse 2s ease-in-out infinite; }
+  .sq-divine { border-color: #FF0000; box-shadow: 0 0 12px rgba(255,0,0,0.5), 0 0 24px rgba(255,215,0,0.3); }
   .sq-mythic:hover { border-color: rgba(255,80,0,0.7); box-shadow: 0 0 16px rgba(255,80,0,0.5); }
 
   /* 格子内容 */

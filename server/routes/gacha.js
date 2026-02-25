@@ -15,12 +15,13 @@ const equipmentQualities = {
   rare: { name: '中品', color: '#2196f3', statMod: 2.5, maxStatMod: 3.5 },
   epic: { name: '上品', color: '#9c27b0', statMod: 4.0, maxStatMod: 5.5 },
   legendary: { name: '极品', color: '#ff9800', statMod: 6.0, maxStatMod: 8.0 },
-  mythic: { name: '仙品', color: '#e91e63', statMod: 10.0, maxStatMod: 13.0 }
+  mythic: { name: '仙品', color: '#e91e63', statMod: 10.0, maxStatMod: 13.0 },
+  divine: { name: '神品', color: '#FF0000', statMod: 15.0, maxStatMod: 18.0 }
 }
 
 // 装备基础概率（fallback）
 const baseEquipProbabilities = {
-  common: 0.5, uncommon: 0.3, rare: 0.12, epic: 0.05, legendary: 0.02, mythic: 0.01
+  common: 0.498, uncommon: 0.3, rare: 0.12, epic: 0.05, legendary: 0.02, mythic: 0.01, divine: 0.002
 }
 
 // 装备类型配置
@@ -103,7 +104,7 @@ const petPool = {
 }
 
 // 装备出售价格
-const sellPrices = { common: 100, uncommon: 150, rare: 300, epic: 800, legendary: 3000, mythic: 15000 }
+const sellPrices = { common: 100, uncommon: 150, rare: 300, epic: 800, legendary: 3000, mythic: 15000, divine: 50000 }
 // 抽卡费用阶梯（根据玩家等级）
 function getGachaCostTier(level) {
   if (level >= 91) return { normal: 1800, wishlist: 2500 };
@@ -250,10 +251,10 @@ async function getGlobalMythicEquipCount(slot) {
 }
 
 // 仙品装备全服编号系统
-async function getNextMythicSerial(pool) {
+async function getNextDivineSerial(pool) {
   try {
     // 确保计数器表存在
-    await pool.query(`CREATE TABLE IF NOT EXISTS mythic_serials (
+    await pool.query(`CREATE TABLE IF NOT EXISTS divine_serials (
       id SERIAL PRIMARY KEY,
       slot TEXT NOT NULL,
       serial_number INT NOT NULL,
@@ -261,25 +262,25 @@ async function getNextMythicSerial(pool) {
       equipment_name TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`)
-    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_mythic_serial_slot ON mythic_serials(slot, serial_number)`)
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_divine_serial_slot ON divine_serials(slot, serial_number)`)
     
     // 获取全局下一个编号（不分槽位，全服统一编号）
-    const res = await pool.query('SELECT COALESCE(MAX(serial_number), 0) + 1 as next_serial FROM mythic_serials')
+    const res = await pool.query('SELECT COALESCE(MAX(serial_number), 0) + 1 as next_serial FROM divine_serials')
     return res.rows[0].next_serial
   } catch (e) {
-    logger.error('Get next mythic serial error:', e)
+    logger.error('Get next divine serial error:', e)
     return Date.now() // fallback
   }
 }
 
-async function registerMythicSerial(pool, slot, serialNumber, playerWallet, equipmentName) {
+async function registerDivineSerial(pool, slot, serialNumber, playerWallet, equipmentName) {
   try {
     await pool.query(
-      'INSERT INTO mythic_serials (slot, serial_number, player_wallet, equipment_name) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
+      'INSERT INTO divine_serials (slot, serial_number, player_wallet, equipment_name) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
       [slot, serialNumber, playerWallet, equipmentName]
     )
   } catch (e) {
-    logger.error('Register mythic serial error:', e)
+    logger.error('Register divine serial error:', e)
   }
 }
 
@@ -319,8 +320,8 @@ const PERCENT_CAPS = {
 function generateEquipmentName(type, quality) {
   const typeInfo = equipmentTypes[type]
   const prefix = typeInfo.prefixes[Math.floor(Math.random() * typeInfo.prefixes.length)]
-  const suffixes = ['', '·真', '·极', '·道', '·天', '·仙', '·圣', '·神']
-  const suffixIndex = quality === 'mythic' ? 7 : quality === 'legendary' ? 6 : quality === 'epic' ? 5 : quality === 'rare' ? 4 : quality === 'uncommon' ? 3 : 0
+  const suffixes = ['', '·真', '·极', '·道', '·天', '·仙', '·圣', '·神', '·天神']
+  const suffixIndex = quality === 'divine' ? 8 : quality === 'mythic' ? 7 : quality === 'legendary' ? 6 : quality === 'epic' ? 5 : quality === 'rare' ? 4 : quality === 'uncommon' ? 3 : 0
   const suffix = suffixes[suffixIndex]
   return `${prefix}${typeInfo.name}${suffix}`
 }
@@ -338,7 +339,8 @@ function generateEquipment(level, type = null, quality = null) {
     else if (roll < 0.82) quality = 'rare'
     else if (roll < 0.93) quality = 'epic'
     else if (roll < 0.98) quality = 'legendary'
-    else quality = 'mythic'
+    else if (roll < 0.998) quality = 'mythic'
+    else quality = 'divine'
   }
   
   const minLevel = Math.max(1, level - 10)
@@ -352,7 +354,8 @@ function generateEquipment(level, type = null, quality = null) {
     if (stat in PERCENT_CAPS) {
       // Percentage stats: only scale with sqrt of qualityMod, no level scaling
       const value = base * Math.sqrt(qualityMod)
-      baseStats[stat] = Math.min(PERCENT_CAPS[stat], Math.round(value * 100) / 100)
+      const cap = quality === 'divine' ? PERCENT_CAPS[stat] * 1.3 : PERCENT_CAPS[stat]
+      baseStats[stat] = Math.min(cap, Math.round(value * 100) / 100)
     } else {
       // Flat stats: scale with both quality and level
       const value = base * qualityMod * levelMod
@@ -482,25 +485,25 @@ async function drawSingleEquip(level, wishlistEnabled, wishEquipQuality, gachaRa
   const types = Object.keys(equipmentTypes)
   const type = types[Math.floor(Math.random() * types.length)]
   
-  // 限量检查：mythic装备
-  if (quality === 'mythic') {
+  // 限量检查：divine装备（全服50件/槽位）
+  if (quality === 'divine') {
     const gachaLimits = await getConfig('gacha_limits')
-    const limit = gachaLimits?.mythic_per_slot || 50
-    const currentCount = await getGlobalMythicEquipCount(type)
+    const limit = gachaLimits?.divine_per_slot || 50
+    const currentCount = await getGlobalDivineEquipCount(type)
     
-    // 如果超限且不是保底触发，降级为legendary
-    if (currentCount >= limit && forcedQuality !== 'mythic') {
-      quality = 'legendary'
+    // 如果超限，降级为mythic
+    if (currentCount >= limit) {
+      quality = 'mythic'
     }
   }
   
   const item = generateEquipment(level, type, quality)
   
-  // 仙品装备分配全服编号
-  if (quality === 'mythic') {
-    const serialNumber = await getNextMythicSerial(pool)
+  // 神品装备分配全服编号
+  if (quality === 'divine') {
+    const serialNumber = await getNextDivineSerial(pool)
     item.serialNumber = serialNumber
-    item.serialTag = '仙品 #' + String(serialNumber).padStart(3, '0')
+    item.serialTag = '神品 #' + String(serialNumber).padStart(3, '0')
   }
   
   return { item, quality }
@@ -814,8 +817,8 @@ router.post('/draw', auth, async (req, res) => {
     for (const item of results) {
       item.id = Date.now() + Math.random()
       // 注册仙品编号
-      if (item.quality === 'mythic' && item.serialNumber) {
-        await registerMythicSerial(pool, item.type, item.serialNumber, wallet, item.name)
+      if (item.quality === 'divine' && item.serialNumber) {
+        await registerDivineSerial(pool, item.type, item.serialNumber, wallet, item.name)
       }
       items.push(item)
     }
