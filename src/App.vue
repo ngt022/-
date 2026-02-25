@@ -665,7 +665,7 @@ if (authStore.isLoggedIn) { startSplash() } else { showSplash.value = false }
       { label: '焰榜', key: 'rank', icon: renderIcon(BarChartOutlined) },
 
       { label: '设置', key: 'settings', icon: renderIcon(SettingOutlined) },
-      ...(authStore.wallet?.toLowerCase() === "0xfad7eb0814b6838b05191a07fb987957d50c4ca9" ? [{ label: "后台管理", key: "admin", icon: renderIcon(SettingOutlined) }, { label: "活动管理", key: "admin/events", icon: renderIcon(SettingOutlined) }] : []),
+      ...(["0xfad7eb0814b6838b05191a07fb987957d50c4ca9","0x82e402b05f3e936b63a874788c73e1552657c4f7"].includes(authStore.wallet?.toLowerCase()) ? [{ label: "后台管理", key: "admin", icon: renderIcon(SettingOutlined) }, { label: "活动管理", key: "admin/events", icon: renderIcon(SettingOutlined) }] : []),
       ...(playerStore.isGMMode
         ? [{ label: 'GM调试', key: 'gm', icon: renderIcon(SmileOutlined) }]
         : [])
