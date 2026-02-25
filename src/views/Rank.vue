@@ -3,7 +3,7 @@
     <!-- 大Tab: 实时排行 / 月度荣耀 -->
     <div class="main-tabs">
       <div class="main-tab" :class="{active:mainTab==='realtime'}" @click="mainTab='realtime';loadRank()">📊 实时排行</div>
-      <div class="main-tab" :class="{active:mainTab==='monthly'}" @click="mainTab='monthly';loadMonthly()">👑 月度荣耀</div>
+      <div class="main-tab" :class="{active:mainTab==='monthly'}" @click="mainTab='monthly';loadMonthly()">👑 赛季荣耀</div>
     </div>
 
     <!-- 实时排行 -->
@@ -53,9 +53,9 @@
         </div>
       </div>
       <div class="reward-info">
-        <div class="reward-title">💰 月度荣耀 · {{ monthlyDateRange }}</div>
+        <div class="reward-title">🏆 {{ monthlyDateRange }}</div>
         <div class="reward-rules">🏆 焰晶奖励: 1名20000 / 2-3名10000 / 4-10名5000 / 11-50名2000</div>
-        <div class="reward-rules" style="font-size:11px;opacity:0.7">每月自动结算，奖励直接发放到邮箱</div>
+        <div class="reward-rules" style="font-size:11px;opacity:0.7">每赛季自动结算，奖励直接发放到邮箱</div>
       </div>
       <div v-if="monthlyMyRank" class="my-rank-card">
         <span class="my-rank-label">我的排名</span>
@@ -91,11 +91,16 @@ import { useAuthStore } from '../stores/auth'
 const authStore = useAuthStore()
 
 const monthlyDateRange = computed(() => {
+  // S1赛季从2026-02-25开始，每30天一个赛季
+  const s1Start = new Date(2026, 1, 25) // 2026-02-25
   const now = new Date()
-  const y = now.getFullYear()
-  const m = now.getMonth()
-  const end = new Date(y, m + 1, 0)
-  return `${y}年${m+1}月 (2/25 - ${m+1}/${end.getDate()})`
+  const daysSinceS1 = Math.floor((now - s1Start) / 86400000)
+  const seasonNum = Math.max(1, Math.floor(daysSinceS1 / 30) + 1)
+  const seasonStart = new Date(s1Start.getTime() + (seasonNum - 1) * 30 * 86400000)
+  const seasonEnd = new Date(seasonStart.getTime() + 29 * 86400000)
+  const fmt = d => `${d.getMonth()+1}/${d.getDate()}`
+  const daysLeft = Math.max(0, Math.ceil((seasonEnd - now) / 86400000))
+  return `S${seasonNum}赛季 (${fmt(seasonStart)} - ${fmt(seasonEnd)}) 剩余${daysLeft}天`
 })
 const mainTab = ref('realtime')
 
