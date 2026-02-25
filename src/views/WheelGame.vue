@@ -12,10 +12,10 @@
 
     <!-- 转盘区域 -->
     <div class="wheel-container">
-      <!-- 顶部指针 -->
-      <div class="wheel-pointer">
-        <svg viewBox="0 0 40 30" width="40" height="30">
-          <polygon points="20,0 40,30 0,30" fill="#ff6b35" stroke="#d4a843" stroke-width="2"/>
+      <!-- 中心指针（在按钮上方） -->
+      <div class="wheel-pointer-center">
+        <svg viewBox="0 0 30 40" width="24" height="32">
+          <polygon points="15,0 30,32 0,32" fill="#ff6b35" stroke="#d4a843" stroke-width="2"/>
         </svg>
       </div>
 
@@ -403,14 +403,15 @@ onUnmounted(() => {
   margin-bottom: 20px;
 }
 
-/* 顶部指针 */
-.wheel-pointer {
+/* 中心指针 */
+.wheel-pointer-center {
   position: absolute;
-  top: -15px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+  transform: translate(-50%, -100%) translateY(-8px);
+  z-index: 25;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.8));
+  pointer-events: none;
 }
 
 /* 转盘主体 */
