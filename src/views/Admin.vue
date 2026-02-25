@@ -902,7 +902,7 @@ const settingsData = reactive({
   monthly_card_price: 0,
   monthly_card_daily: 0,
   monthly_card_days: 30,
-  recharge_rate: 100,
+  recharge_rate: 10000,
 })
 
 async function loadSettings() {
