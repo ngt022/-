@@ -120,9 +120,9 @@
     <div v-if="showResult" class="result-modal" @click.self="closeResult">
       <div class="result-content">
         <div class="result-glow"></div>
-        <div class="result-icon">{{ resultPrize?.icon }}</div>
+        <div class="result-icon">{{ resultPrize?.type === 'stones' ? '💎' : resultPrize?.type === 'spirit' ? '🔥' : '🧪' }}</div>
         <h2 class="result-title">恭喜获得</h2>
-        <div class="result-prize">{{ resultPrize?.name }}</div>
+        <div class="result-prize">{{ resultPrize?.label }}</div>
         <button class="result-btn" @click="closeResult">收下奖励</button>
       </div>
     </div>
@@ -272,7 +272,7 @@ const spin = async () => {
       freeSpins.value = res.freeSpins || Math.max(0, freeSpins.value - 1)
       
       // 开始动画
-      startSpinAnimation(res.sectorIndex, res.prize)
+      startSpinAnimation(res.sectorIndex, res.reward)
     } else {
       showError(res.message || '转动失败')
     }
@@ -312,7 +312,7 @@ const startSpinAnimation = (targetIndex, prize) => {
     showResult.value = true
     
     // 更新玩家数据
-    if (prize.type === 'crystal') {
+    if (prize.type === 'stones') {
       playerStore.spiritStones = (playerStore.spiritStones || 0) + prize.value
     } else if (prize.type === 'spirit') {
       playerStore.spirit = (playerStore.spirit || 0) + prize.value
