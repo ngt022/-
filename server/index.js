@@ -424,6 +424,9 @@ app.use("/api/pk", pkSeasonRoutes);
 const { default: arenaInit } = await import("./routes/arena.js");
 const arenaRoutes = arenaInit(pool, auth, runPkBattle, computeFinalStats, getMountTitleBonuses);
 app.use("/api/arena", arenaRoutes);
+const { default: chainConfigInit } = await import("./routes/chain-config.js");
+const chainConfigRoutes = chainConfigInit(pool, auth);
+app.use("/api/admin", chainConfigRoutes);
 app.use('/api/shop', shopRoutes(pool, auth));
 app.use('/api/inventory', inventoryRoutes(pool, auth));
 
