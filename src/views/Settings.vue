@@ -36,6 +36,7 @@
     <n-card title="🔧 系统工具" size="small" style="margin-bottom: 12px">
       <n-space>
         <n-button @click="goToHelp" type="success" size="small">📖 游戏帮助</n-button>
+        <n-button @click="showSuggestion = true" type="info" size="small">💡 游戏建议</n-button>
         <n-button @click="resetGuides" type="info" size="small">🔄 重置新手引导</n-button>
         <n-button @click="clearCache" type="warning" size="small">🗑️ 清理缓存</n-button>
       </n-space>
@@ -56,6 +57,16 @@
         </n-timeline-item>
       </n-timeline>
     </n-card>
+    <!-- 游戏建议弹窗 -->
+    <n-modal v-model:show="showSuggestion" preset="card" title="💡 游戏建议" style="max-width: 90vw; width: 400px" :bordered="false">
+      <n-space vertical>
+        <n-select v-model:value="suggestionType" :options="suggestionTypes" placeholder="选择建议类型" />
+        <n-input v-model:value="suggestionText" type="textarea" placeholder="请描述你的建议或想法..." :rows="5" maxlength="500" show-count />
+        <n-button type="primary" block @click="submitSuggestion" :loading="submitting" :disabled="!suggestionText.trim()">
+          提交建议
+        </n-button>
+      </n-space>
+    </n-modal>
   </div>
 </template>
 <script setup>
@@ -147,6 +158,40 @@
 
   const navigateTo = inject('navigateTo')
   const goToHelp = () => navigateTo('game-help')
+
+  // 游戏建议
+  const showSuggestion = ref(false)
+  const suggestionText = ref('')
+  const suggestionType = ref('feature')
+  const submitting = ref(false)
+  const suggestionTypes = [
+    { label: '\u{1F195} 新功能建议', value: 'feature' },
+    { label: '\u2696\uFE0F 数值平衡', value: 'balance' },
+    { label: '\u{1F3A8} 界面优化', value: 'ui' },
+    { label: '\u{1F3AE} 玩法建议', value: 'gameplay' },
+    { label: '\u{1F4AC} 其他', value: 'other' }
+  ]
+  const submitSuggestion = async () => {
+    if (!suggestionText.value.trim()) return
+    submitting.value = true
+    try {
+      const res = await authStore.apiPost('/bug-report', {
+        type: 'suggestion',
+        description: '[' + (suggestionTypes.find(t => t.value === suggestionType.value)?.label || suggestionType.value) + '] ' + suggestionText.value
+      })
+      if (res.success !== false) {
+        window.$message?.success('感谢你的建议！')
+        suggestionText.value = ''
+        showSuggestion.value = false
+      } else {
+        window.$message?.error(res.message || '提交失败')
+      }
+    } catch (e) {
+      window.$message?.error('提交失败: ' + e.message)
+    } finally {
+      submitting.value = false
+    }
+  }
 
   const resetGuides = () => {
     localStorage.removeItem('xx_guide_seen')
