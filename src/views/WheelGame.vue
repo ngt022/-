@@ -21,14 +21,14 @@
 
       <!-- 转盘主体 -->
       <div class="wheel-wrapper" ref="wheelWrapper">
-        <canvas ref="wheelCanvas" class="wheel-canvas"></canvas>
-        <!-- 旋转层 -->
+        <!-- 旋转层（canvas+文字一起转） -->
         <div 
           class="wheel-rotate-layer" 
           ref="rotateLayer"
           :style="{ transform: `rotate(${rotation}deg)` }"
         >
-          <!-- 扇区内容（使用DOM定位显示文字） -->
+          <canvas ref="wheelCanvas" class="wheel-canvas"></canvas>
+          <!-- 扇区内容 -->
           <div 
             v-for="(prize, index) in prizes" 
             :key="index"
@@ -289,14 +289,18 @@ const startSpinAnimation = (targetIndex, prize) => {
   isSpinning.value = true
   
   // 计算目标角度
-  // 指针在顶部（0度），需要让目标扇区转到顶部
-  // 扇区索引从0开始顺时针排列，所以需要转动的角度为 360 - (index * 45 + 22.5)
-  const baseRotation = 360 - (targetIndex * sectorAngle + sectorAngle / 2)
+  // 指针在顶部(0度)，canvas绘制时sector 0从-90度(顶部)开始
+  // 要让sector N的中心对准指针，需要转: -(N * sectorAngle + sectorAngle/2)
+  const targetSectorCenter = targetIndex * sectorAngle + sectorAngle / 2
   
-  // 至少转5圈 + 目标角度
-  const minSpins = 5
-  const additionalSpins = Math.floor(Math.random() * 3) // 5-7圈
-  const targetRotation = rotation.value + (minSpins + additionalSpins) * 360 + baseRotation
+  // 归一化当前角度
+  const currentMod = rotation.value % 360
+  // 目标绝对角度(负方向转到目标扇区中心)
+  const targetAngle = 360 - targetSectorCenter
+  
+  // 至少转5圈 + 随机1-3圈
+  const extraSpins = 5 + Math.floor(Math.random() * 3)
+  const targetRotation = Math.floor(rotation.value / 360) * 360 + extraSpins * 360 + targetAngle
   
   // 设置动画
   rotation.value = targetRotation
