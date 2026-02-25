@@ -320,8 +320,8 @@ const PERCENT_CAPS = {
 function generateEquipmentName(type, quality) {
   const typeInfo = equipmentTypes[type]
   const prefix = typeInfo.prefixes[Math.floor(Math.random() * typeInfo.prefixes.length)]
-  const suffixes = ['', '·真', '·极', '·道', '·天', '·仙', '·圣', '·神', '·天神']
-  const suffixIndex = quality === 'divine' ? 8 : quality === 'mythic' ? 7 : quality === 'legendary' ? 6 : quality === 'epic' ? 5 : quality === 'rare' ? 4 : quality === 'uncommon' ? 3 : 0
+  const suffixes = ['', '·初', '·真', '·极', '·圣', '·仙', '·神']
+  const suffixIndex = quality === 'divine' ? 6 : quality === 'mythic' ? 5 : quality === 'legendary' ? 4 : quality === 'epic' ? 3 : quality === 'rare' ? 2 : quality === 'uncommon' ? 1 : 0
   const suffix = suffixes[suffixIndex]
   return `${prefix}${typeInfo.name}${suffix}`
 }
