@@ -745,7 +745,7 @@ const isHome = computed(() => currentPage.value === 'home')
   const showNewbieTutorial = ref(false)
   // 登录后检查是否需要新手引导
   watch(() => authStore.isLoggedIn, (loggedIn) => {
-    if (loggedIn && !hasSeenGuide('newbie_tutorial')) {
+    if (loggedIn && !hasSeenGuide('newbie_tutorial') && (playerStore.level || 1) <= 10) {
       setTimeout(() => { showNewbieTutorial.value = true }, 1000)
     }
   }, { immediate: true })
