@@ -4974,7 +4974,7 @@ app.post('/api/gift/newplayer', auth, async (req, res) => {
 // === 玩家资料 ===
 app.get("/api/player/profile", auth, async (req, res) => {
   try {
-    const r = await pool.query("SELECT name, level, realm, vip_level, combat_power, created_at, total_recharge FROM players WHERE wallet = $1", [req.wallet]);
+    const r = await pool.query("SELECT name, level, realm, vip_level, combat_power, created_at, total_recharge FROM players WHERE wallet = $1", [req.user.wallet]);
     if (r.rows.length === 0) return res.status(404).json({ error: "玩家不存在" });
     const p = r.rows[0];
     res.json({ success: true, name: p.name, level: p.level, realm: p.realm, vipLevel: p.vip_level, combatPower: p.combat_power, createdAt: p.created_at, totalRecharge: p.total_recharge });
