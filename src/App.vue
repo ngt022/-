@@ -744,11 +744,11 @@ const getSkeletonType = (page) => {
 const isHome = computed(() => currentPage.value === 'home')
   const showNewbieTutorial = ref(false)
   // 登录后检查是否需要新手引导
-  watch(() => authStore.isLoggedIn, (loggedIn) => {
-    if (loggedIn && !hasSeenGuide('newbie_tutorial') && (playerStore.level || 1) <= 10) {
-      setTimeout(() => { showNewbieTutorial.value = true }, 1000)
+  watch(() => playerStore.level, (level) => {
+    if (authStore.isLoggedIn && !hasSeenGuide('newbie_tutorial') && level > 0 && level <= 10) {
+      setTimeout(() => { showNewbieTutorial.value = true }, 500)
     }
-  }, { immediate: true })
+  })
   const onTutorialComplete = () => { showNewbieTutorial.value = false }
 
   const pageTitles = {
