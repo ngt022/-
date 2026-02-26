@@ -879,6 +879,7 @@ app.post('/api/game/offline-reward', auth, async (req, res) => {
     gd.maxCultivation = newMaxCult;
     gd.lastOnlineTime = now;
     gd.lastTickTime = now;
+    gd.spiritStones = spiritStones; // sync game_data with spirit_stones column
 
     await pool.query(
       'UPDATE players SET game_data = $1, level = $2, realm = $3, spirit_stones = $4, updated_at = NOW() WHERE wallet = $5',
